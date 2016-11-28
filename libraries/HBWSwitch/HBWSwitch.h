@@ -1,0 +1,28 @@
+// Switches
+
+#ifndef HBWSwitch_h
+#define HBWSwitch_h
+
+#include <inttypes.h>
+#include "HBWired.h"
+
+struct hbw_config_switch {
+	uint8_t logging:1;              // 0x0000
+	uint8_t        :7;              // 0x0000
+};
+
+
+class HBWSwitch : public HBWChannel {
+  public:
+    HBWSwitch(uint8_t _pin, hbw_config_switch* _config);
+    virtual uint8_t get(uint8_t* data);   
+    virtual void loop(HBWDevice*, uint8_t channel);   
+    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+  private:
+    uint8_t pin;
+    hbw_config_switch* config; // logging
+    uint32_t lastFeedbackTime;  // when did we send the last feedback?
+    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
+};
+
+#endif
