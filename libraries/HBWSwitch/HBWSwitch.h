@@ -6,9 +6,13 @@
 #include <inttypes.h>
 #include "HBWired.h"
 
+// TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
+//       callbacks fuer die einzelnen Kanaele aufzurufen 
+//       und den Kanaelen nur den Anfang "ihres" EEPROMs zu sagen
 struct hbw_config_switch {
 	uint8_t logging:1;              // 0x0000
 	uint8_t        :7;              // 0x0000
+	uint8_t dummy;
 };
 
 
