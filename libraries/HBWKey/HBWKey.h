@@ -5,7 +5,15 @@
 #include "Arduino.h"
 #include "HBWired.h"
 
+
+//   +0.0 00.1 INPUT_TYPE (switch/pushbutton)
+//   +0.1 00.1 INPUT_LOCKED
+//   +1.0 01.0 LONG_PRESS_TIME
+// TODO: input_type und input_locked implementieren
 struct hbw_config_key {
+	uint8_t input_type:1;
+	uint8_t input_locked:1;
+    uint8_t :6;
 	uint8_t long_press_time;              // 0x0000
 };
 

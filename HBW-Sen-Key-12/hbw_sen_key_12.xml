@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<device eep_size="1024" version="01">
+<supported_types>
+	<type priority="2" id="HBW-Sen-Key-12" name="RS485 Homebrew Tastermodul (12fach)">
+		<parameter const_value="0x95" size="1" index="0"/>
+		<parameter const_value="0" size="1" index="1"/>
+	</type>
+</supported_types>
+
+<paramset id="HBW_Sen_Key_12_dev_master" type="MASTER">
+	<parameter id="CENTRAL_ADDRESS" hidden="true">
+		<logical type="integer"/>
+		<physical size="4" type="integer" interface="eeprom">
+			<address index="0x0002"/>
+		</physical>
+	</parameter>
+	<parameter id="DIRECT_LINK_DEACTIVATE" hidden="true">
+		<logical type="boolean" default="false"/>
+		<physical size="0.1" type="integer" interface="eeprom">
+			<address index="0x0006"/>
+		</physical>
+	</parameter>
+</paramset>
+
+<frames>
+	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
+		<parameter const_value="2" size="0.2" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_EVENT_LONG" type="#K" channel_field="10" direction="from_device" event="true">
+		<parameter const_value="3" size="0.2" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_EVENT_LONGRELEASE" type="#K" channel_field="10" direction="from_device" event="true">
+		<parameter const_value="0" size="0.2" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_EVENT_DOUBLE" type="#K" channel_field="10" direction="from_device" event="true">
+		<parameter const_value="1" size="0.2" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+</frames>
+
+<channels>
+	<channel index="0" type="MAINTENANCE" count="1" class="maintenance" ui_flags="internal">
+	</channel>	
+	<channel index="1" type="KEY" count="12" physical_index_offset="-1">
+	    <link_roles>
+           <source name="SWITCH"/>
+        </link_roles>
+		<paramset id="hbw_input_ch_master" type="MASTER" address_step="2" address_start="0x07">
+		    <parameter id="INPUT_LOCKED">
+                <logical type="boolean" default="false"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="0.0"/>
+                </physical>
+                <conversion type="boolean_integer" invert="true"/>
+            </parameter>
+			<parameter id="INVERTED">
+                <logical type="boolean" default="true"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="+0.1"/>
+                </physical>
+                <conversion type="boolean_integer" invert="false"/>
+            </parameter>
+			<parameter id="PULLUP">
+                <logical type="boolean" default="true"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="+0.2"/>
+                </physical>
+                <conversion type="boolean_integer" invert="false"/>
+            </parameter>
+			<parameter id="LONG_PRESS_TIME">
+				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+1"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
+				</conversion>
+			</parameter>
+		</paramset>
+		
+		<paramset id="hmw_input_ch_link" type="LINK" count="36" address_step="6" address_start="0x40" channel_param="CHANNEL" peer_param="ACTUATOR">
+            <parameter hidden="true" id="CHANNEL" operations="none">
+                <logical type="integer" default="255" max="255" min="0"/>
+                <physical size="1.0" type="integer" interface="eeprom">
+                    <address index="+0"/>
+                </physical>
+            </parameter>
+            <parameter hidden="true" id="ACTUATOR" operations="none">
+                <logical type="address"/>
+                <physical type="array">
+                    <physical size="4.0" type="integer" interface="eeprom">
+                        <address index="+1"/>
+                    </physical>
+                    <physical size="1.0" type="integer" interface="eeprom">
+                        <address index="+5"/>
+                    </physical>
+                </physical>
+            </parameter>
+        </paramset>
+		
+		<paramset id="hbw_input_ch_values" type="VALUES">
+			<parameter id="PRESS_SHORT" operations="event" loopback="true" control="BUTTON.SHORT">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<parameter id="PRESS_LONG" operations="event" loopback="true" control="BUTTON.LONG">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_LONG"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<parameter id="RELEASE_LONG" operations="event" loopback="true" control="BUTTON.RELEASE">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_LONGRELEASE"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<parameter id="DOUBLECLICK" operations="event" loopback="true" control="BUTTON.DOUBLE">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_DOUBLE"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+		</paramset>
+	</channel>	
+	
+</channels>
+
+</device>

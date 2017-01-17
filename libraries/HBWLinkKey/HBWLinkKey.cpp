@@ -42,8 +42,6 @@ void HBWLinkKey::sendKeyEvent(HBWDevice* device, uint8_t srcChan,
 		device->readEEPROM(&channelEEPROM, eepromStart + EEPROM_SIZE * i +5, 1);
 		// own address? -> internal peering
 		if(addrEEPROM == device->getOwnAddress()) {
-			// TODO: processKeyEvent is not implemented yet
-			//       maybe rename to make it clearer that it is incoming
 			device->receiveKeyEvent(addrEEPROM, srcChan, channelEEPROM, longPress);
 		}else{
 			// external peering

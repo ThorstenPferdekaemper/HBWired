@@ -63,6 +63,8 @@ class HBWDevice {
 			  uint8_t _numChannels, HBWChannel** _channels,
 			  Stream* _debugstream, HBWLinkSender* = NULL, HBWLinkReceiver* = NULL);
   
+    void setConfigPins(uint8_t _configPin = 8, uint8_t _ledPin = 13);
+  
     virtual void loop(); // needs to be called as often as possible
 
   	// get logging time	
@@ -83,6 +85,9 @@ class HBWDevice {
 	// Key Event Routine mit Target fuer LinkSender 
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress,
 								 uint32_t target_address, uint8_t target_channel);
+    // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
+    virtual uint8_t sendKeyEvent(uint8_t srcChan, uint8_t length, void* data);
+ 								 
 	virtual void receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan, 
 	                             uint8_t dstChan, boolean longPress);
     virtual void processEvent(uint8_t const * const frameData, uint8_t frameDataLength,
@@ -97,6 +102,10 @@ class HBWDevice {
 	HBWChannel** channels;  // channels
     HBWLinkSender* linkSender;
 	HBWLinkReceiver* linkReceiver;
+	
+	// pins of config button and config LED
+	uint8_t configPin;
+	uint8_t ledPin;
 	
 	// sendFrame macht ggf. Wiederholungen
 	// onlyIfIdle: If this is set, then the bus must have been idle since 210+rand(0..100) ms
@@ -178,6 +187,8 @@ class HBWDevice {
 	void processEventSetLock();
 	void processEmessage(uint8_t const * const frameData);
 
+    void factoryReset();
+	void handleConfigButton();
 	
 };
 

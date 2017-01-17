@@ -399,8 +399,8 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
       txFrameControlByte = 0x78;
 
       switch(frameData[0]){
-         case '@':                                      // HBW-specifics
-           if(frameData[1] == 'a' && frameDataLength == 6) {  // "a" -> address set
+         case '@':             // 0x40                 // HBW-specifics
+           if(frameData[1] == 'a' && frameDataLength == 6) {  // 0x61 "a" -> address set
         	 // TODO: Avoid "central" addresses (like 0000...)
         	 for(byte i = 0; i < 4; i++)
         	   writeEEPROM(E2END - 3 + i, frameData[i + 2], true);
@@ -611,7 +611,20 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
  	   return sendFrame(true);  // only if bus is free
  } ;
 
-	 
+
+ // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
+ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
+ 	   txTargetAddress = 0xFFFFFFFF;  // target address
+ 	   txFrameControlByte = 0xF8;     // control byte
+ 	   txFrameDataLength = 3 + length;      // Length
+ 	   txFrameData[0] = 0x4B;         // 'K'
+ 	   txFrameData[1] = srcChan;      // Sensornummer
+ 	   txFrameData[2] = 0;   // Zielaktor
+  	   memcpy(&(txFrameData[3]), data, length);
+ 	   return sendFrame(true);  // only if bus is free
+ } ;
+
+ 
 	 
      void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
        // save uppermost 4 bytes
@@ -740,11 +753,21 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
     deviceType = _devicetype;
     readAddressFromEEPROM();
 	hbwdebugstream = _debugstream;    // debug stream, might be NULL
+	configPin = 0xFF;  //inactive by default
+	ledPin = 0xFF;     // inactive by default
 	// read config
 	readConfig(); 
 }
   
 
+ void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
+	configPin = _configPin;
+	if(configPin != 0xFF) pinMode(configPin,INPUT_PULLUP);
+    ledPin = _ledPin;	
+	if(ledPin != 0xFF) pinMode(ledPin,OUTPUT);
+ };
+  
+  
 void HBWDevice::set(uint8_t channel,uint8_t length,uint8_t const * const data){
 	if(hbwdebugstream) {
 	    hbwdebug(F("S: ")); hbwdebughex(channel); hbwdebug(F(" "));
@@ -752,11 +775,18 @@ void HBWDevice::set(uint8_t channel,uint8_t length,uint8_t const * const data){
             hbwdebughex(data[i]); 
 		hbwdebug("\n");
 	};
-    channels[channel]->set(this, length, data);
+	// to avoid crashes, do not try to set any channels, which do not exist
+	if(channel < numChannels)
+        channels[channel]->set(this, length, data);
 }
 
 
 uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
+    // to avoid crashes, return 0 for channels, which do not exist
+	if(channel >= numChannels) {
+		data[0] = 0;
+		return 1;
+	}
     return channels[channel]->get(data);
 }
 
@@ -782,6 +812,8 @@ void HBWDevice::loop()
 // feedback from switches and handle keys
    for(uint8_t i = 0; i < numChannels; i++)
         channels[i]->loop(this,i);
+// config Button
+   handleConfigButton();	
 };
 
 
@@ -793,6 +825,108 @@ uint8_t HBWDevice::getLoggingTime() {
 
 void HBWDevice::afterReadConfig() {};
 
+
+
+void HBWDevice::factoryReset() {
+  // writes FF into EEPROM, without upper 4 Bytes
+  for(uint16_t i = 0; i <= E2END - 4; i++) {
+    writeEEPROM(i, 0xFF, false);
+  };
+  // re-read config. This includes setting defaults etc.
+  readConfig();
+}
+
+
+void HBWDevice::handleConfigButton() {
+  // langer Tastendruck (5s) -> LED blinkt hektisch
+  // dann innerhalb 10s langer Tastendruck (3s) -> LED geht aus, EEPROM-Reset
+
+  // do we have a config-pin?
+  if(configPin == 0xFF) return;
+  
+  static long lastTime = 0;
+  static uint8_t status = 0;  // 0: normal, 1: Taste erstes mal gedrueckt, 2: erster langer Druck erkannt
+                           // 3: Warte auf zweiten Tastendruck, 4: Taste zweites Mal gedrueckt
+                           // 5: zweiter langer Druck erkannt
+
+  long now = millis();
+  boolean buttonState = !digitalRead(configPin);
+
+
+  switch(status) {
+    case 0:
+      if(buttonState) status = 1;
+      lastTime = now;
+      break;
+    case 1:
+      if(buttonState) {   // immer noch gedrueckt
+          if(now - lastTime > 5000) status = 2;
+      }else{              // nicht mehr gedrueckt
+          if(now - lastTime > 100)   // announce on short press
+              broadcastAnnounce(0);
+        status = 0;
+      };
+      break;
+    case 2:
+      if(!buttonState) {  // losgelassen
+          status = 3;
+          lastTime = now;
+      };
+      break;
+    case 3:
+      // wait at least 100ms
+      if(now - lastTime < 100)
+          break;
+      if(buttonState) {   // zweiter Tastendruck
+          status = 4;
+          lastTime = now;
+      }else{              // noch nicht gedrueckt
+          if(now - lastTime > 10000) status = 0;   // give up
+      };
+      break;
+    case 4:
+      if(now - lastTime < 100) // entprellen
+            break;
+      if(buttonState) {   // immer noch gedrueckt
+          if(now - lastTime > 3000) status = 5;
+      }else{              // nicht mehr gedrueckt
+          status = 0;
+      };
+      break;
+    case 5:   // zweiter Druck erkannt
+      if(!buttonState) {    //erst wenn losgelassen
+          // Factory-Reset          
+          factoryReset();
+          status = 0;
+      }
+      break;
+  }
+
+  // control LED, if set  
+  if(ledPin == 0xFF) return;
+  static long lastLEDtime = 0;
+  switch(status) {
+    case 0:
+      digitalWrite(ledPin, LOW);
+      break;
+    case 1:
+      digitalWrite(ledPin, HIGH);
+      break;
+    case 2:
+    case 3:
+    case 4:
+      if(now - lastLEDtime > 100) {  // schnelles Blinken
+          digitalWrite(ledPin,!digitalRead(ledPin));
+          lastLEDtime = now;
+      };
+      break;
+    case 5:
+      if(now - lastLEDtime > 750) {  // langsames Blinken
+          digitalWrite(ledPin,!digitalRead(ledPin));
+          lastLEDtime = now;
+      };
+  }
+};
 
 
 /****************************************
