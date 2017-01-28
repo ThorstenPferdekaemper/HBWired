@@ -1,10 +1,10 @@
 //*******************************************************************
 //
-// HBW-Sen-SC8
+// HBW-Sen-Key-12
 //
 // Homematic Wired Hombrew Hardware
 // Arduino Uno als Homematic-Device
-// HBW-Sen-SC8 zum Einlesen von 8 Tastern
+// HBW-Sen-Key-12 zum Einlesen von 12 Tastern
 // - Active HIGH oder LOW kann konfiguriert werden
 // - Pullup kann aktiviert werden
 // - Erkennung von Doppelklicks

@@ -47,7 +47,7 @@ void HBWLinkKey::sendKeyEvent(HBWDevice* device, uint8_t srcChan,
 			// external peering
 			// TODO: If bus busy, then try to repeat. ...aber zuerst feststellen, wie das die Original-Module machen (bzw. hier einfach so lassen)
 			/* byte result = */ 
-			device->sendKeyEvent(srcChan, keyPressNum, addrEEPROM, channelEEPROM, longPress);
+			device->sendKeyEvent(srcChan, keyPressNum, longPress, addrEEPROM, channelEEPROM);
 		};
 	}; 
 }
