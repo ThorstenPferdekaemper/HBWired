@@ -155,7 +155,7 @@ void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
         lastSentLong = now;
         device->sendKeyEvent(channel,keyPressNum, true);  // long press
     }
-  } else if (keyState < 0) {   // Taste ist oder war lang gedr�ckt
+  } else if (keyState < 0) {   // Taste ist oder war lang gedrückt
         if (button.depressed) {  // ist noch immer gedrueckt --> alle 300ms senden
           if(now - lastSentLong >= 300){ // alle 300ms erneut senden
             lastSentLong = lastSentLong + 300;
@@ -203,3 +203,4 @@ void loop()
 {
   device->loop();
 };
+
