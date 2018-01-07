@@ -96,66 +96,29 @@
 					<address index="+5"/>
 				</physical>
 			</parameter>
+			<parameter id="SHORT_ACTION_TYPE">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF"/>
+					<option id="INACTIVE"/>
+					<option id="TOGGLE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ACTION_TYPE">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF"/>
+					<option id="INACTIVE"/>
+					<option id="TOGGLE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+6.2"/>
+				</physical>
+			</parameter>
 		</paramset>
-
-	<!-- TODO: add??
-		<parameter id="SHORT_ACTION_TYPE">
-			<logical type="option">
-				<option id="INACTIVE"/>
-				<option id="ACTIVE" default="true"/>
-			</logical>
-			<physical type="integer" size="0.1" interface="eeprom">
-				<address index="+6.0"/>
-			</physical>
-		</parameter>
-	<parameter id="LONG_ON_TIME">
-	<logical type="float" min="0.0" max="982980.0" default="16383000" unit="s">
-	<special_value id="NOT_USED" value="16383000"/>
-	</logical>
-	<physical type="integer" size="2.0" interface="eeprom" endian="little">
-	<address index="+20"/>
-	</physical>
-	<conversion type="float_configtime" factors="0.1,1,60,1000" value_size="1.6"/>
-	<conversion type="integer_integer_map">
-	<value_map device_value="0xc000" parameter_value="0xffff" mask="0xc000"/>
-	</conversion>
-	</parameter>
-	-->
-		<parameter id="SHORT_ACTION_TYPE">
-			<logical type="option">
-				<option id="DONT_USE"/>
-				<option id="ON"/>
-				<option id="OFF"/>
-				<option id="TOGGLE" default="true"/>
-			</logical>
-			<physical type="integer" size="0.2" interface="eeprom">
-				<address index="+6.0"/>
-			</physical>
-			<conversion type="option_integer">
-				<!-- TODO: check values <value_map device_value="0x03" parameter_value="0" from_device="true" to_device="true"/>
-				<value_map device_value="0x02" parameter_value="1" from_device="true" to_device="true"/>
-				<value_map device_value="0x00" parameter_value="2" from_device="true" to_device="true"/>-->	
-				<value_map device_value="0x02" parameter_value="0" from_device="true" to_device="true"/>
-				<value_map device_value="0x00" parameter_value="1" from_device="true" to_device="true"/>
-				<value_map device_value="0x01" parameter_value="2" from_device="true" to_device="true"/>
-				<value_map device_value="0x03" parameter_value="3" from_device="true" to_device="true"/>
-			</conversion>
-		</parameter>
-		<parameter id="LONG_TOGGLE_USE">
-			<logical type="option">
-				<option id="DONT_USE" default="true"/>
-				<option id="DIRECT"/>
-				<option id="INVERTED"/>
-			</logical>
-			<physical type="integer" size="0.2" interface="eeprom">
-				<address index="+6.3"/>
-			</physical>
-			<conversion type="option_integer">
-				<value_map device_value="0x03" parameter_value="0" from_device="true" to_device="true"/>
-				<value_map device_value="0x02" parameter_value="1" from_device="true" to_device="true"/>
-				<value_map device_value="0x00" parameter_value="2" from_device="true" to_device="true"/>
-			</conversion>
-		</parameter>
 
 		<paramset id="hmw_switch_ch_values" type="VALUES">
 			<parameter id="STATE" operations="read,write,event" control="SWITCH.STATE">

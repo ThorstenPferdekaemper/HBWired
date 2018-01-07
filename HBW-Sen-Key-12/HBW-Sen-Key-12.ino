@@ -188,7 +188,9 @@ void setup()
    };
 
   device = new HBSenDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
-                         &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,NUM_CHANNELS,(HBWChannel**)keys,&Serial,
+                         &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
+                         NUM_CHANNELS,(HBWChannel**)keys,
+                         &Serial,
                          new HBWLinkKey(NUM_LINKS,LINKADDRESSSTART), NULL);
 
   device->setConfigPins();  // 8 and 13 is the default

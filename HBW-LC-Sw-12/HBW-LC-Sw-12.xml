@@ -38,33 +38,22 @@
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
 		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
 	</frame>
-<!-- old
-	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
-		<parameter const_value="2" size="0.2" index="12.0" type="integer"/>
-		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+<!-- add for later use
+	<frame id="ANALOG_EVENT" type="#i"event="true" channel_field="10" direction="from_device" >
+		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
 	</frame>
-	<frame id="KEY_EVENT_LONG" type="#K" channel_field="10" direction="from_device" event="true">
-		<parameter const_value="3" size="0.2" index="12.0" type="integer"/>
-		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
-	</frame>
-	<frame id="KEY_EVENT_LONGRELEASE" type="#K" channel_field="10" direction="from_device" event="true">
-		<parameter const_value="0" size="0.2" index="12.0" type="integer"/>
-		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
-	</frame>
-	<frame id="KEY_EVENT_DOUBLE" type="#K" channel_field="10" direction="from_device" event="true">
-		<parameter const_value="1" size="0.2" index="12.0" type="integer"/>
-		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
-	</frame>
-old -->
+-->
 </frames>
 
 <channels>
 	<channel index="0" type="MAINTENANCE" count="1" class="maintenance" ui_flags="internal">
 	</channel>
+	
 	<channel index="1" type="SWITCH" count="12" physical_index_offset="-1">
 		<link_roles>
 			<target name="SWITCH"/>
 		</link_roles>
+		
 		<paramset id="hmw_switch_ch_master" type="MASTER" address_step="2" address_start="0x07">
 			<parameter id="LOGGING">
 				<logical type="option">
@@ -75,7 +64,6 @@ old -->
 					<address index="+0"/>
 				</physical>
 			</parameter>
-			
 			<parameter id="INPUT_LOCKED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
@@ -90,47 +78,8 @@ old -->
 				</physical>
 				<conversion type="boolean_integer" invert="false"/>
 			</parameter>		
-			
 		</paramset>
-<!-- old
-	<channel index="1" type="KEY" count="12" physical_index_offset="-1">
-	    <link_roles>
-           <source name="SWITCH"/>
-        </link_roles>
-		<paramset id="hbw_input_ch_master" type="MASTER" address_step="2" address_start="0x07">
-		    <parameter id="INPUT_LOCKED">
-                <logical type="boolean" default="false"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="0.0"/>
-                </physical>
-                <conversion type="boolean_integer" invert="true"/>
-            </parameter>
-			<parameter id="INVERTED">
-                <logical type="boolean" default="true"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="+0.1"/>
-                </physical>
-                <conversion type="boolean_integer" invert="false"/>
-            </parameter>
-			<parameter id="PULLUP">
-                <logical type="boolean" default="true"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="+0.2"/>
-                </physical>
-                <conversion type="boolean_integer" invert="false"/>
-            </parameter>
-			<parameter id="LONG_PRESS_TIME">
-				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
-				<physical size="1.0" type="integer" interface="eeprom">
-					<address index="+1"/>
-				</physical>
-				<conversion type="float_integer_scale" factor="10"/>
-				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
-				</conversion>
-			</parameter>
-		</paramset>
--->
+
 		<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="36" address_step="7" address_start="0x40">
 			<parameter id="UI_HINT">
 				<logical type="string" default="" use_default_on_failure="true"/>
@@ -153,28 +102,7 @@ old -->
 					<address index="+5"/>
 				</physical>
 			</parameter>
-		</paramset>
-<!--
-		<paramset id="hmw_input_ch_link" type="LINK" count="36" address_step="6" address_start="0x40" channel_param="CHANNEL" peer_param="ACTUATOR">
-            <parameter hidden="true" id="CHANNEL" operations="none">
-                <logical type="integer" default="255" max="255" min="0"/>
-                <physical size="1.0" type="integer" interface="eeprom">
-                    <address index="+0"/>
-                </physical>
-            </parameter>
-            <parameter hidden="true" id="ACTUATOR" operations="none">
-                <logical type="address"/>
-                <physical type="array">
-                    <physical size="4.0" type="integer" interface="eeprom">
-                        <address index="+1"/>
-                    </physical>
-                    <physical size="1.0" type="integer" interface="eeprom">
-                        <address index="+5"/>
-                    </physical>
-                </physical>
-            </parameter>
-        </paramset>
--->
+
 	<!-- TODO: add??
 		<parameter id="SHORT_ACTION_TYPE">
 			<logical type="option">
@@ -198,41 +126,38 @@ old -->
 	</conversion>
 	</parameter>
 	-->		
-		<parameter id="SHORT_ACTION_TYPE">
-			<logical type="option">
-				<option id="DONT_USE"/>
-				<option id="ON"/>
-				<option id="OFF"/>
-				<option id="TOGGLE" default="true"/>
-			</logical>
-			<physical type="integer" size="0.2" interface="eeprom">
-				<address index="+6.0"/>
-			</physical>
-			<conversion type="option_integer">
-				<!-- TODO: check values <value_map device_value="0x03" parameter_value="0" from_device="true" to_device="true"/>
-				<value_map device_value="0x02" parameter_value="1" from_device="true" to_device="true"/>
-				<value_map device_value="0x00" parameter_value="2" from_device="true" to_device="true"/>-->	
-				<value_map device_value="0x02" parameter_value="0" from_device="true" to_device="true"/>
-				<value_map device_value="0x00" parameter_value="1" from_device="true" to_device="true"/>
-				<value_map device_value="0x01" parameter_value="2" from_device="true" to_device="true"/>
-				<value_map device_value="0x03" parameter_value="3" from_device="true" to_device="true"/>
-			</conversion>
-		</parameter>
-		<parameter id="LONG_TOGGLE_USE">
-			<logical type="option">
-				<option id="DONT_USE" default="true"/>
-				<option id="DIRECT"/>
-				<option id="INVERTED"/>
-			</logical>
-			<physical type="integer" size="0.2" interface="eeprom">
-				<address index="+6.3"/>
-			</physical>
-			<conversion type="option_integer">
-				<value_map device_value="0x03" parameter_value="0" from_device="true" to_device="true"/>
-				<value_map device_value="0x02" parameter_value="1" from_device="true" to_device="true"/>
-				<value_map device_value="0x00" parameter_value="2" from_device="true" to_device="true"/>
-			</conversion>
-		</parameter>
+			<parameter id="SHORT_ACTION_TYPE">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF"/>
+					<option id="INACTIVE"/>
+					<option id="TOGGLE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ACTION_TYPE">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF"/>
+					<option id="INACTIVE"/>
+					<option id="TOGGLE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+6.2"/>
+				</physical>
+				<!--
+				<conversion type="option_integer">
+					TODO: check values
+					<value_map device_value="0x02" parameter_value="0" from_device="true" to_device="true"/>
+					<value_map device_value="0x00" parameter_value="1" from_device="true" to_device="true"/>
+					<value_map device_value="0x01" parameter_value="2" from_device="true" to_device="true"/>
+					<value_map device_value="0x03" parameter_value="3" from_device="true" to_device="true"/>
+				</conversion>
+				-->
+			</parameter>
+		</paramset>
 
 		<paramset id="hmw_switch_ch_values" type="VALUES">
 			<parameter id="STATE" operations="read,write,event" control="SWITCH.STATE">
@@ -267,39 +192,56 @@ old -->
 				<conversion type="toggle" value="STATE" />
 			</parameter>
 		</paramset>
-<!--		
-		<paramset id="hbw_input_ch_values" type="VALUES">
-			<parameter id="PRESS_SHORT" operations="event" loopback="true" control="BUTTON.SHORT">
-				<logical type="action"/>
-				<physical type="integer" interface="command" value_id="COUNTER">
-					<event frame="KEY_EVENT_SHORT"/>
-				</physical>
-				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+	</channel>
+	
+<!-- TODO: ...later use		
+	<channel index="31" count="6" physical_index_offset="-1" type="ANALOGSENSOR">
+	    <paramset type="MASTER" id="hmw_analog_ch_master" address_step="6" address_start="0x64">
+			<parameter id="SEND_DELTA_ANALOG">
+			   <logical type="integer" default="50" min="1" max="250">
+			       <special_value id="NOT_USED" value="0"/>
+			   </logical>	   
+               <physical size="1.0" type="integer" interface="eeprom">
+                  <address index="+1.0"/>
+               </physical>	
+               <conversion type="integer_integer_map">
+                 <value_map to_device="false" from_device="true" parameter_value="50" device_value="0xff"/>
+               </conversion>			   
 			</parameter>
-			<parameter id="PRESS_LONG" operations="event" loopback="true" control="BUTTON.LONG">
-				<logical type="action"/>
-				<physical type="integer" interface="command" value_id="COUNTER">
-					<event frame="KEY_EVENT_LONG"/>
-				</physical>
-				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			<parameter id="SEND_MIN_INTERVAL">
+			   <logical type="integer" unit="s" default="10" min="5" max="3600">
+			     <special_value id="NOT_USED" value="0"/>
+			   </logical>	   
+               <physical size="2.0" type="integer" interface="eeprom" endian="little">
+                  <address index="+2.0"/>
+               </physical>	  
+               <conversion type="integer_integer_map">
+                 <value_map to_device="false" from_device="true" parameter_value="10" device_value="0xffff"/>
+               </conversion>				   
 			</parameter>
-			<parameter id="RELEASE_LONG" operations="event" loopback="true" control="BUTTON.RELEASE">
-				<logical type="action"/>
-				<physical type="integer" interface="command" value_id="COUNTER">
-					<event frame="KEY_EVENT_LONGRELEASE"/>
-				</physical>
-				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
-			</parameter>
-			<parameter id="DOUBLECLICK" operations="event" loopback="true" control="BUTTON.DOUBLE">
-				<logical type="action"/>
-				<physical type="integer" interface="command" value_id="COUNTER">
-					<event frame="KEY_EVENT_DOUBLE"/>
-				</physical>
-				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			<parameter id="SEND_MAX_INTERVAL">
+			   <logical type="integer" unit="s" default="150" min="5" max="3600">
+			     <special_value id="NOT_USED" value="0"/>
+			   </logical>	   
+               <physical size="2.0" type="integer" interface="eeprom" endian="little">
+                  <address index="+4.0"/>
+               </physical>	
+               <conversion type="integer_integer_map">
+                 <value_map to_device="false" from_device="true" parameter_value="150" device_value="0xffff"/>
+               </conversion>				   
 			</parameter>
 		</paramset>
-old -->		
-	</channel>	
+		<paramset type="VALUES" id="hmw_analog_input_values">
+			<parameter id="VALUE" operations="read,event">
+				<logical type="integer" min="0" max="1023"/>
+				<physical type="integer" interface="command" value_id="ANALOGVALUE">
+					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
+					<event frame="ANALOG_EVENT"/>
+				</physical>
+			</parameter>
+		</paramset>		
+	</channel>
+-->
 </channels>
 
 </device>

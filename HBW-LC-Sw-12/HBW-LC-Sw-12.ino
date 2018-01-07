@@ -26,10 +26,8 @@
 
 // HB Wired protocol and module
 #include "HBWired.h"
-// // Links Key ->
-// #include "HBWLinkKey.h"
 #include "HBWLinkSwitchSimple.h"
-#include "HBWSwitch.h"
+//#include "HBWSwitch.h"
 
 #define RS485_RXD 4
 #define RS485_TXD 2
@@ -49,6 +47,14 @@ HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #define PIN_ARRAY uint8_t pins[NUM_CHANNELS] = {A0, A1, A2, A3, A4, A5, 5, 6, 7, 9, 10, 11};
 
 
+struct hbw_config_switch {
+  uint8_t logging:1;              // 0x0000
+  uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED
+  uint8_t inverted:1;             // 0x07:2
+  uint8_t        :5;              // 0x0000
+  uint8_t dummy;
+};
+
 struct hbw_config {
   uint8_t logging_time;     // 0x01
   uint32_t central_address;  // 0x02 - 0x05
@@ -60,107 +66,118 @@ struct hbw_config {
 
 
 
-// Class HBSenKey
-// class HBSenKey : public HBWChannel {
-  // public:
-    // HBSenKey(uint8_t _pin, hbw_config_key* _config);
-    // virtual void loop(HBWDevice*, uint8_t channel);
-    // void afterReadConfig();
-  // private:
-    // uint8_t pin;   // Pin
-    // uint32_t lastSentLong;      // Zeit, zu der das letzte Mal longPress gesendet wurde
-    // uint8_t keyPressNum;
-    // int8_t keyState;   
-    // hbw_config_key* config;    
-    // ClickButton button;
-// };
+class HBWChSw : public HBWChannel {
+  public:
+    HBWChSw(uint8_t _pin, hbw_config_switch* _config);
+    virtual uint8_t get(uint8_t* data);   
+    virtual void loop(HBWDevice*, uint8_t channel);   
+    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+    void initConfigPins();
+  private:
+    uint8_t pin;
+    hbw_config_switch* config; // logging
+    uint32_t lastFeedbackTime;  // when did we send the last feedback?
+    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
+};
 
-//HBSenKey* keys[NUM_CHANNELS];
-HBWChannel* switches[NUM_CHANNELS];
 
-// class HBSenDevice : public HBWDevice {
-    // public: 
-    // HBSenDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
-            // Stream* _rs485, uint8_t _txen, 
-            // uint8_t _configSize, void* _config, 
-        // uint8_t _numChannels, HBWChannel** _channels,
-        // Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
-          // HBWDevice(_devicetype, _hardware_version, _firmware_version,
-            // _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
-            // _debugstream, linksender, linkreceiver) {
-      // // looks like virtual methods are not properly called here
-      // afterReadConfig();        
-    // };
+//HBWChannel* switches[NUM_CHANNELS];
+HBWChSw* switches[NUM_CHANNELS];
 
-    // void afterReadConfig() {
-        // // defaults setzen
-        // if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
-        // // if(config.central_address == 0xFFFFFFFF) config.central_address = 0x00000001;
-        // for(uint8_t channel = 0; channel < NUM_CHANNELS; channel++){
-            // if(hbwconfig.keys[channel].long_press_time == 0xFF) 
-                // hbwconfig.keys[channel].long_press_time = 10;
-            // keys[channel]->afterReadConfig();    
-        // };
-    // };
-// };
+class HBSwDevice : public HBWDevice {
+    public: 
+    HBSwDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
+            Stream* _rs485, uint8_t _txen, 
+            uint8_t _configSize, void* _config, 
+        uint8_t _numChannels, HBWChannel** _channels,
+        Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
+          HBWDevice(_devicetype, _hardware_version, _firmware_version,
+            _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
+            _debugstream, linksender, linkreceiver) {
+      // looks like virtual methods are not properly called here
+      afterReadConfig();
+    };
+
+    void afterReadConfig() {
+        // defaults setzen
+        if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
+        // if(config.central_address == 0xFFFFFFFF) config.central_address = 0x00000001;
+        for(uint8_t channel = 0; channel < NUM_CHANNELS; channel++){
+            switches[channel]->initConfigPins();
+        };
+    };
+};
 
 
 //HBSenDevice* device = NULL;
-HBWDevice* device = NULL;
+HBSwDevice* device = NULL;
 
 
-// HBSenKey::HBSenKey(uint8_t _pin, hbw_config_key* _config) 
-              // : config(_config), pin(_pin), 
-                // button(_pin,LOW,HIGH) { 
-// };
+HBWChSw::HBWChSw(uint8_t _pin, hbw_config_switch* _config) {
+  pin = _pin;
+    config = _config;
+    nextFeedbackDelay = 0;
+    lastFeedbackTime = 0;
+    // Pin auf OUTPUT
+    // ...und auf HIGH (also 0) setzen, da sonst die Relais anziehen
+  // TODO: das sollte einstellbar sein
+//  digitalWrite(pin, HIGH);
+//    pinMode(pin,OUTPUT);
+};
+ 
+void HBWChSw::initConfigPins() {
+  digitalWrite(pin, config->inverted ? HIGH : LOW);
+  pinMode(pin,OUTPUT);
+}
 
-// void HBSenKey::afterReadConfig(){
-    // button = ClickButton(pin, config->inverted ? LOW : HIGH, config->pullup ? HIGH : LOW);
-    // button.debounceTime   = 20;   // Debounce timer in ms
-    // button.multiclickTime = 250;  // Time limit for multi clicks
-    // button.longClickTime  = config->long_press_time;
-    // button.longClickTime *= 100; // Time until long clicks register 
-// }
+
+void HBWChSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+  if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
+    if(*data > 200) {   // toggle
+      digitalWrite(pin, digitalRead(pin) ? LOW : HIGH);
+    }else{   // on or off
+      if (*data)
+        digitalWrite(pin, HIGH ^ config->inverted);
+      else
+        digitalWrite(pin, LOW ^ config->inverted);
+    }
+  }
+  // Logging
+  // TODO: Check if logging should be considered for locked channels?
+  if(!nextFeedbackDelay && config->logging) {
+    lastFeedbackTime = millis();
+    nextFeedbackDelay = device->getLoggingTime() * 100;
+  }
+};
 
 
-// void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
+uint8_t HBWChSw::get(uint8_t* data) {
+  //(*data) = digitalRead(pin) ? 200 : 0;
+  if (digitalRead(pin) ^ config->inverted)
+    (*data) = 200;
+  else
+    (*data) = 0;
+  return 1;
+};
 
-  // long now = millis();
-  // uint8_t data; 
-
-  // button.Update();
-  // if (button.clicks) {
-    // keyState = button.clicks;
-    // keyPressNum++;
-    // if (button.clicks == 1) { // Einfachklick
-        // // TODO: Peering. Only for normal short and long click?
-        // // TODO: doesn't waiting for multi-clicks make everything slow?  
-        // device->sendKeyEvent(channel,keyPressNum, false);  // short press
-    // }
-    // // Multi-Click
-    // else if (button.clicks >= 2) {  // Mehrfachklick
-        // data = (keyPressNum << 2) + 1;
-        // device->sendKeyEvent(channel, 1, &data);
-
-    // } else if (button.clicks < 0) {  // erstes LONG
-        // lastSentLong = now;
-        // device->sendKeyEvent(channel,keyPressNum, true);  // long press
-    // }
-  // } else if (keyState < 0) {   // Taste ist oder war lang gedrückt
-        // if (button.depressed) {  // ist noch immer gedrueckt --> alle 300ms senden
-          // if(now - lastSentLong >= 300){ // alle 300ms erneut senden
-            // lastSentLong = lastSentLong + 300;
-            // device->sendKeyEvent(channel,keyPressNum, true);  // long press
-          // }
-        // } else {    // "Losgelassen" senden
-            // data = keyPressNum << 2; // + 0
-            // device->sendKeyEvent(channel, 1, &data);
-            // keyState = 0;
-        // }
-
-  // }
-
-// }
+void HBWChSw::loop(HBWDevice* device, uint8_t channel) {
+  // feedback trigger set?
+    if(!nextFeedbackDelay) return;
+    unsigned long now = millis();
+    if(now - lastFeedbackTime < nextFeedbackDelay) return;
+    lastFeedbackTime = now;  // at least last time of trying
+    // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
+  // we know that the level has only 1 byte here
+  uint8_t level;
+    get(&level);  
+    uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
+    if(errcode == 1) {  // bus busy
+    // try again later, but insert a small delay
+      nextFeedbackDelay = 250;
+    }else{
+      nextFeedbackDelay = 0;
+    }
+}
 
 
 void setup()
@@ -175,15 +192,16 @@ void setup()
    PIN_ARRAY
   // assing switches (relay) pins
    for(uint8_t i = 0; i < NUM_CHANNELS; i++){
-      switches[i] = new HBWSwitch(pins[i], &(hbwconfig.switchcfg[i]));
+      switches[i] = new HBWChSw(pins[i], &(hbwconfig.switchcfg[i]));
+//      switches[i]->afterReadConfig();
    };
 
-  device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
+  device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUM_CHANNELS,(HBWChannel**)switches,
                          &Serial,
                          NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
-
+   
   device->setConfigPins();  // 8 and 13 is the default
  
   hbwdebug(F("B: 2A "));
