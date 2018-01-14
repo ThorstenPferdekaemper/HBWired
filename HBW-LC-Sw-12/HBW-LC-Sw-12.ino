@@ -5,6 +5,7 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 6 + 6 Relais [TODO: über Shiftregister und 6 Kanal Strommessung]
+// [TODO: Peering mit Zeitschaltfuntion]
 // - Active HIGH oder LOW kann konfiguriert werden
 
 // TODO: Test der Links (HBWLinkSwitchSimple) & XML

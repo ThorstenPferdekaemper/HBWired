@@ -133,7 +133,7 @@ void HBWChSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
     }
   }
   // Logging
-  // TODO: Check if logging should be considered for locked channels?
+  // (logging is considered for locked channels)
   if(!nextFeedbackDelay && config->logging) {
     lastFeedbackTime = millis();
     nextFeedbackDelay = device->getLoggingTime() * 100;
