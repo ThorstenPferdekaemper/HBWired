@@ -6,11 +6,12 @@
 // Arduino NANO als Homematic-Device
 // 8 Kanal Rollosteuerung // TODO: free up IO pins... not using 8 channels, yet!
 // - 
-
 // TODO: Add direct peering (HBWLink...) & update XML
 //
 //*******************************************************************
-
+// Changes
+// v0.2
+// - logging mechanism changed, only send info message once blind has reached final postition
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0100
@@ -89,7 +90,7 @@ struct hbw_config_blind {
 	unsigned char blindTimeChangeOver;      // 0x08		0x0F	0x16	0x1D
 	unsigned char blindReferenceRunCounter; // 0x09		0x10	0x17	0x1E
 	unsigned int blindTimeBottomTop;   		// 0x0A	0x11	0x18	0x1F
-	unsigned int blindTimeTopBottom;   		// 0x0C;  0x13  0x1A  0x21
+	unsigned int blindTimeTopBottom;   		// 0x0C   0x13  0x1A  0x21
 };
 
 struct hbw_config {
@@ -165,7 +166,6 @@ class HBBlDevice : public HBWDevice {
 };
 
 
-//HBSenDevice* device = NULL;
 HBBlDevice* device = NULL;
 
 
@@ -284,22 +284,28 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 	}
   
   // Logging
-  if(!nextFeedbackDelay && config->logging) {
-    lastFeedbackTime = millis();
-    nextFeedbackDelay = device->getLoggingTime() * 100;
-  }
+//  if(!nextFeedbackDelay && config->logging) {
+//    lastFeedbackTime = millis();
+//    nextFeedbackDelay = device->getLoggingTime() * 100;
+//  }
+// --> moved to STOP action in loop
 };
 
 
 uint8_t HBWChanBl::get(uint8_t* data) {
-	
-  if (blindNextState == STOP) {      // wenn Rollo gestopppt wird,
+
+  uint8_t newData;
+  if (blindNextState == STOP) {     // wenn Rollo gestopppt wird und keine Referenzfahrt läuft,
     getCurrentPosition();
-    (*data) = blindPositionActual *2;    // dann aktuelle Position ausgeben,
+    newData = blindPositionActual;  // dann aktuelle Position ausgeben,
    }
-   else {
-    (*data) = blindPositionRequested *2; // ansonsten die angeforderte Zielposition
+   else {                           // ansonsten die angeforderte Zielposition
+    if (blindSearchingForRefPosition)
+      newData = blindPositionRequestedSave;
+    else
+      newData = blindPositionRequested;
    }
+   (*data) = newData *2;
   return 1;
 };
 
@@ -404,10 +410,13 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         // send info message with current position
         //hmwmodule->sendInfoMessage(channel, blindPositionActual[channel], 0xFFFFFFFF);
         //device->sendInfoMessage(channel, 512 * blindPositionActual, 0xFFFFFFFF);
-        data = (blindPositionActual * 2);
-        device->sendInfoMessage(channel, 1, &data);   //TODO: add retry (e.g. replace by logging process)
-
-
+//        data = (blindPositionActual * 2);
+//        device->sendInfoMessage(channel, 1, &data);   //TODO: add retry (e.g. replace by logging process)
+        if(!nextFeedbackDelay && config->logging && !blindSearchingForRefPosition) {  // Logging. Only for final state (STOP state), ignore change when searching ref. pos.
+          lastFeedbackTime = now;
+          nextFeedbackDelay = device->getLoggingTime() * 100;
+        }
+		
         // switch off the "active" relay
         digitalWrite(blindAct, OFF);
 
@@ -518,6 +527,7 @@ void HBWChanBl::getCurrentPosition() {
     }
   }
 }
+
 
 
 
