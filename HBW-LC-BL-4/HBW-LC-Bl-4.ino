@@ -10,15 +10,22 @@
 //
 //*******************************************************************
 // Changes
+// v0.1
+// - intial port to new library
 // v0.2
 // - logging mechanism changed, only send info message once blind has reached final postition
+// v0.3
+// - time measurement changed to duration, to avoid millis() rollover issue
+// - added additional pause, when changing direction
+// - added basic direct peering
+
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0100
+#define FIRMWARE_VERSION 0x001E
 
 #define NUMBER_OF_BLINDS 4
-//#define NUM_LINKS 36
-//#define LINKADDRESSSTART 0x40
+#define NUM_LINKS 36
+#define LINKADDRESSSTART 0x26
 
 #define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl4.xml into FHEM)
 
@@ -29,7 +36,7 @@
 
 // HB Wired protocol and module
 #include "HBWired.h"
-
+#include "HBWLinkBlindSimple.h"
 
 #define RS485_RXD 4
 #define RS485_TXD 2
@@ -63,7 +70,8 @@ HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #define DOWN HIGH
 #define BLIND_WAIT_TIME 100		// Wartezeit [ms] zwischen Ansteuerung des "Richtungs-Relais" und des "Ein-/Aus-Relais"
 #define BLIND_OFFSET_TIME 1000	// Zeit [ms], die beim Anfahren der Endlagen auf die berechnete Zeit addiert wird, um die Endlagen wirklich sicher zu erreichen
-
+#define BLIND_SWITCH_DIRECTION_WAIT_TIME 800	// + BLIND_WAIT_TIME; Zeit die beim direkten Richtungswechsel gewartet wird, in der der Motor zum Stillstand kommt
+                                              //TODO: Add to device or channel config?
 
 
 /* here comes the code... */
@@ -121,8 +129,9 @@ class HBWChanBl : public HBWChannel {
     byte blindForceNextState;
     bool blindPositionKnown;
     bool blindSearchingForRefPosition;
-    unsigned long blindTimeNextState;
+    unsigned int blindNextStateDelayTime;
     unsigned long blindTimeStart;
+    unsigned long blindTimeLastAction;
 };
 
 
@@ -178,6 +187,7 @@ HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _co
   blindAngleActual = 0;
   blindDirection = UP;
   blindSearchingForRefPosition = false;
+  blindPositionRequested = 0;
 };
 
 
@@ -261,7 +271,11 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 			// set next state only if a new target value is requested
 			if (blindPositionRequested != blindPositionActual) {
 				blindNextState = WAIT;
-				blindForceNextState = true;
+				//blindForceNextState = true;
+				if (blindSearchingForRefPosition)
+					blindNextStateDelayTime = BLIND_WAIT_TIME + BLIND_SWITCH_DIRECTION_WAIT_TIME; // don't force, wait for motor to stop
+				else
+					blindForceNextState = true;
 			}
 		}
 	}
@@ -278,6 +292,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 uint8_t HBWChanBl::get(uint8_t* data) {
 
   uint8_t newData;
+  
   if (blindNextState == STOP) {     // wenn Rollo gestopppt wird und keine Referenzfahrt läuft,
     getCurrentPosition();
     newData = blindPositionActual;  // dann aktuelle Position ausgeben,
@@ -288,18 +303,19 @@ uint8_t HBWChanBl::get(uint8_t* data) {
     else
       newData = blindPositionRequested;
    }
-   (*data) = newData *2;
+  (*data) = newData *2;
   return 1;
 };
 
 
 void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
+  
   //handle blinds
   
   uint8_t data;
   now = millis();
 
-  if ((blindForceNextState == true) || (now >= blindTimeNextState)) {
+  if ((blindForceNextState == true) || (now - blindTimeLastAction >= blindNextStateDelayTime)) {
 
     switch(blindNextState) {
       case RELAIS_OFF:
@@ -310,7 +326,8 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
 //        debugStateChange(blindNextState, channel);
 
         blindCurrentState = RELAIS_OFF;
-        blindTimeNextState = now + 20000;  // time is increased to avoid cyclic call
+        blindTimeLastAction = now;
+        blindNextStateDelayTime = 20000;  // time is increased to avoid cyclic call
         break;
 
 
@@ -330,7 +347,8 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         blindCurrentState = WAIT;
         blindNextState = TURN_AROUND;
         blindForceNextState = false;
-        blindTimeNextState = now + BLIND_WAIT_TIME;
+        blindTimeLastAction = now;
+        blindNextStateDelayTime = BLIND_WAIT_TIME;
         break;
 
 
@@ -342,23 +360,24 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
 //        debugStateChange(blindNextState, channel);
 
         blindTimeStart = now;
+        blindTimeLastAction = now;
         blindPositionLast = blindPositionActual;
 
         // Set next state & delay time
         blindCurrentState = MOVE;
         blindNextState = STOP;
         if (blindDirection == UP) {
-          blindTimeNextState = now + (blindPositionActual - blindPositionRequested) * config->blindTimeBottomTop;
+          blindNextStateDelayTime = (blindPositionActual - blindPositionRequested) * config->blindTimeBottomTop;
         }
         else {
-          blindTimeNextState = now + (blindPositionRequested - blindPositionActual) * config->blindTimeTopBottom;
+          blindNextStateDelayTime = (blindPositionRequested - blindPositionActual) * config->blindTimeTopBottom;
         }
 
         // add offset time if final positions are requested to ensure that final position is really reached
         if ((blindPositionRequested == 0) || (blindPositionRequested == 100))
-          blindTimeNextState += BLIND_OFFSET_TIME;
+          blindNextStateDelayTime += BLIND_OFFSET_TIME;
 
-        if (blindForceNextState == true)
+//        if (blindForceNextState == true)
           blindForceNextState = false;
         break;
 
@@ -388,9 +407,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         }
 
         // send info message with current position
-//        data = (blindPositionActual * 2);
-//        device->sendInfoMessage(channel, 1, &data);   //TODO: add retry (e.g. replace by logging process)
-        if(!nextFeedbackDelay && config->logging && !blindSearchingForRefPosition) {  // Logging. Only for final state (STOP state), ignore change when searching ref. pos.
+        if(!nextFeedbackDelay && config->logging && !blindSearchingForRefPosition) {  // Logging only for final state (STOP state), don't send when searching ref. pos.
           lastFeedbackTime = now;
           nextFeedbackDelay = device->getLoggingTime() * 100;
         }
@@ -404,8 +421,8 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         // Set next state & delay time
         blindCurrentState = STOP;
         blindNextState = RELAIS_OFF;
-        blindTimeNextState = now + BLIND_WAIT_TIME;
-
+        blindTimeLastAction = now;
+        blindNextStateDelayTime = BLIND_WAIT_TIME;
 
         if (blindSearchingForRefPosition == true) {
           hbwdebug("Reference position reached. Moving to target position.\n");
@@ -413,6 +430,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
           data = (blindPositionRequestedSave * 2);
           device->set(channel, 1, &data);
           blindSearchingForRefPosition = false;
+          digitalWrite(blindDir, OFF);
         }
         break;
 
@@ -421,6 +439,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         // switch on the "active" relay
         digitalWrite(blindAct, ON);
         blindTimeStart = now;
+        blindTimeLastAction = now;
 
         // debug message
 //        debugStateChange(blindNextState, channel);
@@ -428,9 +447,9 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         blindCurrentState = TURN_AROUND;
         blindNextState = MOVE;
         if (blindDirection == UP)
-          blindTimeNextState = now + blindAngleActual * config->blindTimeChangeOver;
+          blindNextStateDelayTime = blindAngleActual * config->blindTimeChangeOver;
         else
-          blindTimeNextState = now + (100 - blindAngleActual) * config->blindTimeChangeOver;
+          blindNextStateDelayTime = (100 - blindAngleActual) * config->blindTimeChangeOver;
         break;
         
 
@@ -438,6 +457,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
 
         // switch off the "active" relay
         digitalWrite(blindAct, OFF);
+        blindTimeLastAction = now;
 
         // debug message
 //        debugStateChange(blindNextState, channel);
@@ -446,22 +466,25 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         blindCurrentState = SWITCH_DIRECTION;
         blindNextState = WAIT;
         blindForceNextState = false;
-        blindTimeNextState = now + BLIND_WAIT_TIME;
+        blindNextStateDelayTime = BLIND_WAIT_TIME + BLIND_SWITCH_DIRECTION_WAIT_TIME;
+        
+        digitalWrite(blindDir, OFF);  // need to switch off, else we would wait for BLIND_WAIT_TIME + BLIND_SWITCH_DIRECTION_WAIT_TIME
         break;
       }
     }
   
   // feedback trigger set?
-    if(!nextFeedbackDelay) return;
-//    unsigned long now = millis();
-    if(now - lastFeedbackTime < nextFeedbackDelay) return;
+    if (!nextFeedbackDelay)
+      return;
+    if (now - lastFeedbackTime < nextFeedbackDelay)
+      return;
     lastFeedbackTime = now;  // at least last time of trying
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
     // we know that the level has only 1 byte here
     uint8_t level;
     get(&level);  
     uint8_t errcode = device->sendInfoMessage(channel, 1, &level);
-    if(errcode == 1) {  // bus busy
+    if (errcode == 1) {  // bus busy
     // try again later, but insert a small delay
       nextFeedbackDelay = 250;
     }
@@ -544,7 +567,7 @@ void setup()
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUMBER_OF_BLINDS,(HBWChannel**)blinds,
                          &Serial,
-                         NULL, NULL);
+                         NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
    
   device->setConfigPins();  // 8 and 13 is the default
  

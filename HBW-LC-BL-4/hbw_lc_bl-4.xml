@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <device eep_size="1024" version="14">
 <supported_types>
-	<type priority="2" id="HBW-LC-Bl4" name="RS485 blind actuator 4-channel">
-		<parameter const_value="0x82" size="1" index="0"/>
+	<type priority="2" id="HBW-LC-Bl-4" name="RS485 blind actuator 4-channel">
+		<parameter const_value="0x82" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="0" size="1" index="1"/>
-		<parameter const_value="0x0303" size="2" cond_op="GE" index="2"/>
+		<parameter const_value="0x001E" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -128,6 +128,53 @@
 				</physical>
 			</parameter>
 		</paramset>
+		
+		<paramset type="LINK" id="hmw_blind_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="16" address_start="0x26" address_step="7">
+			<parameter id="UI_HINT">
+				<logical type="string" default="" use_default_on_failure="true"/>
+				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
+			</parameter>
+			<parameter id="SENSOR" operations="none" hidden="true">
+				<logical type="address"/>
+				<physical type="array">
+					<physical type="integer" size="4.0" interface="eeprom">
+						<address index="+0"/>
+					</physical>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+4"/>
+					</physical>
+				</physical>
+			</parameter>
+			<parameter id="CHANNEL" operations="none" hidden="true">
+				<logical type="integer" min="0" max="255" default="255"/>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+5"/>
+				</physical>
+			</parameter>
+			
+	<parameter id="SHORT_ACTION_TYPE">
+		<logical type="option">
+			<option id="OPEN"/>
+			<option id="STOP" default="true"/>
+			<option id="CLOSE"/>
+			<option id="TOGGLE"/>
+		</logical>
+		<physical type="integer" size="0.2" interface="eeprom">
+			<address index="+6.0"/>
+		</physical>
+	</parameter>
+	<parameter id="LONG_ACTION_TYPE">
+		<logical type="option">
+			<option id="OPEN"/>
+			<option id="STOP"/>
+			<option id="CLOSE"/>
+			<option id="TOGGLE" default="true"/>
+		</logical>
+		<physical type="integer" size="0.2" interface="eeprom">
+			<address index="+6.2"/>
+		</physical>
+	</parameter>
+	</paramset>
 
 		<paramset id="hmw_blind_ch_values" type="VALUES">
 			<parameter id="LEVEL" operations="read,write,event" control="BLIND.LEVEL">

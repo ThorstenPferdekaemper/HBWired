@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <device eep_size="1024" version="14">
 <supported_types>
-	<type priority="2" id="HBW-LC-Bl8" name="RS485 blind actuator 8-channel">
-		<parameter const_value="0x92" size="1" index="0"/>
+	<type priority="2" id="HBW-LC-Bl-8" name="RS485 blind actuator 8-channel">
+		<parameter const_value="0x92" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="0" size="1" index="1"/>
-		<parameter const_value="0x0303" size="2" cond_op="GE" index="2"/>
+		<parameter const_value="0x0010" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 

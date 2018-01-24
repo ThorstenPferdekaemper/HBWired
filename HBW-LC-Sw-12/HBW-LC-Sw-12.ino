@@ -56,11 +56,13 @@ HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 
 Shifty myShReg_LED;
 Shifty myShReg_RELAY;
-unsigned long timerTenMilliSeconds, lastRelayOperation[NUM_CHANNELS];
-#define RELAY_PULSE_DUARTION 90  // HIG duration in ms, to set or reset double coil latching relay
+// unsigned long timerTenMilliSeconds, relayOperationTimeStart[NUM_CHANNELS];
+#define RELAY_PULSE_DUARTION 60  // HIG duration in ms, to set or reset double coil latching relay
+/////#define RELAY_MAX_PULSE_DUARTION 200  // maximum HIG duration in ms, to un
 
 // Port Status, d.h. Port ist auf 0 oder 1
-byte portStatus[NUM_CHANNELS];
+// byte portStatus[NUM_CHANNELS];
+//TODO: check if this should/could be stored in EEPROM, to restore output relay values
 
 
 struct hbw_config_switch {
@@ -81,24 +83,28 @@ struct hbw_config {
 
 
 
-
-class HBWChSw : public HBWChannel {
+class HBWChanSw : public HBWChannel {
   public:
-    HBWChSw(uint8_t _pin, hbw_config_switch* _config);
+    HBWChanSw(uint8_t _relayPos, uint8_t _ledPos,hbw_config_switch* _config);
     virtual uint8_t get(uint8_t* data);   
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     void initRelays();
   private:
-    uint8_t pin;
+    uint8_t relayPos;
+    uint8_t ledPos;
     hbw_config_switch* config; // logging
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
+    
+    bool portStatus;	// Port Status, d.h. Port ist auf 0 oder 1
+    bool operateRelay;
+    unsigned long relayOperationTimeStart;
 };
 
 
-//HBWChannel* switches[NUM_CHANNELS];
-HBWChSw* switches[NUM_CHANNELS];
+HBWChanSw* switches[NUM_CHANNELS];
+
 
 class HBSwDevice : public HBWDevice {
     public: 
@@ -125,9 +131,7 @@ class HBSwDevice : public HBWDevice {
 };
 
 
-//HBSenDevice* device = NULL;
 HBSwDevice* device = NULL;
-
 
 
 // refresh LED status (shift register)
@@ -139,91 +143,92 @@ HBSwDevice* device = NULL;
 //  myShReg_LED.batchWriteEnd();
 //}
 
-// handle Relays (via shift register)
-void operateRelays() {
-  myShReg_RELAY.batchWriteBegin();
-  myShReg_LED.batchWriteBegin();
+// handle relays and LEDs (via shift register)
+// void operateRelays() {
+  // myShReg_RELAY.batchWriteBegin();
+  // myShReg_LED.batchWriteBegin();
 
-  for (byte i = 0; i < NUM_CHANNELS; i++) {
-    byte RelayBitPos = i * 2;
-    if ((lastRelayOperation[i] + RELAY_PULSE_DUARTION) < millis() && lastRelayOperation[i] != 0) {  // time to remove power from coil?
-      myShReg_RELAY.writeBit(RelayBitPos, LOW);
-      myShReg_RELAY.writeBit(RelayBitPos + 1, LOW);
-      lastRelayOperation[i] = 0;
-    }
-    myShReg_LED.writeBit(i, (bitRead(portStatus[i / 8], i % 8)));   // refresh LED status (shift register)
-  }
-  myShReg_RELAY.batchWriteEnd();
-  myShReg_LED.batchWriteEnd();
+  // for (byte i = 0; i < NUM_CHANNELS; i++) {
+    // byte RelayBitPos = i * 2;
+    // if ((relayOperationTimeStart[i] + RELAY_PULSE_DUARTION) < millis() && relayOperationTimeStart[i] != 0) {  // time to remove power from coil?
+      // myShReg_RELAY.writeBit(RelayBitPos, LOW);
+      // myShReg_RELAY.writeBit(RelayBitPos + 1, LOW);
+      // relayOperationTimeStart[i] = 0;
+    // }
+    // myShReg_LED.writeBit(i, (bitRead(portStatus[i / 8], i % 8)));   // refresh LED status (shift register)
+  // }
+  // myShReg_RELAY.batchWriteEnd();
+  // myShReg_LED.batchWriteEnd();
 
-  //setLEDs();    // use (portStatus[] to update LEDs
-}
+  // //setLEDs();    // use (portStatus[] to update LEDs
+// }
 
 
-
-HBWChSw::HBWChSw(uint8_t _pin, hbw_config_switch* _config) {
-  pin = _pin;
+HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, hbw_config_switch* _config) {
+  relayPos = _relayPos;
+  ledPos =_ledPos;
   config = _config;
   nextFeedbackDelay = 0;
   lastFeedbackTime = 0;
-  // Pin auf OUTPUT
-  // ...und auf HIGH (also 0) setzen, da sonst die Relais anziehen
-  // TODO: das sollte einstellbar sein
-//  digitalWrite(pin, HIGH);
-//    pinMode(pin,OUTPUT);
+  
+  relayOperationTimeStart = 0;
+  operateRelay = false;
 };
  
-void HBWChSw::initRelays() {    //need intial reset (or set if inverterted) for all relays - bistable relays may have incorrect state!!!
+void HBWChanSw::initRelays() {    //need intial reset (or set if inverterted) for all relays - bistable relays may have incorrect state!!!
 //  digitalWrite(pin, config->inverted ? HIGH : LOW);
   //bitWrite(portStatus[pin / 8], pin % 8, config->inverted ? HIGH : LOW);
 
 // TODO: function start?
-  byte RelayBitPos = pin * 2;
+  // byte RelayBitPos = relayPos * 2;
   if (config->inverted) { // on - perform set
-    myShReg_RELAY.writeBit(RelayBitPos +1, LOW);  // reset coil
-    myShReg_RELAY.writeBit(RelayBitPos, HIGH);    // set coil
-    bitWrite(portStatus[pin / 8], pin % 8, HIGH);    
+    myShReg_RELAY.writeBit(relayPos +1, LOW);  // reset coil
+    myShReg_RELAY.writeBit(relayPos, HIGH);    // set coil
+    // bitWrite(portStatus[pin / 8], pin % 8, HIGH);
+	portStatus = HIGH;
   }
   else {  // off - perform reset
-    myShReg_RELAY.writeBit(RelayBitPos, LOW);      // set coil
-    myShReg_RELAY.writeBit(RelayBitPos +1, HIGH);  // reset coil
-    bitWrite(portStatus[pin / 8], pin % 8, LOW);
+    myShReg_RELAY.writeBit(relayPos, LOW);      // set coil
+    myShReg_RELAY.writeBit(relayPos +1, HIGH);  // reset coil
+    // bitWrite(portStatus[pin / 8], pin % 8, LOW);
+	portStatus = LOW;
   }
-  if (millis() == 0)  // TODO: check for possible overflow condition as well (or check if difference is too high? e.g. max coild swicht on time < 1 second?
-    lastRelayOperation[pin] = 1;
-  else
-    lastRelayOperation[pin] = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
+  relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
+  operateRelay = true;
 // TODO: function end?
 }
 
 
-void HBWChSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+  	
+//	unsigned long now = millis();
   if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
     byte level = (*data);
     
     if (level > 200) // toggle
-      level = !(bitRead(portStatus[pin / 8], pin % 8)); // get current state and negate
+      // level = !(bitRead(portStatus[pin / 8], pin % 8)); // get current state and negate
+	  level = !portStatus; // get current state and negate
     else if (level)   // set to 0 or 1
       level = (HIGH ^ config->inverted);
     else
       level = (LOW ^ config->inverted);
 // TODO: function start?  ----- or move operations to "operateRelays()"? - Needed for zero crossing function. Just set portStatus[]? + add portStatusDesired[]?
-    byte RelayBitPos = pin * 2;
+    // byte RelayBitPos = relayPos * 2;
     if (level) { // on - perform set
-      myShReg_RELAY.writeBit(RelayBitPos +1, LOW);  // reset coil
-      myShReg_RELAY.writeBit(RelayBitPos, HIGH);    // set coil
-      bitWrite(portStatus[pin / 8], pin % 8, HIGH);
+      myShReg_RELAY.writeBit(relayPos +1, LOW);  // reset coil
+      myShReg_RELAY.writeBit(relayPos, HIGH);    // set coil
+     // bitWrite(portStatus[pin / 8], pin % 8, HIGH);
+      portStatus = HIGH;
     }
     else {  // off - perform reset
-      myShReg_RELAY.writeBit(RelayBitPos, LOW);      // set coil
-      myShReg_RELAY.writeBit(RelayBitPos +1, HIGH);  // reset coil
-      bitWrite(portStatus[pin / 8], pin % 8, LOW);
+      myShReg_RELAY.writeBit(relayPos, LOW);      // set coil
+      myShReg_RELAY.writeBit(relayPos +1, HIGH);  // reset coil
+     // bitWrite(portStatus[pin / 8], pin % 8, LOW);
+      portStatus = LOW;
     }
     
-    if (millis() == 0)
-      lastRelayOperation[pin] = 1;
-    else
-      lastRelayOperation[pin] = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
+    relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
+    operateRelay = true;
 // TODO: function end?
 
     //setLEDs();    // use (portStatus[] to update LEDs
@@ -241,23 +246,43 @@ void HBWChSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
   // (logging is considered for locked channels)
   if(!nextFeedbackDelay && config->logging) {
     lastFeedbackTime = millis();
+//	lastFeedbackTime = now;
     nextFeedbackDelay = device->getLoggingTime() * 100;
   }
 };
 
 
-uint8_t HBWChSw::get(uint8_t* data) {
-  if (bitRead(portStatus[pin / 8], pin % 8) ^ config->inverted)
+uint8_t HBWChanSw::get(uint8_t* data) {
+  // if (bitRead(portStatus[pin / 8], pin % 8) ^ config->inverted)
+  if (portStatus ^ config->inverted)
     (*data) = 200;
   else
     (*data) = 0;
   return 1;
 };
 
-void HBWChSw::loop(HBWDevice* device, uint8_t channel) {
+void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
+	
+	unsigned long now = millis();
+	// operate relays and LEDs (via shift register)
+	// myShReg_LED.batchWriteBegin();
+
+	if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {  // time to remove power from coil?
+		myShReg_RELAY.batchWriteBegin();		
+		myShReg_RELAY.writeBit(relayPos, LOW);
+		myShReg_RELAY.writeBit(relayPos + 1, LOW);
+		myShReg_RELAY.batchWriteEnd();
+		operateRelay = false;
+
+		myShReg_LED.writeBit(ledPos, portStatus);   // refresh LED status (shift register)
+	}
+
+	// myShReg_LED.batchWriteEnd();
+	
+	
   // feedback trigger set?
     if(!nextFeedbackDelay) return;
-    unsigned long now = millis();
+//    unsigned long now = millis();
     if(now - lastFeedbackTime < nextFeedbackDelay) return;
     lastFeedbackTime = now;  // at least last time of trying
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
@@ -279,9 +304,9 @@ void setup()
   pinMode(BUTTON, INPUT_PULLUP);
   pinMode(LED, OUTPUT);
   
-  myShReg_LED.setBitCount(8);
+  myShReg_LED.setBitCount(NUM_CHANNELS);
   myShReg_LED.setPins(shiftRegLED_Data, shiftRegLED_Clock, shiftRegLED_Latch);
-  myShReg_RELAY.setBitCount(16);
+  myShReg_RELAY.setBitCount(NUM_CHANNELS *2);
   myShReg_RELAY.setPins(shiftRegRELAY_Data, shiftRegRELAY_Clock, shiftRegRELAY_Latch);
 
 
@@ -289,10 +314,11 @@ void setup()
   rs485.begin();    // RS485 via SoftwareSerial
 
    // create channels
-   uint8_t RelayNumber[NUM_CHANNELS] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}; // TODO: remove? just need channel info? - or use this to freely map relays to channels?
+   uint8_t RelayBitPos[NUM_CHANNELS] = {0, 2, 4, 8, 10, 12, 16, 18, 20, 24, 26, 28}; // TODO: keep like this?? -  use this to freely map relays to channels?
+   uint8_t LEDBitPos[NUM_CHANNELS] = {0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13};
   // assing switches (relay) pins
    for(uint8_t i = 0; i < NUM_CHANNELS; i++){
-      switches[i] = new HBWChSw(RelayNumber[i], &(hbwconfig.switchcfg[i]));
+      switches[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &(hbwconfig.switchcfg[i]));
    };
 
   device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
@@ -313,9 +339,9 @@ void loop()
 {
   device->loop();
   
-  if (timerTenMilliSeconds + 10 < millis()) { // check about every 10 ms
-    timerTenMilliSeconds = millis();
-    operateRelays();
-  }
+//  if (timerTenMilliSeconds + 10 < millis()) { // check about every 10 ms
+//    timerTenMilliSeconds = millis();
+//    operateRelays();
+//  }
 };
 
