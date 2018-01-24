@@ -5,7 +5,7 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 4 Kanal Rollosteuerung
-// - Direktes Peering möglich. (open, close, toggle & stop)
+// - Direktes Peering möglich. (open: 100%, close: 0%, toggle & stop)
 //
 //*******************************************************************
 // Changes
@@ -548,8 +548,9 @@ void HBWChanBl::getCurrentPosition() {
 
 void setup()
 {
-  pinMode(BUTTON, INPUT_PULLUP);
-  pinMode(LED, OUTPUT);
+  // done by setConfigPins()
+  // pinMode(BUTTON, INPUT_PULLUP);
+  // pinMode(LED, OUTPUT);
 
   Serial.begin(19200);
   rs485.begin();    // RS485 via SoftwareSerial

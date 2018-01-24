@@ -850,7 +850,14 @@ void HBWDevice::handleConfigButton() {
                            // 5: zweiter langer Druck erkannt
 
   long now = millis();
-  boolean buttonState = !digitalRead(configPin);
+  #ifdef ANALOG_CONFIG_BUTTON
+	boolean buttonState = false;
+	if (analogRead(configPin) > 800) { // Button press == 4.6V ~= 942
+		buttonState = true;
+	}
+  #else
+    boolean buttonState = !digitalRead(configPin);
+  #endif
 
 
   switch(status) {
