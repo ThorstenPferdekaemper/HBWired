@@ -5,8 +5,7 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 4 Kanal Rollosteuerung
-// - 
-// TODO: Add direct peering (HBWLink...) & update XML
+// - Direktes Peering möglich. (open, close, toggle & stop)
 //
 //*******************************************************************
 // Changes
@@ -27,7 +26,7 @@
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x26
 
-#define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl4.xml into FHEM)
+#define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
 
 #include "HBWSoftwareSerial.h"
