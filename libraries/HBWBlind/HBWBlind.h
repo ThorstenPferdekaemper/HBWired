@@ -17,13 +17,13 @@
 /* Config der Rollo-Steuerung:  */
 /********************************/
 
-#define ON LOW					// Möglichkeit für invertierte Logik
+#define ON LOW					// MÃ¶glichkeit fÃ¼r invertierte Logik
 #define OFF HIGH
 #define UP LOW					// "Richtungs-Relais"
 #define DOWN HIGH
 #define BLIND_WAIT_TIME 100		// Wartezeit [ms] zwischen Ansteuerung des "Richtungs-Relais" und des "Ein-/Aus-Relais"
 #define BLIND_OFFSET_TIME 1000	// Zeit [ms], die beim Anfahren der Endlagen auf die berechnete Zeit addiert wird, um die Endlagen wirklich sicher zu erreichen
-#define BLIND_SWITCH_DIRECTION_WAIT_TIME 800	// + BLIND_WAIT_TIME; Zeit die beim direkten Richtungswechsel gewartet wird, in der der Motor zum Stillstand kommt
+#define BLIND_SWITCH_DIRECTION_WAIT_TIME 800	// + BLIND_WAIT_TIME; Zeit [ms] die beim direkten Richtungswechsel gewartet wird, in der der Motor zum Stillstand kommen kann
                                               //TODO: Add to device or channel config?
 
 
@@ -57,12 +57,11 @@ class HBWChanBl : public HBWChannel {
     unsigned long now;
 	
   private:
-    uint8_t blindDir;
-    uint8_t blindAct;
+    uint8_t blindDir;   // direction relay
+    uint8_t blindAct;   // activity relay
     hbw_config_blind* config; // logging
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
-
     byte blindNextState;
     byte blindCurrentState;
     byte blindPositionRequested;
@@ -80,3 +79,4 @@ class HBWChanBl : public HBWChannel {
 };
 
 #endif
+

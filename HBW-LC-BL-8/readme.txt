@@ -15,19 +15,19 @@ Standard-Pinbelegung:
 2 - RS485 Enable
 13 - Status LED
 A6 - Bedientaster (Reset)
-3  - BLIND1_ACT ("Ein-/Aus-Relais", Kanal 0)
-4  - BLIND1_DIR ("Richungs-Relais", Kanal 0)
-A0 - BLIND2_ACT ("Ein-/Aus-Relais", Kanal 1)
-A1 - BLIND2_DIR ("Richungs-Relais", Kanal 1)
-A2 - BLIND3_ACT
-A3 - BLIND3_DIR
-A4 - BLIND4_ACT
-A5 - BLIND4_DIR
-5  - BLIND5_ACT
-6  - BLIND5_DIR
-7  - BLIND6_ACT
-8  - BLIND6_DIR
-9  - BLIND7_ACT
-10 - BLIND7_DIR
-11 - BLIND8_ACT
-12 - BLIND8_DIR
+10 - BLIND1_ACT ("Ein-/Aus-Relais", Kanal 0)
+9  - BLIND1_DIR ("Richungs-Relais", Kanal 0)
+7  - BLIND2_ACT ("Ein-/Aus-Relais", Kanal 1)
+8  - BLIND2_DIR ("Richungs-Relais", Kanal 1)
+6  - BLIND3_ACT
+5  - BLIND3_DIR
+4  - BLIND4_ACT
+3  - BLIND4_DIR
+A5 - BLIND5_ACT
+A4 - BLIND5_DIR
+A3 - BLIND6_ACT
+A2 - BLIND6_DIR
+A0 - BLIND7_ACT
+A1 - BLIND7_DIR
+12 - BLIND8_ACT
+11 - BLIND8_DIR

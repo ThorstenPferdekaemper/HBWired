@@ -23,3 +23,4 @@ class HBWLinkBlindSimple : public HBWLinkReceiver {
 };
 
 #endif
+

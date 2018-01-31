@@ -5,12 +5,12 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 8 Kanal Rollosteuerung
-// - Direktes Peering möglich. (open: 100%, close: 0%, toggle & stop)
+// - Direktes Peering mÃ¶glich. (open: 100%, close: 0%, toggle & stop)
 //
 //*******************************************************************
 // Changes
 // v0.1
-// - intial port to new library
+// - initial port to new library
 // - logging mechanism changed, only send info message once blind has reached final postition
 // - time measurement changed to duration, to avoid millis() rollover issue
 // - added additional pause, when changing direction
@@ -50,23 +50,23 @@
 #define ANALOG_CONFIG_BUTTON  //tell handleConfigButton() to use analogRead()
 #define LED LED_BUILTIN        // Signal-LED
 
-#define BLIND1_ACT 3		// "Ein-/Aus-Relais"
-#define BLIND1_DIR 4		// "Richungs-Relais"
-#define BLIND2_ACT A0
-#define BLIND2_DIR A1
-#define BLIND3_ACT A2
-#define BLIND3_DIR A3
-#define BLIND4_ACT A4
-#define BLIND4_DIR A5
+#define BLIND1_ACT 10		// "Ein-/Aus-Relais"
+#define BLIND1_DIR 9		// "Richungs-Relais"
+#define BLIND2_ACT 7
+#define BLIND2_DIR 8
+#define BLIND3_ACT 6
+#define BLIND3_DIR 5
+#define BLIND4_ACT 4
+#define BLIND4_DIR 3
 
-#define BLIND5_ACT 5
-#define BLIND5_DIR 6
-#define BLIND6_ACT 7
-#define BLIND6_DIR 8
-#define BLIND7_ACT 9
-#define BLIND7_DIR 10
-#define BLIND8_ACT 11
-#define BLIND8_DIR 12
+#define BLIND5_ACT A5
+#define BLIND5_DIR A4
+#define BLIND6_ACT A3
+#define BLIND6_DIR A2
+#define BLIND7_ACT A0
+#define BLIND7_DIR A1
+#define BLIND8_ACT 12
+#define BLIND8_DIR 11
 
 /*>>> more config in HBWBlind.h <<<*/
 
@@ -150,4 +150,5 @@ void loop()
 {
   device->loop();
 };
+
 

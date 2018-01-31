@@ -10,13 +10,13 @@
 #include "HBWBlind.h"
 
 
+// constructor
 HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _config) {
   blindDir = _blindDir;
   blindAct = _blindAct;
   config = _config;  
   nextFeedbackDelay = 0;
   lastFeedbackTime = 0;
-  
   pinMode(blindAct,OUTPUT);
   digitalWrite(blindAct,OFF);
   pinMode(blindDir,OUTPUT);
@@ -101,7 +101,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 				blindForceNextState = true;
 			}
 			else {
-				// Rollo f‰hrt schon in die richtige Richtung
+				// Rollo f√§hrt schon in die richtige Richtung
 				if (blindCurrentState == MOVE) { // Zeit muss neu berechnet werden // current state == TURN_AROUND, nicht zu tun, Zeit wird ohnehin beim ersten Aufruf von MOVE berechnet
 					blindNextState = MOVE; // Im Zustand MOVE wird die neue Zeit berechnet
 					blindForceNextState = true;
@@ -134,7 +134,7 @@ uint8_t HBWChanBl::get(uint8_t* data) {
 
   uint8_t newData;
   
-  if (blindNextState == STOP) {     // wenn Rollo gestopppt wird und keine Referenzfahrt l‰uft,
+  if (blindNextState == STOP) {     // wenn Rollo gestopppt wird und keine Referenzfahrt l√§uft,
     getCurrentPosition();
     newData = blindPositionActual;  // dann aktuelle Position ausgeben,
    }
@@ -365,3 +365,4 @@ void HBWChanBl::getCurrentPosition() {
     }
   }
 }
+

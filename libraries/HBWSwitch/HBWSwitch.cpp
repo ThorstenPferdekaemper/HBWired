@@ -9,10 +9,17 @@ HBWSwitch::HBWSwitch(uint8_t _pin, hbw_config_switch* _config) {
     lastFeedbackTime = 0;
     // Pin auf OUTPUT
     // ...und auf HIGH (also 0) setzen, da sonst die Relais anziehen
-	// TODO: das sollte einstellbar sein
-	digitalWrite(pin, HIGH);
-    pinMode(pin,OUTPUT);
+    // TODO: das sollte einstellbar sein
+    // digitalWrite(pin, HIGH);
+    // pinMode(pin,OUTPUT);
+    // --> moved to initConfigPins()
 };
+
+
+void HBWSwitch::initConfigPins() {
+    digitalWrite(pin, config->inverted ? HIGH : LOW);
+    pinMode(pin,OUTPUT);
+}
 
 
 void HBWSwitch::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {

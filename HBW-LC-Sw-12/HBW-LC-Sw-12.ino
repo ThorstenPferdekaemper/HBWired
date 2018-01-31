@@ -38,11 +38,27 @@
 
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable
+  // 6 realys and LED attached to 3 shiftregisters
+  #define shiftRegOne_Data  10       //DS serial data input
+  #define shiftRegOne_Clock 3       //SH_CP shift register clock input
+  #define shiftRegOne_Latch 4       //ST_CP storage register clock input
+  // extension shifregister for another 6 relays and LEDs
+  #define shiftRegTwo_Data  8
+  #define shiftRegTwo_Clock 7
+  #define shiftRegTwo_Latch 9
 #else
   #define RS485_RXD 4
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
-
+  // 6 realys and LED attached to 3 shiftregisters
+  #define shiftRegOne_Data  10       //DS serial data input
+  #define shiftRegOne_Clock 9       //SH_CP shift register clock input
+  #define shiftRegOne_Latch 11       //ST_CP storage register clock input
+  // extension shifregister for another 6 relays and LEDs
+  #define shiftRegTwo_Data  5
+  #define shiftRegTwo_Clock 7
+  #define shiftRegTwo_Latch 6
+  
   #include "HBWSoftwareSerial.h"
   // HBWSoftwareSerial can only do 19200 baud
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
@@ -59,14 +75,6 @@
 #endif
 
 #define LED LED_BUILTIN        // Signal-LED
-
-#define shiftRegLED_Data  6
-#define shiftRegLED_Clock 7
-#define shiftRegLED_Latch 5
-
-#define shiftRegRELAY_Data  9
-#define shiftRegRELAY_Clock 10
-#define shiftRegRELAY_Latch 11
 
 #define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay
 
@@ -145,8 +153,8 @@ HBSwDevice* device = NULL;
 //ShiftRegister74HC595 myShReg_LED(2, shiftRegLED_Data, shiftRegLED_Clock, shiftRegLED_Latch);
 //ShiftRegister74HC595 myShReg_RELAY(4, shiftRegRELAY_Data, shiftRegRELAY_Clock, shiftRegRELAY_Latch);
 
-ShiftRegister74HC595 myShReg_one(3, shiftRegLED_Data, shiftRegLED_Clock, shiftRegLED_Latch);
-ShiftRegister74HC595 myShReg_two(3, shiftRegRELAY_Data, shiftRegRELAY_Clock, shiftRegRELAY_Latch);
+ShiftRegister74HC595 myShReg_one(3, shiftRegOne_Data, shiftRegOne_Clock, shiftRegOne_Latch);
+ShiftRegister74HC595 myShReg_two(3, shiftRegTwo_Data, shiftRegTwo_Clock, shiftRegTwo_Latch);
 
 
 HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _shiftRegister, hbw_config_switch* _config) {
@@ -174,11 +182,10 @@ void HBWChanSw::initRelays() {    //need intial reset (or set if inverterted) fo
     shiftRegister->set(relayPos +1, HIGH);  // reset coil
     shiftRegister->set(ledPos, LOW); // LED
   }
-  // sleep?
+  //TODO: add sleep? setting 12 relays at once would consume high current...
   
   relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
   operateRelay = true;
-// TODO: function end?
 }
 
 
@@ -248,7 +255,6 @@ uint8_t HBWChanSw::get(uint8_t* data) {
 void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 	
 	unsigned long now = millis();
-	// operate relays and LEDs (via shift register)
 
 	if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {  // time to remove power from coil?
 
@@ -261,7 +267,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 	
   if(!nextFeedbackDelay)  // feedback trigger set?
     return;
-//    unsigned long now = millis();
   if (now - lastFeedbackTime < nextFeedbackDelay)
     return;
   lastFeedbackTime = now;  // at least last time of trying
@@ -280,18 +285,10 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
   
 void setup()
 {
-  #ifdef USE_HARDWARE_SERIAL
-    pinMode(LED, OUTPUT);
-    Serial.begin(19200, SERIAL_8E1);
-  #else
-    Serial.begin(19200);
-    rs485.begin();    // RS485 via SoftwareSerial
-  #endif
-
    // assing switches (relay) pins
-//   uint8_t RelayBitPos[NUM_CHANNELS] = {0, 2, 4, 8, 10, 12, 16, 18, 20, 24, 26, 28}; // TODO: keep like this?? -  use this to freely map relays to channels?
+//   uint8_t RelayBitPos[NUM_CHANNELS] = {0, 2, 4, 8, 10, 12, 16, 18, 20, 24, 26, 28};
 //   uint8_t LEDBitPos[NUM_CHANNELS] = {0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13};
-   uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // myShReg_LED is not only used for the LEDs, but also to keep track to the outout state
+   uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // not only used for the LEDs, but also to keep track of the output state!
    uint8_t RelayBitPos[6] = {8, 10, 12,          // shift register 2: 3 relays (with 2 coils each)
                              16, 18, 20};        // shift register 3: 3 relays (with 2 coils each)
   // create channels
@@ -304,19 +301,25 @@ void setup()
   };
 
   #ifdef USE_HARDWARE_SERIAL
+    pinMode(LED, OUTPUT);
+    Serial.begin(19200, SERIAL_8E1);
+    
     device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                            &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                            NUM_CHANNELS,(HBWChannel**)switches,
                            NULL,
                            NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
   #else
+    Serial.begin(19200);
+    rs485.begin();    // RS485 via SoftwareSerial
+    
     device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                            &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                            NUM_CHANNELS, (HBWChannel**)switches,
                            &Serial,
                            NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
      
-    device->setConfigPins();  // 8 and 13 is the default
+    device->setConfigPins();  // 8 (button) and 13 (led) is the default
   #endif
    
   hbwdebug(F("B: 2A "));
