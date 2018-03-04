@@ -69,7 +69,6 @@
 // Pins
 #ifdef USE_HARDWARE_SERIAL
   #define BUTTON A6  // Button fuer Factory-Reset etc.
-  #define ANALOG_CONFIG_BUTTON  //tell handleConfigButton() to use analogRead()
 #else
   #define BUTTON 8  // Button fuer Factory-Reset etc.
 #endif
@@ -256,7 +255,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 	
 	unsigned long now = millis();
 
-	if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {  // time to remove power from coil?
+	if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {  // time to remove power from both coils?
 
     shiftRegister->setNoUpdate(relayPos +1, LOW);    // reset coil
     shiftRegister->setNoUpdate(relayPos, LOW);  // set coil
@@ -300,8 +299,7 @@ void setup()
     //switches[i] = new HBWChanSw(BitPos[i], BitPos[i/8], &(hbwconfig.switchcfg[i]));
   };
 
-  #ifdef USE_HARDWARE_SERIAL
-    pinMode(LED, OUTPUT);
+  #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
     Serial.begin(19200, SERIAL_8E1);
     
     device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
@@ -309,6 +307,9 @@ void setup()
                            NUM_CHANNELS,(HBWChannel**)switches,
                            NULL,
                            NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
+    
+    device->setConfigPins(BUTTON, LED, true);  // use analogRead for 'BUTTON'
+    
   #else
     Serial.begin(19200);
     rs485.begin();    // RS485 via SoftwareSerial
@@ -319,13 +320,12 @@ void setup()
                            &Serial,
                            NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
      
-    device->setConfigPins();  // 8 (button) and 13 (led) is the default
-  #endif
+    device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
    
-  hbwdebug(F("B: 2A "));
-  hbwdebug(freeRam());
-  hbwdebug(F("\n"));
-
+    hbwdebug(F("B: 2A "));
+    hbwdebug(freeRam());
+    hbwdebug(F("\n"));
+  #endif
 }
 
 

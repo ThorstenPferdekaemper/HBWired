@@ -125,8 +125,9 @@ void setup()
                          &Serial,
                          NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
    
-  device->setConfigPins();  // 8 and 13 is the default
- 
+  device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
+
+
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
   hbwdebug(F("\n"));

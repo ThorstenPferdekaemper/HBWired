@@ -38,7 +38,6 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   
   // blind control
 	if((*data) == 0xFF) { // toggle
-
 		hbwdebug("Toggle\n");
 		if (blindCurrentState == TURN_AROUND)
 			blindNextState = STOP;

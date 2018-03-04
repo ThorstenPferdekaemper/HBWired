@@ -63,7 +63,7 @@ class HBWDevice {
 			  uint8_t _numChannels, HBWChannel** _channels,
 			  Stream* _debugstream, HBWLinkSender* = NULL, HBWLinkReceiver* = NULL);
   
-    void setConfigPins(uint8_t _configPin = 8, uint8_t _ledPin = 13);
+    void setConfigPins(uint8_t _configPin = 8, uint8_t _ledPin = 13, boolean _useAnalogConfigPin = false);
   
     virtual void loop(); // needs to be called as often as possible
 
@@ -106,6 +106,7 @@ class HBWDevice {
 	// pins of config button and config LED
 	uint8_t configPin;
 	uint8_t ledPin;
+	boolean useAnalogConfigPin;
 	
 	// sendFrame macht ggf. Wiederholungen
 	// onlyIfIdle: If this is set, then the bus must have been idle since 210+rand(0..100) ms

@@ -755,14 +755,21 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	hbwdebugstream = _debugstream;    // debug stream, might be NULL
 	configPin = 0xFF;  //inactive by default
 	ledPin = 0xFF;     // inactive by default
+	useAnalogConfigPin = false;
 	// read config
 	readConfig(); 
 }
   
 
- void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
+ void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin, boolean _useAnalogConfigPin) {
 	configPin = _configPin;
-	if(configPin != 0xFF) pinMode(configPin,INPUT_PULLUP);
+	useAnalogConfigPin = _useAnalogConfigPin;
+	if(configPin != 0xFF) {
+		if (_useAnalogConfigPin)	// no pullup for analog input
+			pinMode(configPin,INPUT);
+		else
+			pinMode(configPin,INPUT_PULLUP);
+	}
     ledPin = _ledPin;	
 	if(ledPin != 0xFF) pinMode(ledPin,OUTPUT);
  };
@@ -850,14 +857,16 @@ void HBWDevice::handleConfigButton() {
                            // 5: zweiter langer Druck erkannt
 
   long now = millis();
-  #ifdef ANALOG_CONFIG_BUTTON
-	boolean buttonState = false;
+  boolean buttonState;
+
+  if (useAnalogConfigPin) {
+	buttonState = false;
 	if (analogRead(configPin) > 800) { // Button press == 4.6V ~= 942
 		buttonState = true;
 	}
-  #else
-    boolean buttonState = !digitalRead(configPin);
-  #endif
+  }
+  else
+    buttonState = !digitalRead(configPin);
 
 
   switch(status) {

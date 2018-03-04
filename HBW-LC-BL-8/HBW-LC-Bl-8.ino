@@ -28,7 +28,7 @@
 #define HMW_DEVICETYPE 0x92 //BL4 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 
-//#include "HBWSoftwareSerial.h"  //--> Using USART !! port PD0 & PD1
+//#include "HBWSoftwareSerial.h"  //don't need --> Using USART !! port PD0 & PD1
 //#include "FreeRam.h"
 
 
@@ -47,7 +47,6 @@
 
 // Pins
 #define BUTTON A6  // Button fuer Factory-Reset etc.
-#define ANALOG_CONFIG_BUTTON  //tell handleConfigButton() to use analogRead()
 #define LED LED_BUILTIN        // Signal-LED
 
 #define BLIND1_ACT 10		// "Ein-/Aus-Relais"
@@ -118,7 +117,7 @@ HBBlDevice* device = NULL;
 void setup()
 {
   //pinMode(BUTTON, INPUT_PULLUP);
-  pinMode(LED, OUTPUT);
+  //pinMode(LED, OUTPUT);
 
   //Serial.begin(19200);
   Serial.begin(19200, SERIAL_8E1);
@@ -138,7 +137,7 @@ void setup()
                          NULL,
                          NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
    
-  //device->setConfigPins();  // 8 and 13 is the default
+  device->setConfigPins(BUTTON, LED, true);  // 8 and 13 is the default; use analogRead for 'BUTTON'
  
 //  hbwdebug(F("B: 2A "));
 //  hbwdebug(freeRam());
