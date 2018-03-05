@@ -755,7 +755,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	hbwdebugstream = _debugstream;    // debug stream, might be NULL
 	configPin = 0xFF;  //inactive by default
 	ledPin = 0xFF;     // inactive by default
-	useAnalogConfigPin = false;
+	useAnalogConfigPin = false;		// use digital ConfigPin by default
 	// read config
 	readConfig(); 
 }
@@ -765,7 +765,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	configPin = _configPin;
 	useAnalogConfigPin = _useAnalogConfigPin;
 	if(configPin != 0xFF) {
-		if (_useAnalogConfigPin)	// no pullup for analog input
+		if (useAnalogConfigPin)	// no pullup for analog input
 			pinMode(configPin,INPUT);
 		else
 			pinMode(configPin,INPUT_PULLUP);
@@ -861,7 +861,7 @@ void HBWDevice::handleConfigButton() {
 
   if (useAnalogConfigPin) {
 	buttonState = false;
-	if (analogRead(configPin) > 800) { // Button press == 4.6V ~= 942
+	if (analogRead(configPin) > 800) { // Button press @ 10k / 100k voltage divider (@5V == 4.5V and @3.3V == 3V --> 930 AD value)
 		buttonState = true;
 	}
   }
