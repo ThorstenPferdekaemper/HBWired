@@ -12,7 +12,7 @@
 struct hbw_config_switch {
 	uint8_t logging:1;              // 0x0000
 	uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED
-	uint8_t inverted:1;             // 0x07:2
+	uint8_t n_inverted:1;           // 0x07:2    0=inverted, 1=not inverted (device reset will set to 1!)
 	uint8_t        :5;              // 0x0000
 	uint8_t dummy;
 };

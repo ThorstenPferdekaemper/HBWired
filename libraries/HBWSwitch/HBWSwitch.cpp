@@ -16,8 +16,9 @@ HBWSwitch::HBWSwitch(uint8_t _pin, hbw_config_switch* _config) {
 };
 
 
+// init output pins. Has to be called after the HBSwDevice object creation in void setup()
 void HBWSwitch::initConfigPins() {
-    digitalWrite(pin, config->inverted ? HIGH : LOW);
+    digitalWrite(pin, config->n_inverted ? LOW : HIGH);		// 0=inverted, 1=not inverted (device reset will set to 1!)
     pinMode(pin,OUTPUT);
 }
 
@@ -28,13 +29,12 @@ void HBWSwitch::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 			digitalWrite(pin, digitalRead(pin) ? LOW : HIGH);
 		}else{   // on or off
 			if (*data)
-				digitalWrite(pin, HIGH ^ config->inverted);
+				digitalWrite(pin, LOW ^ config->n_inverted);
 			else
-				digitalWrite(pin, LOW ^ config->inverted);
+				digitalWrite(pin, HIGH ^ config->n_inverted);
 		}
 	}
 	// Logging
-	// TODO: Check if logging should be considered for locked channels?
 	if(!nextFeedbackDelay && config->logging) {
 		lastFeedbackTime = millis();
 		nextFeedbackDelay = device->getLoggingTime() * 100;
@@ -44,10 +44,10 @@ void HBWSwitch::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 
 uint8_t HBWSwitch::get(uint8_t* data) {
 	//(*data) = digitalRead(pin) ? 200 : 0;
-	if (digitalRead(pin) ^ config->inverted)
-		(*data) = 200;
-	else
+	if (digitalRead(pin) ^ config->n_inverted)
 		(*data) = 0;
+	else
+		(*data) = 200;
 	return 1;
 };
 

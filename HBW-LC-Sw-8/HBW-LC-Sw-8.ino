@@ -9,12 +9,15 @@
 //*******************************************************************
 // Changes
 // v1.01
-// - Switch code in "HBWSwitch.h" channel library übertragen. initConfigPins() muss nach Anlegen des switches[] array aufgerufen werden
+// - Switch code in "HBWSwitch.h" channel library übertragen. neu: initConfigPins()
+// v1.02
+// - channel invert angepasst um nach einem Device reset (EEPROM 'gelöscht') keine Invertierung zu haben
+// - fix: initConfigPins() muss nach Anlegen des HBSwDevice aufgerufen werden
 
 
 #define HMW_DEVICETYPE 0x83
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0065
+#define FIRMWARE_VERSION 0x0066
 
 #define NUM_CHANNELS 8
 #define NUM_LINKS 36
@@ -96,10 +99,9 @@ void setup()
   // create channels
   uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN, SWITCH3_PIN, SWITCH4_PIN, SWITCH5_PIN, SWITCH6_PIN, SWITCH7_PIN, SWITCH8_PIN};
   
-  // assing switches (relay) pins
+  // assing switches (relay) pins to channels
   for(uint8_t i = 0; i < NUM_CHANNELS; i++){
      switches[i] = new HBWSwitch(pins[i], &(hbwconfig.switchcfg[i]));
-     switches[i]->initConfigPins();
   };
 
   device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
@@ -109,7 +111,11 @@ void setup()
                          NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
 
   device->setConfigPins();  // 8 and 13 is the default
- 
+  
+  for(uint8_t i = 0; i < NUM_CHANNELS; i++){
+     switches[i]->initConfigPins();   // init output pins. Has to be called after the HBSwDevice object creation
+  };
+  
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
   hbwdebug(F("\n"));

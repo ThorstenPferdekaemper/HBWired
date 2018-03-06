@@ -71,7 +71,7 @@
 				<physical size="0.1" type="integer" interface="eeprom">
 					<address index="+0.2"/>
 				</physical>
-				<conversion type="boolean_integer" invert="false"/>
+				<conversion type="boolean_integer" invert="true"/>
 			</parameter>		
 		</paramset>
 

@@ -82,7 +82,7 @@
 struct hbw_config_switch {
   uint8_t logging:1;              // 0x0000
   uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED
-  uint8_t inverted:1;             // 0x07:2
+  uint8_t n_inverted:1;           // 0x07:2    0=inverted, 1=not inverted (device reset will set to 1!)
   uint8_t        :5;              // 0x0000
   uint8_t dummy;
 };
@@ -171,15 +171,15 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
 
 void HBWChanSw::initRelays() {    //need intial reset (or set if inverterted) for all relays - bistable relays may have incorrect state!!!
 
-  if (config->inverted) { // on - perform set
-    shiftRegister->set(relayPos +1, LOW);    // reset coil
-    shiftRegister->set(relayPos, HIGH);  // set coil
-    shiftRegister->set(ledPos, HIGH); // LED  
-  }
-  else {  // off - perform reset
+  if (config->n_inverted) { // off - perform reset
     shiftRegister->set(relayPos, LOW);      // set coil
     shiftRegister->set(relayPos +1, HIGH);  // reset coil
     shiftRegister->set(ledPos, LOW); // LED
+  }
+  else {  // on - perform set
+    shiftRegister->set(relayPos +1, LOW);    // reset coil
+    shiftRegister->set(relayPos, HIGH);  // set coil
+    shiftRegister->set(ledPos, HIGH); // LED  
   }
   //TODO: add sleep? setting 12 relays at once would consume high current...
   
@@ -198,9 +198,9 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     if (level > 200) // toggle
 	      level = !shiftRegister->get(ledPos); // get current state and negate
     else if (level)   // set to 0 or 1
-      level = (HIGH ^ config->inverted);
+      level = (LOW ^ config->n_inverted);
     else
-      level = (LOW ^ config->inverted);
+      level = (HIGH ^ config->n_inverted);
 // TODO: move to loop? - Needed for zero crossing function. Just set portStatus[]? + add portStatusDesired[]?
 
     if (level) { // on - perform set
@@ -243,10 +243,10 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 uint8_t HBWChanSw::get(uint8_t* data) {
   
   //if (portStatus ^ config->inverted)
-  if (shiftRegister->get(ledPos) ^ config->inverted)
-    (*data) = 200;
-  else
+  if (shiftRegister->get(ledPos) ^ config->n_inverted)
     (*data) = 0;
+  else
+    (*data) = 200;
   return 1;
 };
 
