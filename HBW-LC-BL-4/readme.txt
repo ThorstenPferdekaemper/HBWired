@@ -8,6 +8,11 @@ Direktes Peering möglich (HBWLinkBlindSimple).
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_lc_bl-4.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x82 aus).
 
+Implementierte Befehle:
+0x00-0xC8 = 0-100%
+0xC9 = Stop
+0xFF = Toggle (bzw. Stop, wenn Motor läuft)
+
 Standard-Pinbelegung:
 4 - Rx RS485
 2 - Tx RS485
@@ -24,3 +29,6 @@ A2 - BLIND3_ACT
 A3 - BLIND3_DIR
 A4 - BLIND4_ACT
 A5 - BLIND4_DIR
+
+
+Quelle: https://github.com/kc-GitHub/HM485-Lib/tree/markus/HBW-LC-Bl4

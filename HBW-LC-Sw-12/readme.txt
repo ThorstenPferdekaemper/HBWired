@@ -1,3 +1,6 @@
+###### Under development!!! Not tested!!! ######
+###### In Entwicklung!!! Nicht getestet!!! #####
+
 Homematic Wired Homebrew Relaismodul 12fach
 ==============================================
 
