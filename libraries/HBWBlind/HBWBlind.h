@@ -21,10 +21,9 @@
 #define OFF HIGH
 #define UP LOW					// "Richtungs-Relais"
 #define DOWN HIGH
-#define BLIND_WAIT_TIME 100		// Wartezeit [ms] zwischen Ansteuerung des "Richtungs-Relais" und des "Ein-/Aus-Relais"
+#define BLIND_WAIT_TIME 200		// Wartezeit [ms] zwischen Ansteuerung des "Richtungs-Relais" und des "Ein-/Aus-Relais" (Bei Richtungswechsel 4-fache Wartezeit)
 #define BLIND_OFFSET_TIME 1000	// Zeit [ms], die beim Anfahren der Endlagen auf die berechnete Zeit addiert wird, um die Endlagen wirklich sicher zu erreichen
-#define BLIND_SWITCH_DIRECTION_WAIT_TIME 800	// + BLIND_WAIT_TIME; Zeit [ms] die beim direkten Richtungswechsel gewartet wird, in der der Motor zum Stillstand kommen kann
-                                              //TODO: Add to device or channel config?
+
 
 
 /* here comes the code... */
@@ -39,7 +38,7 @@
 struct hbw_config_blind {
 	byte logging:1;    			  		    // 0x07:0   0x0E	0x15	0x1C
 	byte        :7;   			            // 0x07:1-7	0x0E
-	unsigned char blindTimeChangeOver;      // 0x08		0x0F	0x16	0x1D
+	unsigned char blindTimeChangeOver;      // 0x08		0x0F	0x16	0x1D - Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
 	unsigned char blindReferenceRunCounter; // 0x09		0x10	0x17	0x1E
 	unsigned int blindTimeBottomTop;   		// 0x0A 	0x11	0x18	0x1F
 	unsigned int blindTimeTopBottom;  		// 0x0C   0x13  0x1A  0x21

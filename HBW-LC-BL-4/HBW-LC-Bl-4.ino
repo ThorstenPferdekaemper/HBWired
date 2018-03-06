@@ -17,13 +17,15 @@
 // - time measurement changed to duration, to avoid millis() rollover issue
 // - added additional pause, when changing direction
 // - added basic direct peering
+// v0.31
+// - fixed peering for long press
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x001E
+#define FIRMWARE_VERSION 0x001F
 
 #define NUMBER_OF_BLINDS 4
-#define NUM_LINKS 36
+#define NUM_LINKS 32
 #define LINKADDRESSSTART 0x26
 
 #define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)

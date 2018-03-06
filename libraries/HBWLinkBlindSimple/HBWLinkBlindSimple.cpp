@@ -46,9 +46,9 @@ void HBWLinkBlindSimple::receiveKeyEvent(HBWDevice* device, uint32_t senderAddre
    	  device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);
 	  // differs for short and long
    	  if (longPress)
-		  actionType = (actionType >> 2) & B00000011;
+		  actionType = (actionType >> 3) & B00000111;
 	  else
-		  actionType &= B00000011;
+		  actionType &= B00000111;
 	  uint8_t data;
 	  // we can have
 	  switch(actionType) {
@@ -63,11 +63,12 @@ void HBWLinkBlindSimple::receiveKeyEvent(HBWDevice* device, uint32_t senderAddre
 				break;
 	  // 3 -> TOGGLE (default)
 	    case 3: data = 255;
-                // break;
+                break;
+	  // 4 -> INACTIVE
+	    case 4: continue;
       };
 	  device->set(targetChannel,1,&data);    // channel, data length, data
   }
 }
  
-
 

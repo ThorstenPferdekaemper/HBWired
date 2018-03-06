@@ -66,29 +66,29 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 		blindForceNextState = true;
 	}
 	else { // set level
-	  
-	  blindPositionRequested = (*data) / 2;
+	
+		blindPositionRequested = (*data) / 2;
 
 		if (blindPositionRequested > 100)
 		  blindPositionRequested = 100;
 		hbwdebug("Requested Position: "); hbwdebug(blindPositionRequested); hbwdebug("\n");
 
-    if (!blindPositionKnown) {
-      hbwdebug("Position unknown. Moving to reference position.\n");
+		if (!blindPositionKnown) {
+		  hbwdebug("Position unknown. Moving to reference position.\n");
 
-      if (blindPositionRequested == 0) {
-        blindPositionActual = 100;
-      }
-      else if (blindPositionRequested == 100) {
-        blindPositionActual = 0;
-      }
-      else {  // Target position >0 and <100
-        blindPositionActual = 100;
-        blindPositionRequestedSave = blindPositionRequested;
-        blindPositionRequested = 0;
-        blindSearchingForRefPosition = true;
-      }
-    }
+		  if (blindPositionRequested == 0) {
+			blindPositionActual = 100;
+		  }
+		  else if (blindPositionRequested == 100) {
+			blindPositionActual = 0;
+		  }
+		  else {  // Target position >0 and <100
+			blindPositionActual = 100;
+			blindPositionRequestedSave = blindPositionRequested;
+			blindPositionRequested = 0;
+			blindSearchingForRefPosition = true;
+		  }
+		}
 
 		if ((blindCurrentState == TURN_AROUND) || (blindCurrentState == MOVE)) { // aktuelle Position ist nicht bekannt
 
@@ -111,11 +111,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 			// set next state only if a new target value is requested
 			if (blindPositionRequested != blindPositionActual) {
 				blindNextState = WAIT;
-				//blindForceNextState = true;
-				if (blindSearchingForRefPosition)
-					blindNextStateDelayTime = BLIND_WAIT_TIME + BLIND_SWITCH_DIRECTION_WAIT_TIME; // don't force, wait for motor to stop
-				else
-					blindForceNextState = true;
+				blindForceNextState = true;
 			}
 		}
 	}
@@ -217,7 +213,6 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         if ((blindPositionRequested == 0) || (blindPositionRequested == 100))
           blindNextStateDelayTime += BLIND_OFFSET_TIME;
 
-//        if (blindForceNextState == true)
         blindForceNextState = false;
         break;
 
@@ -231,7 +226,6 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         }
         // or take over requested position if blind has moved for the desired time
         else {
-
           blindPositionActual = blindPositionRequested;
           
           if (blindDirection == UP)
@@ -266,11 +260,9 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
 
         if (blindSearchingForRefPosition == true) {
           hbwdebug("Reference position reached. Moving to target position.\n");
-          //hmwdevice.setLevel(channel, blindPositionRequestedSave[channel] * 2);
           data = (blindPositionRequestedSave * 2);
           device->set(channel, 1, &data);
           blindSearchingForRefPosition = false;
-          digitalWrite(blindDir, OFF);
         }
         break;
 
@@ -286,7 +278,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
 
         blindCurrentState = TURN_AROUND;
         blindNextState = MOVE;
-        if (blindDirection == UP)
+        if (blindDirection == UP)	// Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
           blindNextStateDelayTime = blindAngleActual * config->blindTimeChangeOver;
         else
           blindNextStateDelayTime = (100 - blindAngleActual) * config->blindTimeChangeOver;
@@ -306,9 +298,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         blindCurrentState = SWITCH_DIRECTION;
         blindNextState = WAIT;
         blindForceNextState = false;
-        blindNextStateDelayTime = BLIND_WAIT_TIME + BLIND_SWITCH_DIRECTION_WAIT_TIME;
-        
-        digitalWrite(blindDir, OFF);  // need to switch off, else we would wait for BLIND_WAIT_TIME + BLIND_SWITCH_DIRECTION_WAIT_TIME
+        blindNextStateDelayTime = BLIND_WAIT_TIME *4;
         break;
       }
     }

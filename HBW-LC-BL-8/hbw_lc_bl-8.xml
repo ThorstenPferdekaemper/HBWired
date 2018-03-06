@@ -129,7 +129,7 @@
 			</parameter>
 		</paramset>
 		
-		<paramset type="LINK" id="hmw_blind_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="16" address_start="0x26" address_step="7">
+		<paramset type="LINK" id="hmw_blind_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="64" address_start="0x26" address_step="7">
 			<parameter id="UI_HINT">
 				<logical type="string" default="" use_default_on_failure="true"/>
 				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -155,11 +155,12 @@
 			<parameter id="SHORT_ACTION_TYPE">
 				<logical type="option">
 					<option id="OPEN"/>
-					<option id="STOP" default="true"/>
+					<option id="STOP"/>
 					<option id="CLOSE"/>
-					<option id="TOGGLE"/>
+					<option id="TOGGLE" default="true"/>
+					<option id="INACTIVE"/>
 				</logical>
-				<physical type="integer" size="0.2" interface="eeprom">
+				<physical type="integer" size="0.3" interface="eeprom">
 					<address index="+6.0"/>
 				</physical>
 			</parameter>
@@ -168,13 +169,14 @@
 					<option id="OPEN"/>
 					<option id="STOP"/>
 					<option id="CLOSE"/>
-					<option id="TOGGLE" default="true"/>
+					<option id="TOGGLE"/>
+					<option id="INACTIVE" default="true"/>
 				</logical>
-				<physical type="integer" size="0.2" interface="eeprom">
-					<address index="+6.2"/>
+				<physical type="integer" size="0.3" interface="eeprom">
+					<address index="+6.3"/>
 				</physical>
 			</parameter>
-			</paramset>
+		</paramset>
 		
 		<paramset id="hmw_blind_ch_values" type="VALUES">
 			<parameter id="LEVEL" operations="read,write,event" control="BLIND.LEVEL">

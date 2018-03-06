@@ -22,7 +22,7 @@
 #define FIRMWARE_VERSION 0x0010
 
 #define NUMBER_OF_BLINDS 8
-#define NUM_LINKS 36
+#define NUM_LINKS 64
 #define LINKADDRESSSTART 0x26
 
 #define HMW_DEVICETYPE 0x92 //BL4 device (make sure to import hbw_lc_bl-8.xml into FHEM)
@@ -30,7 +30,6 @@
 
 //#include "HBWSoftwareSerial.h"  //don't need --> Using USART !! port PD0 & PD1
 //#include "FreeRam.h"
-
 
 // HB Wired protocol and module
 #include "HBWired.h"
