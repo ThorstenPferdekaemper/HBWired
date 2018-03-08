@@ -24,7 +24,8 @@ class HBWSwitch : public HBWChannel {
     virtual uint8_t get(uint8_t* data);   
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-    void initConfigPins();
+    //void initConfigPins();
+	virtual void afterReadConfig();
   private:
     uint8_t pin;
     hbw_config_switch* config; // logging

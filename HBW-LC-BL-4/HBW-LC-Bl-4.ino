@@ -94,12 +94,12 @@ class HBBlDevice : public HBWDevice {
         // defaults setzen
         if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
         // if(config.central_address == 0xFFFFFFFF) config.central_address = 0x00000001;
-        for(uint8_t channel = 0; channel < NUMBER_OF_BLINDS; channel++) {
-                    
-          if (hbwconfig.blindscfg[channel].blindTimeTopBottom == 0xFFFF) hbwconfig.blindscfg[channel].blindTimeTopBottom = 200;
-          if (hbwconfig.blindscfg[channel].blindTimeBottomTop == 0xFFFF) hbwconfig.blindscfg[channel].blindTimeBottomTop = 200;
-          if (hbwconfig.blindscfg[channel].blindTimeChangeOver == 0xFF) hbwconfig.blindscfg[channel].blindTimeChangeOver = 20;
-        };
+//        for(uint8_t channel = 0; channel < NUMBER_OF_BLINDS; channel++) {
+//                    
+//          if (hbwconfig.blindscfg[channel].blindTimeTopBottom == 0xFFFF) hbwconfig.blindscfg[channel].blindTimeTopBottom = 200;
+//          if (hbwconfig.blindscfg[channel].blindTimeBottomTop == 0xFFFF) hbwconfig.blindscfg[channel].blindTimeBottomTop = 200;
+//          if (hbwconfig.blindscfg[channel].blindTimeChangeOver == 0xFF) hbwconfig.blindscfg[channel].blindTimeChangeOver = 20;
+//        };
     };
 };
 

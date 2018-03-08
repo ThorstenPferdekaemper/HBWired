@@ -43,8 +43,8 @@
   #define shiftRegOne_Clock 3       //SH_CP shift register clock input
   #define shiftRegOne_Latch 4       //ST_CP storage register clock input
   // extension shifregister for another 6 relays and LEDs
-  #define shiftRegTwo_Data  8
-  #define shiftRegTwo_Clock 7
+  #define shiftRegTwo_Data  12
+  #define shiftRegTwo_Clock 8
   #define shiftRegTwo_Latch 9
 #else
   #define RS485_RXD 4

@@ -12,12 +12,11 @@ HBWSwitch::HBWSwitch(uint8_t _pin, hbw_config_switch* _config) {
     // TODO: das sollte einstellbar sein
     // digitalWrite(pin, HIGH);
     // pinMode(pin,OUTPUT);
-    // --> moved to initConfigPins()
+    // --> moved to afterReadConfig()
 };
 
 
-// init output pins. Has to be called after the HBSwDevice object creation in void setup()
-void HBWSwitch::initConfigPins() {
+void HBWSwitch::afterReadConfig() {
     digitalWrite(pin, config->n_inverted ? LOW : HIGH);		// 0=inverted, 1=not inverted (device reset will set to 1!)
     pinMode(pin,OUTPUT);
 }

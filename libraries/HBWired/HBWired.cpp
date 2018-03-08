@@ -426,7 +426,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 'K':                           // 0x4B Key-Event
          case 0xCB:   // 'Ë':       // Key-Sim-Event TODO: Es gibt da einen theoretischen Unterschied
-            receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] & 0x01);
+			receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] & 0x01);
             break;
          case 'R':                                                              // Read EEPROM
         	// TODO: Check requested length...
@@ -677,7 +677,8 @@ void HBWDevice::readConfig() {         // read config from EEPROM
       config[i+1] = ((uint8_t*)(&addr))[3-i];
     // set defaults if values not provided from EEPROM
 	// or other device specific stuff
-    afterReadConfig();
+    //afterReadConfig();
+	afterReadConfigPending = true; // tell main loop to run afterReadConfig() for device and channels //TODO test afterReadConfig
 }
 
 
@@ -757,7 +758,8 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	ledPin = 0xFF;     // inactive by default
 	useAnalogConfigPin = false;		// use digital ConfigPin by default
 	// read config
-	readConfig(); 
+	readConfig();
+	afterReadConfigPending = true; // force read config after startup //TODO test afterReadConfig
 }
   
 
@@ -801,6 +803,15 @@ uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
 // The loop function is called in an endless loop
 void HBWDevice::loop()
 {
+  // read device and channel config, on init and if triggered by ReadConfig() // TODO test afterReadConfig
+   if (afterReadConfigPending) {
+		afterReadConfig();
+		for(uint8_t i = 0; i < numChannels; i++) {
+			if (afterReadConfigPending)
+				channels[i]->afterReadConfig();  // TODO test afterReadConfig
+		}
+		afterReadConfigPending = false;
+	}
 // Daten empfangen und alles, was zur Kommunikationsschicht gehört
 // processEvent vom Modul wird als Callback aufgerufen
 // Daten empfangen (tut nichts, wenn keine Daten vorhanden)
@@ -817,10 +828,11 @@ void HBWDevice::loop()
   // send announce message, if not done yet
   handleBroadcastAnnounce();
 // feedback from switches and handle keys
-   for(uint8_t i = 0; i < numChannels; i++)
+   for(uint8_t i = 0; i < numChannels; i++) {
         channels[i]->loop(this,i);
+   }
 // config Button
-   handleConfigButton();	
+   handleConfigButton();
 };
 
 

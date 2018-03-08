@@ -17,7 +17,8 @@ class HBWChannel {
   public:	
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual uint8_t get(uint8_t* data);  // returns length, data must be big enough 
-    virtual void loop(HBWDevice*, uint8_t channel);  // channel for feedbacks etc.  
+    virtual void loop(HBWDevice*, uint8_t channel);  // channel for feedbacks etc.
+	virtual void afterReadConfig();
 };
 
 
@@ -190,7 +191,7 @@ class HBWDevice {
 
     void factoryReset();
 	void handleConfigButton();
-	
+	boolean afterReadConfigPending;
 };
 
 

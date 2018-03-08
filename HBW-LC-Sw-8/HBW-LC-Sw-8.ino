@@ -12,7 +12,7 @@
 // - Switch code in "HBWSwitch.h" channel library übertragen. neu: initConfigPins()
 // v1.02
 // - channel invert angepasst um nach einem Device reset (EEPROM 'gelöscht') keine Invertierung zu haben
-// - fix: initConfigPins() muss nach Anlegen des HBSwDevice aufgerufen werden
+// - fix: initConfigPins() in afterReadConfig() geändert.
 
 
 #define HMW_DEVICETYPE 0x83
@@ -66,30 +66,31 @@ struct hbw_config {
 HBWSwitch* switches[NUM_CHANNELS];
 
 
-class HBSwDevice : public HBWDevice {
-    public: 
-    HBSwDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
-            Stream* _rs485, uint8_t _txen, 
-            uint8_t _configSize, void* _config, 
-        uint8_t _numChannels, HBWChannel** _channels,
-        Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
-          HBWDevice(_devicetype, _hardware_version, _firmware_version,
-            _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
-            _debugstream, linksender, linkreceiver) {
-      // looks like virtual methods are not properly called here
-      afterReadConfig();
-    };
+//class HBSwDevice : public HBWDevice {
+//    public: 
+//    HBSwDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
+//            Stream* _rs485, uint8_t _txen, 
+//            uint8_t _configSize, void* _config, 
+//        uint8_t _numChannels, HBWChannel** _channels,
+//        Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
+//          HBWDevice(_devicetype, _hardware_version, _firmware_version,
+//            _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
+//            _debugstream, linksender, linkreceiver) {
+//      // looks like virtual methods are not properly called here
+//      //afterReadConfig(); // TODO TEST - below defaults?
+//    };
+//
+//    void afterReadConfig() {
+//        // defaults setzen
+//        if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
+//    };
+//};
 
-    void afterReadConfig() {
-        // defaults setzen
-        if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
-        // if(config.central_address == 0xFFFFFFFF) config.central_address = 0x00000001;
-    };
-};
-
-
-HBSwDevice* device = NULL;
-
+//void HBWDevice::afterReadConfig() {
+//  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
+//};
+HBWDevice* device = NULL;
+//HBSwDevice* device = NULL;
 
 void setup()
 {
@@ -104,17 +105,17 @@ void setup()
      switches[i] = new HBWSwitch(pins[i], &(hbwconfig.switchcfg[i]));
   };
 
-  device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
+  device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUM_CHANNELS,(HBWChannel**)switches,
                          &Serial,
                          NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
 
-  device->setConfigPins();  // 8 and 13 is the default
+  device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
   
-  for(uint8_t i = 0; i < NUM_CHANNELS; i++){
-     switches[i]->initConfigPins();   // init output pins. Has to be called after the HBSwDevice object creation
-  };
+//  for(uint8_t i = 0; i < NUM_CHANNELS; i++){
+//     switches[i]->initConfigPins();   // init output pins. Has to be called after the HBSwDevice object creation
+//  };
   
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
