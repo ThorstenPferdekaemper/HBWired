@@ -365,6 +365,7 @@ void HBWDevice::receive(){
 void HBWChannel::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
 uint8_t HBWChannel::get(uint8_t* data) { return 0; };   
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
+void HBWChannel::afterReadConfig() {};
 
 
 // Processing of default events (related to all modules)
@@ -426,7 +427,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 'K':                           // 0x4B Key-Event
          case 0xCB:   // 'Ë':       // Key-Sim-Event TODO: Es gibt da einen theoretischen Unterschied
-			receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] & 0x01);
+        	receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] & 0x01);
             break;
          case 'R':                                                              // Read EEPROM
         	// TODO: Check requested length...
@@ -677,8 +678,7 @@ void HBWDevice::readConfig() {         // read config from EEPROM
       config[i+1] = ((uint8_t*)(&addr))[3-i];
     // set defaults if values not provided from EEPROM
 	// or other device specific stuff
-    //afterReadConfig();
-	afterReadConfigPending = true; // tell main loop to run afterReadConfig() for device and channels //TODO test afterReadConfig
+	afterReadConfigPending = true; // tell main loop to run afterReadConfig() for device and channels
 }
 
 
@@ -759,18 +759,18 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	useAnalogConfigPin = false;		// use digital ConfigPin by default
 	// read config
 	readConfig();
-	afterReadConfigPending = true; // force read config after startup //TODO test afterReadConfig
 }
   
 
- void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin, boolean _useAnalogConfigPin) {
+ void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	configPin = _configPin;
-	useAnalogConfigPin = _useAnalogConfigPin;
 	if(configPin != 0xFF) {
-		if (useAnalogConfigPin)	// no pullup for analog input
-			pinMode(configPin,INPUT);
+	#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+		if (configPin == A6 || configPin == A7)
+			pinMode(configPin,INPUT);	// no pullup for analog input
 		else
-			pinMode(configPin,INPUT_PULLUP);
+	#endif
+		pinMode(configPin,INPUT_PULLUP);
 	}
     ledPin = _ledPin;	
 	if(ledPin != 0xFF) pinMode(ledPin,OUTPUT);
@@ -803,12 +803,11 @@ uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
 // The loop function is called in an endless loop
 void HBWDevice::loop()
 {
-  // read device and channel config, on init and if triggered by ReadConfig() // TODO test afterReadConfig
+  // read device and channel config, on init and if triggered by ReadConfig()
    if (afterReadConfigPending) {
 		afterReadConfig();
 		for(uint8_t i = 0; i < numChannels; i++) {
-			if (afterReadConfigPending)
-				channels[i]->afterReadConfig();  // TODO test afterReadConfig
+			channels[i]->afterReadConfig();
 		}
 		afterReadConfigPending = false;
 	}
@@ -828,9 +827,8 @@ void HBWDevice::loop()
   // send announce message, if not done yet
   handleBroadcastAnnounce();
 // feedback from switches and handle keys
-   for(uint8_t i = 0; i < numChannels; i++) {
+   for(uint8_t i = 0; i < numChannels; i++)
         channels[i]->loop(this,i);
-   }
 // config Button
    handleConfigButton();
 };
@@ -871,15 +869,15 @@ void HBWDevice::handleConfigButton() {
   long now = millis();
   boolean buttonState;
 
-  if (useAnalogConfigPin) {
-	buttonState = false;
-	if (analogRead(configPin) > 800) { // Button press @ 10k / 100k voltage divider (@5V == 4.5V and @3.3V == 3V --> 930 AD value)
-		buttonState = true;
-	}
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+  if (configPin == A6 || configPin == A7) {
+    buttonState = false;
+    if (analogRead(configPin) > 800) // Button press @ 10k / 100k voltage divider (@5V == 4.5V and @3.3V == 3V --> 930 AD value)
+      buttonState = true;
   }
   else
+#endif
     buttonState = !digitalRead(configPin);
-
 
   switch(status) {
     case 0:

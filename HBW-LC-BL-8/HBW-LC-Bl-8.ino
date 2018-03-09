@@ -36,15 +36,9 @@
 #include "HBWBlind.h"
 #include "HBWLinkBlindSimple.h"
 
-//#define RS485_RXD 4
-//#define RS485_TXD 2
+// Pins
 #define RS485_TXEN 2  // Transmit-Enable
 
-// HBWSoftwareSerial can only do 19200 baud
-//HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-
-
-// Pins
 #define BUTTON A6  // Button fuer Factory-Reset etc.
 #define LED LED_BUILTIN        // Signal-LED
 
@@ -84,28 +78,20 @@ HBWChanBl* blinds[NUMBER_OF_BLINDS];
 class HBBlDevice : public HBWDevice {
     public: 
     HBBlDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
-            Stream* _rs485, uint8_t _txen, 
-            uint8_t _configSize, void* _config, 
-        uint8_t _numChannels, HBWChannel** _channels,
-        Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
-          HBWDevice(_devicetype, _hardware_version, _firmware_version,
-            _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
-            _debugstream, linksender, linkreceiver) {
-      // looks like virtual methods are not properly called here
-      afterReadConfig();
+               Stream* _rs485, uint8_t _txen, 
+               uint8_t _configSize, void* _config, 
+               uint8_t _numChannels, HBWChannel** _channels,
+               Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
+    HBWDevice(_devicetype, _hardware_version, _firmware_version,
+              _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
+              _debugstream, linksender, linkreceiver) {
     };
+    virtual void afterReadConfig();
+};
 
-    void afterReadConfig() {
-        // defaults setzen
-        if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
-        // if(config.central_address == 0xFFFFFFFF) config.central_address = 0x00000001;
-        for(uint8_t channel = 0; channel < NUMBER_OF_BLINDS; channel++) {
-          
-          if (hbwconfig.blindscfg[channel].blindTimeTopBottom == 0xFFFF) hbwconfig.blindscfg[channel].blindTimeTopBottom = 200;
-          if (hbwconfig.blindscfg[channel].blindTimeBottomTop == 0xFFFF) hbwconfig.blindscfg[channel].blindTimeBottomTop = 200;
-          if (hbwconfig.blindscfg[channel].blindTimeChangeOver == 0xFF) hbwconfig.blindscfg[channel].blindTimeChangeOver = 20;
-        };
-    };
+// device specific defaults
+void HBBlDevice::afterReadConfig() {
+  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
 };
 
 
@@ -115,12 +101,7 @@ HBBlDevice* device = NULL;
 
 void setup()
 {
-  //pinMode(BUTTON, INPUT_PULLUP);
-  //pinMode(LED, OUTPUT);
-
-  //Serial.begin(19200);
-  Serial.begin(19200, SERIAL_8E1);
-  //rs485.begin();    // RS485 via SoftwareSerial
+  Serial.begin(19200, SERIAL_8E1); // RS485 via UART Serial
 
   // assing relay pins
   byte blindDir[8] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR, BLIND5_DIR, BLIND6_DIR, BLIND7_DIR, BLIND8_DIR};
@@ -136,11 +117,8 @@ void setup()
                          NULL,
                          NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
    
-  device->setConfigPins(BUTTON, LED, true);  // 8 and 13 is the default; use analogRead for 'BUTTON'
- 
-//  hbwdebug(F("B: 2A "));
-//  hbwdebug(freeRam());
-//  hbwdebug(F("\n"));
+  device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default; use analogRead for 'BUTTON'
+  
 }
 
 

@@ -64,7 +64,7 @@ class HBWDevice {
 			  uint8_t _numChannels, HBWChannel** _channels,
 			  Stream* _debugstream, HBWLinkSender* = NULL, HBWLinkReceiver* = NULL);
   
-    void setConfigPins(uint8_t _configPin = 8, uint8_t _ledPin = 13, boolean _useAnalogConfigPin = false);
+    void setConfigPins(uint8_t _configPin = 8, uint8_t _ledPin = 13);
   
     virtual void loop(); // needs to be called as often as possible
 
