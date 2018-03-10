@@ -756,7 +756,6 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	hbwdebugstream = _debugstream;    // debug stream, might be NULL
 	configPin = 0xFF;  //inactive by default
 	ledPin = 0xFF;     // inactive by default
-	useAnalogConfigPin = false;		// use digital ConfigPin by default
 	// read config
 	readConfig();
 }

@@ -107,7 +107,6 @@ class HBWDevice {
 	// pins of config button and config LED
 	uint8_t configPin;
 	uint8_t ledPin;
-	boolean useAnalogConfigPin;
 	
 	// sendFrame macht ggf. Wiederholungen
 	// onlyIfIdle: If this is set, then the bus must have been idle since 210+rand(0..100) ms
