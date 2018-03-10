@@ -871,7 +871,7 @@ void HBWDevice::handleConfigButton() {
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
   if (configPin == A6 || configPin == A7) {
     buttonState = false;
-    if (analogRead(configPin) > 800) // Button press @ 10k / 100k voltage divider (@5V == 4.5V and @3.3V == 3V --> 930 AD value)
+    if (analogRead(configPin) < 250) // Button to ground with ~100k pullup
       buttonState = true;
   }
   else

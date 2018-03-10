@@ -4,6 +4,7 @@ Homematic Wired Homebrew Rollosteuerung 8 Kanal
 Das Modul HBW-LC-Bl-8 schaltet bis zu 8 Rollos (mit Hilfe von 16 Relais).
 Basis ist ein Arduino NANO mit RS485-Interface.
 Hier wird Hardware Serial (USART) statt "HBWSoftwareSerial" genutzt! Der Bedientaster (Reset) ist ein Analogeingang! Keine Debug Ausgang! (16 IOs für Relais benötigt...)
+-> Schaltung: http://loetmeister.de/Elektronik/homematic/hbw-lc-bl-4_8.htm
 
 Direktes Peering möglich (HBWLinkBlindSimple).
 

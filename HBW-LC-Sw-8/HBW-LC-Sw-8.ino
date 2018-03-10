@@ -6,6 +6,8 @@
 // Arduino NANO als Homematic-Device
 // - Active HIGH oder LOW kann konfiguriert werden
 //
+// http://loetmeister.de/Elektronik/homematic/index.htm#modules
+//
 //*******************************************************************
 // Changes
 // v1.01

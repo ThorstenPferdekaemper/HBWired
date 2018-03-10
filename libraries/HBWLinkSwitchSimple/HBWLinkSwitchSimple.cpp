@@ -45,10 +45,8 @@ void HBWLinkSwitchSimple::receiveKeyEvent(HBWDevice* device, uint32_t senderAddr
       // read actionType
    	  device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);
 	  // differs for short and long
-	  if (longPress)
-		  actionType = (actionType >> 2) & B00000011;
-	  else
-		  actionType &= B00000011;
+	  if (longPress) actionType >>= 2;
+	  actionType &= B00000011;
 	  uint8_t data;
 	  // we can have
 	  switch(actionType) {

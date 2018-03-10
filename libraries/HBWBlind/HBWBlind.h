@@ -3,7 +3,8 @@
 **
 ** Rolladenaktor mit Richtungs und Aktiv Relais pro Kanal
 ** 
-** 
+** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
+** http://loetmeister.de/Elektronik/homematic/index.htm#modules
 **
 */
 
@@ -52,6 +53,7 @@ class HBWChanBl : public HBWChannel {
     virtual uint8_t get(uint8_t* data);   
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+    virtual void afterReadConfig();
     void getCurrentPosition();
     unsigned long now;
 	

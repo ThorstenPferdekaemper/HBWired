@@ -87,27 +87,8 @@ class HBSenKey : public HBWChannel {
 
 HBSenKey* keys[NUM_CHANNELS];
 
-class HBSenDevice : public HBWDevice {
-    public: 
-    HBSenDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
-                Stream* _rs485, uint8_t _txen, 
-                uint8_t _configSize, void* _config, 
-                uint8_t _numChannels, HBWChannel** _channels,
-                Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
-    HBWDevice(_devicetype, _hardware_version, _firmware_version,
-              _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
-              _debugstream, linksender, linkreceiver) {
-    };
-    virtual void afterReadConfig();
-};
+HBWDevice* device = NULL;
 
-
-HBSenDevice* device = NULL;
-
-// device specific defaults
-void HBSenDevice::afterReadConfig() {
-  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
-};
 
 HBSenKey::HBSenKey(uint8_t _pin, hbw_config_key* _config) 
               : config(_config), pin(_pin), 
@@ -179,7 +160,7 @@ void setup()
       keys[i] = new HBSenKey(pins[i], &(hbwconfig.keys[i]));
    };
 
-  device = new HBSenDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
+  device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUM_CHANNELS,(HBWChannel**)keys,
                          &Serial,

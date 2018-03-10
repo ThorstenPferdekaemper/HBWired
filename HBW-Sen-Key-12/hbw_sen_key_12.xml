@@ -8,13 +8,6 @@
 </supported_types>
 
 <paramset id="HBW_Sen_Key_12_dev_master" type="MASTER">
-	<parameter id="LOGGING_TIME">
-		<logical type="float" unit="s" default="2.0" max="25.5" min="0.1"/>
-		<physical size="1.0" type="integer" interface="eeprom">
-			<address index="0x0001"/>
-		</physical>
-		<conversion type="float_integer_scale" offset="0.0" factor="10"/>
-	</parameter>
 	<parameter id="CENTRAL_ADDRESS" hidden="true">
 		<logical type="integer"/>
 		<physical size="4" type="integer" interface="eeprom">

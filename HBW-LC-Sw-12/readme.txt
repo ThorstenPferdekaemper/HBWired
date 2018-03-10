@@ -39,8 +39,8 @@ A6 - Bedientaster (Reset)
 10 - shiftRegOne_Data   (Drei Shiftregister 74HC595 für LEDs und Relais)
 3 - shiftRegOne_Clock
 4 - shiftRegOne_Latch
-8 - shiftRegTwo_Data   (Drei weitere Shiftregister 74HC595 für LEDs und Relais, in eigenem 6 TE Gehäuse)
-7 - shiftRegTwo_Clock
+12 - shiftRegTwo_Data   (Drei weitere Shiftregister 74HC595 für LEDs und Relais, in eigenem 6 TE Gehäuse)
+8 - shiftRegTwo_Clock
 9 - shiftRegTwo_Latch
 A0 - Stromsensor?
 A1 - Stromsensor?

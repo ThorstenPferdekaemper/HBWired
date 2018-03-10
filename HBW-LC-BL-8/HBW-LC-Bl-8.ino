@@ -5,7 +5,9 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 8 Kanal Rollosteuerung
-// - Direktes Peering möglich. (open: 100%, close: 0%, toggle & stop)
+// - Direktes Peering möglich. (open: 100%, close: 0%, toggle/stop)
+//
+// http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
 //*******************************************************************
 // Changes

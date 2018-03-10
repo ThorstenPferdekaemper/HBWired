@@ -8,7 +8,9 @@
 // [TODO: Peering mit Zeitschaltfuntion]
 // - Active HIGH oder LOW kann konfiguriert werden
 
-// TODO: Test der Links (HBWLinkSwitchSimple) & XML
+// TODO: Test der hardware...
+//
+// http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
 //*******************************************************************
 // Changes

@@ -5,7 +5,10 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 4 Kanal Rollosteuerung
-// - Direktes Peering möglich. (open: 100%, close: 0%, toggle & stop)
+// - Direktes Peering möglich. (open: 100%, close: 0%, toggle/stop)
+//
+// Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
+// http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
 //*******************************************************************
 // Changes
