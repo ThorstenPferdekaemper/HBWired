@@ -20,6 +20,7 @@
 			<address index="0x0006"/>
 		</physical>
 	</parameter>
+	<enforce id="DIRECT_LINK_DEACTIVATE" value="true"/>
 </paramset>
 
 <frames>

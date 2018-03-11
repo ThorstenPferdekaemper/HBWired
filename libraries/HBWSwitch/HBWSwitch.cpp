@@ -7,32 +7,43 @@ HBWSwitch::HBWSwitch(uint8_t _pin, hbw_config_switch* _config) {
     config = _config;
     nextFeedbackDelay = 0;
     lastFeedbackTime = 0;
-    // Pin auf OUTPUT
-    // ...und auf HIGH (also 0) setzen, da sonst die Relais anziehen
-	// TODO: das sollte einstellbar sein
-    digitalWrite(pin,HIGH);
-    pinMode(pin,OUTPUT);
 };
+
+
+// channel specific settings or defaults
+void HBWSwitch::afterReadConfig() {
+    digitalWrite(pin, config->n_inverted ? LOW : HIGH);		// 0=inverted, 1=not inverted (device reset will set to 1!)
+    pinMode(pin,OUTPUT);
+}
 
 
 void HBWSwitch::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
-    if(*data > 200) {   // toggle
-		digitalWrite(pin, digitalRead(pin) ? LOW : HIGH);
-	}else{   // on or off
-		digitalWrite(pin, *data ? HIGH : LOW);  
+	if (config->output_unlocked) {	//0=LOCKED, 1=UNLOCKED
+		if(*data > 200) {   // toggle
+			digitalWrite(pin, digitalRead(pin) ? LOW : HIGH);
+		}else{   // on or off
+			if (*data)
+				digitalWrite(pin, LOW ^ config->n_inverted);
+			else
+				digitalWrite(pin, HIGH ^ config->n_inverted);
+		}
 	}
 	// Logging
-    if(!nextFeedbackDelay && config->logging) {
-    	lastFeedbackTime = millis();
-    	nextFeedbackDelay = device->getLoggingTime() * 100;
-    }
+	if(!nextFeedbackDelay && config->logging) {
+		lastFeedbackTime = millis();
+		nextFeedbackDelay = device->getLoggingTime() * 100;
+	}
 };
 
 
-uint8_t HBWSwitch::get(uint8_t* data) {   
-	(*data) = digitalRead(pin) ? 200 : 0;
+uint8_t HBWSwitch::get(uint8_t* data) {
+	if (digitalRead(pin) ^ config->n_inverted)
+		(*data) = 0;
+	else
+		(*data) = 200;
 	return 1;
 };
+
 
 void HBWSwitch::loop(HBWDevice* device, uint8_t channel) {
 	// feedback trigger set?
@@ -52,5 +63,4 @@ void HBWSwitch::loop(HBWDevice* device, uint8_t channel) {
     	nextFeedbackDelay = 0;
     }
 }
-
 

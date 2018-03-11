@@ -11,7 +11,9 @@
 //       und den Kanaelen nur den Anfang "ihres" EEPROMs zu sagen
 struct hbw_config_switch {
 	uint8_t logging:1;              // 0x0000
-	uint8_t        :7;              // 0x0000
+	uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED
+	uint8_t n_inverted:1;           // 0x07:2    0=inverted, 1=not inverted (device reset will set to 1!)
+	uint8_t        :5;              // 0x0000
 	uint8_t dummy;
 };
 
@@ -22,6 +24,7 @@ class HBWSwitch : public HBWChannel {
     virtual uint8_t get(uint8_t* data);   
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+	virtual void afterReadConfig();
   private:
     uint8_t pin;
     hbw_config_switch* config; // logging

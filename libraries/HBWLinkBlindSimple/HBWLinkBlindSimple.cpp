@@ -1,5 +1,5 @@
 /* 
-** HBWLinkSwitchSimple
+** HBWLinkBlindSimple
 **
 ** Einfache direkte Verknuepfung (Peering), zu Schaltausgaengen
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
@@ -7,12 +7,12 @@
 **
 */
 
-#include "HBWLinkSwitchSimple.h"
+#include "HBWLinkBlindSimple.h"
 
 #define EEPROM_SIZE 7
 
 
-HBWLinkSwitchSimple::HBWLinkSwitchSimple(uint8_t _numLinks, uint16_t _eepromStart) {
+HBWLinkBlindSimple::HBWLinkBlindSimple(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
 	eepromStart = _eepromStart;
 }
@@ -22,7 +22,7 @@ HBWLinkSwitchSimple::HBWLinkSwitchSimple(uint8_t _numLinks, uint16_t _eepromStar
 //       wahrscheinlich besser vom Device ueber sendKeyEvent
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
-void HBWLinkSwitchSimple::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
+void HBWLinkBlindSimple::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                           uint8_t targetChannel, boolean longPress) {
 
   uint32_t sndAddrEEPROM;
@@ -45,22 +45,27 @@ void HBWLinkSwitchSimple::receiveKeyEvent(HBWDevice* device, uint32_t senderAddr
       // read actionType
    	  device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);
 	  // differs for short and long
-	  if (longPress) actionType >>= 2;
-	  actionType &= B00000011;
+   	  if (longPress)
+		  actionType = (actionType >> 3) & B00000111;
+	  else
+		  actionType &= B00000111;
 	  uint8_t data;
 	  // we can have
 	  switch(actionType) {
-	  // 0 -> ON
+	  // 0 -> OPEN
 	    case 0: data = 200;
 		        break;
-	  // 1 -> OFF
-	    case 1: data = 0;
+	  // 1 -> STOP
+	    case 1: data = 201;
 		        break;
-	  // 2 -> INACTIVE
-	    case 2: continue;
+	  // 2 -> CLOSE
+	    case 2: data = 0;
+				break;
 	  // 3 -> TOGGLE (default)
 	    case 3: data = 255;
-                // break;
+                break;
+	  // 4 -> INACTIVE
+	    case 4: continue;
       };
 	  device->set(targetChannel,1,&data);    // channel, data length, data
   }
