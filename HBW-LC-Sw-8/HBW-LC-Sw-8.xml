@@ -59,7 +59,7 @@
 				</physical>
 			</parameter>
 			
-			<parameter id="INPUT_LOCKED">
+			<parameter id="OUTPUT_LOCKED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
 					<address index="+0.1"/>

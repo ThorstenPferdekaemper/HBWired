@@ -3,6 +3,7 @@ Homematic Wired Homebrew Rollosteuerung 4 Kanal
 
 Das Modul HBW-LC-Bl-4 schaltet bis zu 4 Rollos (mit Hilfe von 8 Relais).
 Basis ist ein Arduino NANO mit RS485-Interface.
+(Hinweis Hex Dateien: Geeigent für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
 
 Direktes Peering möglich (HBWLinkBlindSimple).
 
