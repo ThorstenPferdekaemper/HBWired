@@ -25,14 +25,14 @@
 
 #define NUM_CHANNELS 12
 #define NUM_LINKS 36
-#define LINKADDRESSSTART 0x40
+#define LINKADDRESSSTART 0x20
 
 #include "FreeRam.h"
 
 
 // HB Wired protocol and module
 #include "HBWired.h"
-#include "HBWLinkSwitchSimple.h"
+#include "HBWLinkSwitch.h"
 //#include "HBWSwitch.h"
 
 // shift register library
@@ -79,6 +79,11 @@
 
 #define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay
 
+#define JT_ONDELAY 0
+#define JT_ON 1
+#define JT_OFFDELAY 2
+#define JT_OFF 3
+#define JT_NO_JUMP_IGNORE_COMMAND 4
 
 
 struct hbw_config_switch {
@@ -106,7 +111,9 @@ class HBWChanSw : public HBWChannel {
     virtual uint8_t get(uint8_t* data);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+    void setOutput(uint8_t const * const data);
     void initRelays();
+    uint8_t getNextState(uint8_t bitshift);
   private:
     uint8_t relayPos; // bit position for actual IO port
     uint8_t ledPos;
@@ -118,6 +125,20 @@ class HBWChanSw : public HBWChannel {
 //    bool portStatus;	// Port Status, d.h. Port ist auf 0 oder 1
     bool operateRelay;
     unsigned long relayOperationTimeStart;
+    
+    // set from links/peering
+    uint8_t actiontype;
+    uint8_t onDelayTime;
+    uint8_t offDelayTime;
+    uint8_t onTime;
+    uint8_t offTime;
+    uint8_t currentState;
+    uint8_t nextState; // needed?
+    uint8_t newLevel;
+    uint16_t jumpTable;
+    unsigned long stateCangeWaitTime;
+    unsigned long lastStateChangeTime;
+    //bool changeState;
 };
 
 
@@ -141,7 +162,6 @@ class HBSwDevice : public HBWDevice {
     void afterReadConfig() {
         // defaults setzen
         if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
-        // if(config.central_address == 0xFFFFFFFF) config.central_address = 0x00000001;
         for(uint8_t channel = 0; channel < NUM_CHANNELS; channel++){
             switches[channel]->initRelays();
         };
@@ -168,6 +188,7 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
   
   relayOperationTimeStart = 0;
   operateRelay = false;
+  //changeState = false;
 };
 
 
@@ -181,53 +202,77 @@ void HBWChanSw::initRelays() {    //need intial reset (or set if inverterted) fo
   else {  // on - perform set
     shiftRegister->set(relayPos +1, LOW);    // reset coil
     shiftRegister->set(relayPos, HIGH);  // set coil
-    shiftRegister->set(ledPos, HIGH); // LED  
+    shiftRegister->set(ledPos, HIGH); // LED
   }
   //TODO: add sleep? setting 12 relays at once would consume high current...
-  
+
+  currentState = JT_OFF;
+  nextState = currentState;
+  newLevel = 0;
+
   relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
   operateRelay = true;
 }
 
 
 void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
-  	
-	unsigned long now = millis();
- 
+  
+//  hbwdebug(F("cs: "));
+//  hbwdebughex(currentState);
+//  hbwdebug(F("\n"));
+  
+  if (length > 1) {  // got called with peering parameters
+    actiontype = *(data);
+    
+    if ((actiontype & B00110000) == 32) { // TOGGLE_USE, DIRECT
+      byte level = 255;
+      setOutput(&level);
+    }
+    else {  // actual state change happens in main loop
+      jumpTable = ((uint16_t)(*(data+6)) << 8) | *(data+5);
+      onDelayTime = *(data+1);
+      onTime = *(data+2);
+      offDelayTime = *(data+3);
+      offTime = *(data+4);
+      nextState = 255; // force update
+    }
+  }
+  else {
+    setOutput(data);
+    nextState = currentState; // avoid state machine to run - TODO: handle on_time / off_time??
+  }
+  
+};
+
+
+void HBWChanSw::setOutput(uint8_t const * const data) {
+  
+  unsigned long now = millis();
+  
   if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
-    byte level = (*data);
+    byte level = *(data);
 
     if (level > 200) // toggle
-	      level = !shiftRegister->get(ledPos); // get current state and negate
+        level = !shiftRegister->get(ledPos); // get current state and negate
+        
     else if (level)   // set to 0 or 1
       level = (LOW ^ config->n_inverted);
+      
     else
       level = (HIGH ^ config->n_inverted);
-// TODO: move to loop? - Needed for zero crossing function. Just set portStatus[]? + add portStatusDesired[]?
+// TODO:  zero crossing function?. Just set portStatus[]? + add portStatusDesired[]?
 
     if (level) { // on - perform set
       shiftRegister->set(relayPos +1, LOW);    // reset coil
       shiftRegister->set(relayPos, HIGH);  // set coil
+      currentState = JT_ON;
     }
     else {  // off - perform reset
       shiftRegister->set(relayPos, LOW);      // set coil
       shiftRegister->set(relayPos +1, HIGH);  // reset coil
+      currentState = JT_OFF;
     }
-    shiftRegister->set(ledPos, level); // LED
-    
-//    if (level) { // on - perform set
-//      myShReg_RELAY.set(relayPos +1, LOW);  // reset coil
-//      myShReg_RELAY.set(relayPos, HIGH);    // set coil
-//     // bitWrite(portStatus[pin / 8], pin % 8, HIGH);
-////      portStatus = HIGH;
-//    myShReg_LED.set(ledPos, HIGH);
-//    }
-//    else {  // off - perform reset
-//      myShReg_RELAY.set(relayPos, LOW);      // set coil
-//      myShReg_RELAY.set(relayPos +1, HIGH);  // reset coil
-//     // bitWrite(portStatus[pin / 8], pin % 8, LOW);
-////      portStatus = LOW;
-//    myShReg_LED.set(ledPos, LOW);
+    shiftRegister->set(ledPos, level); // set LEDs (register used for actual state!)
     
     relayOperationTimeStart = now;  // Relay coils must be set two low after some ms (bistable Relays!!)
     operateRelay = true;
@@ -236,7 +281,7 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   // (logging is considered for locked channels)
   if(!nextFeedbackDelay && config->logging) {
 //    lastFeedbackTime = millis();
-  	lastFeedbackTime = now;
+    lastFeedbackTime = now;
     nextFeedbackDelay = device->getLoggingTime() * 100;
   }
 };
@@ -253,18 +298,105 @@ uint8_t HBWChanSw::get(uint8_t* data) {
 };
 
 
-void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
-	
-	unsigned long now = millis();
+uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
+  return ((jumpTable >>bitshift) & B00000111);
+}
 
-	if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {  // time to remove power from both coils?
+void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
+  
+  unsigned long now = millis();
+
+  /* important to remove power from latching relay after some milliseconds!! */
+  if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {  // time to remove power from both coils?
 
     shiftRegister->setNoUpdate(relayPos +1, LOW);    // reset coil
     shiftRegister->setNoUpdate(relayPos, LOW);  // set coil
     shiftRegister->updateRegisters();
     
-		operateRelay = false;
-	}
+    operateRelay = false;
+  }
+
+  
+ bool setNewLevel = false;
+
+  // prep timer?
+  // TODO: add counter to avoid infinitive loops??
+  
+// state machine
+  if ((now - lastStateChangeTime > stateCangeWaitTime && (currentState == JT_ONDELAY || currentState == JT_OFFDELAY)) || currentState != nextState) {
+  
+  //nextState = JT_NO_JUMP_IGNORE_COMMAND; // default?
+
+  hbwdebug(F("cs: "));
+  hbwdebughex(currentState);
+  hbwdebug(F("\n"));
+  
+  switch (currentState) { // check next jump from current state
+    case JT_ONDELAY:
+    // jump from on delay state
+      //nextState = ((jumpTable) & B00000111);
+      nextState = getNextState(0);
+      break;
+    case JT_ON:
+    // jump from on state
+      //nextState = ((jumpTable >>3) & B00000111);
+      nextState = getNextState(3);
+      break;
+    case JT_OFFDELAY:
+    // jump from off delay state
+      //nextState = ((jumpTable >>6) & B00000111);
+      nextState = getNextState(6);
+      break;
+    case JT_OFF:
+    // jump from off state
+      //nextState = ((jumpTable >>9) & B00000111);
+      nextState = getNextState(9);
+      break;
+    }
+
+  hbwdebug(F("ns: "));
+  hbwdebughex(nextState);
+  hbwdebug(F("\n"));
+ 
+  if (nextState != JT_NO_JUMP_IGNORE_COMMAND) {
+    switch (nextState) {
+    case JT_ONDELAY:
+      //newLevel = 0;  // ?????
+      stateCangeWaitTime = (onDelayTime *1000); // TODO: change to dynamic factor? add relative & absolute handling
+      lastStateChangeTime = now;
+      currentState = JT_ONDELAY;
+      break;
+    case JT_ON:
+      newLevel = 200;
+      stateCangeWaitTime = 0; // TODO add onTime
+      lastStateChangeTime = now;
+      setNewLevel = true;
+      break;
+    case JT_OFFDELAY:
+      //newLevel = 200;  // ?????
+      stateCangeWaitTime = (offDelayTime *1000); // TODO: change to dynamic factor? add relative & absolute handling
+      lastStateChangeTime = now;
+      currentState = JT_OFFDELAY;
+      break;
+    case JT_OFF:
+      newLevel = 0;
+      stateCangeWaitTime = 0; // TODO add offTime
+      lastStateChangeTime = now;
+      setNewLevel = true;
+      break;
+    }
+  }
+  else {  // NO_JUMP_IGNORE_COMMAND
+
+    //currentState = (level ? JT_ON : JT_OFF );
+  }
+
+  if (setNewLevel) {
+    setOutput(&newLevel);
+    setNewLevel = false;
+  }
+  }
+
 	
   if(!nextFeedbackDelay)  // feedback trigger set?
     return;
@@ -308,7 +440,7 @@ void setup()
                            &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                            NUM_CHANNELS,(HBWChannel**)switches,
                            NULL,
-                           NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
+                           NULL, new HBWLinkSwitch(NUM_LINKS,LINKADDRESSSTART));
     
     device->setConfigPins(BUTTON, LED, true);  // use analogRead for 'BUTTON'
     
@@ -320,7 +452,7 @@ void setup()
                            &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                            NUM_CHANNELS, (HBWChannel**)switches,
                            &Serial,
-                           NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
+                           NULL, new HBWLinkSwitch(NUM_LINKS,LINKADDRESSSTART));
      
     device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
    
