@@ -11,7 +11,7 @@
 
 #define EEPROM_SIZE 20
 
-#define PEER_PARAMS 8
+#define NUM_PEER_PARAMS 8
 
 HBWLinkSwitch::HBWLinkSwitch(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
@@ -24,14 +24,16 @@ HBWLinkSwitch::HBWLinkSwitch(uint8_t _numLinks, uint16_t _eepromStart) {
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
 void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
-                                          uint8_t targetChannel, boolean longPress) {
-// TODO: KeyPress Counter an receiveKeyEvent übergeben? (Erkennung & Unterdrückung von wiederholten longPress)
+//                                          uint8_t targetChannel, boolean longPress) {
+                                          uint8_t targetChannel, uint8_t senderEvent, boolean longPress) {
+  
   uint32_t sndAddrEEPROM;
   uint8_t channelEEPROM;
   uint8_t actionType;
 
-  uint8_t data[PEER_PARAMS];  // store all peer parameter
+  uint8_t data[NUM_PEER_PARAMS];  // store all peer parameter
   uint8_t *pdata = data;
+  data[7] = senderEvent;
   
   // read what to do from EEPROM
   for(byte i = 0; i < numLinks; i++) {   
@@ -47,11 +49,11 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
 	  device->readEEPROM(&channelEEPROM, eepromStart + EEPROM_SIZE * i + 5, 1);
 	  if(channelEEPROM != targetChannel) continue;
 	  // ok, we have found a match
-    data[7] = (i <<1) + longPress;  // identifier
+    //data[7] = (i <<1) + longPress;  // use this as identifier for the specific peering action
 
     if (!longPress) { // differs for short and long
       device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);      // read shortPress actionType
-      if (actionType & B00000001) {   // SHORT_ACTION_TYPE, ACTIVE
+      if (actionType & B00001111) {   // SHORT_ACTION_TYPE, ACTIVE
         // read other values and call set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6, 7);     // read all parameters (must be consecutive)
   //           + 7        //  SHORT_ACTION_TYPE
@@ -60,16 +62,16 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
   //           + 9        //  SHORT_OFFDELAY_TIME
   //           + 10       //  SHORT_OFF_TIME
   //           + 11, 12   //  SHORT_JT_* table
-        device->set(targetChannel,PEER_PARAMS,pdata);    // channel, data length, data
+        device->set(targetChannel,NUM_PEER_PARAMS,pdata);    // channel, data length, data
       }
     }
     // read specific long action eeprom section
     else {
       device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 13, 1); // read longPress actionType
-      if (actionType & B00000001) {  // LONG_ACTION_TYPE, ACTIVE
+      if (actionType & B00001111) {  // LONG_ACTION_TYPE, ACTIVE
         // read other values and call set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 13, 7);     // read all parameters (must be consecutive)
-        device->set(targetChannel,PEER_PARAMS,pdata);    // channel, data length, data
+        device->set(targetChannel,NUM_PEER_PARAMS,pdata);    // channel, data length, data
       }
     }
   }

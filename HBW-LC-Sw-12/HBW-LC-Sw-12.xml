@@ -100,254 +100,240 @@
 					<address index="+5"/>
 				</physical>
 			</parameter>
-			
-<parameter id="SHORT_ON_TIME_MODE">
-<logical type="option">
-<option id="MINIMAL"/>
-<option id="ABSOLUTE" default="true"/>
-</logical>
-<physical type="integer" size="0.1" interface="eeprom">
-<address index="+6.7"/>
-</physical>
-</parameter>
-<parameter id="SHORT_OFF_TIME_MODE">
-<logical type="option">
-<option id="MINIMAL"/>
-<option id="ABSOLUTE" default="true"/>
-</logical>
-<physical type="integer" size="0.1" interface="eeprom">
-<address index="+6.6"/>
-</physical>
-</parameter>
-<parameter id="SHORT_TOGGLE_USE">
-<logical type="option">
-<option id="DONT_USE" default="true"/>
-<option id="DIRECT"/>
-<option id="INVERTED"/>
-</logical>
-<physical type="integer" size="0.2" interface="eeprom">
-<address index="+6.4"/>
-</physical>
-<conversion type="option_integer">
-<value_map device_value="0x03" parameter_value="0" from_device="true" to_device="true"/>
-<value_map device_value="0x02" parameter_value="1" from_device="true" to_device="true"/>
-<value_map device_value="0x00" parameter_value="2" from_device="true" to_device="true"/>
-</conversion>
-</parameter>
-<parameter id="SHORT_ACTION_TYPE">
-<logical type="option">
-<option id="INACTIVE"/>
-<option id="ACTIVE" default="true"/>
-</logical>
-<physical type="integer" size="0.1" interface="eeprom">
-<address index="+6.0"/>
-</physical>
-</parameter>
-<parameter id="SHORT_ONDELAY_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min"/>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+7"/>
-</physical>
-</parameter>
+			<parameter id="SHORT_ON_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+6.7"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_OFF_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+6.6"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_ACTION_TYPE">
+				<logical type="option">
+					<option id="INACTIVE"/>
+					<option id="JUMP_TO_TARGET" default="true"/>
+					<option id="TOGGLE_TO_COUNTER"/>
+					<option id="TOGGLE_INVERS_TO_COUNTER"/>
+					<option id="TOGGLE"/>
+				</logical>
+				<physical type="integer" size="0.4" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_ONDELAY_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+7"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_ON_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+8"/>
+				</physical>
+			</parameter>
+<!--			
 <parameter id="SHORT_ON_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min">
-<special_value id="NOT_USED" value="0"/>
+<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+<special_value id="NOT_USED" value="378000"/>
 </logical>
 <physical type="integer" size="1.0" interface="eeprom" endian="little">
 <address index="+8"/>
 </physical>
-</parameter>
-<parameter id="SHORT_OFFDELAY_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min"/>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+9"/>
-</physical>
-</parameter>
-<parameter id="SHORT_OFF_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min">
-<special_value id="NOT_USED" value="0"/>
-</logical>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+10"/>
-</physical>
-</parameter>
-<parameter id="SHORT_JT_ONDELAY">
-<logical type="option">
-<option id="ONDELAY"/>
-<option id="ON" default="true"/>
-<option id="OFFDELAY"/>
-<option id="OFF"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+11.0"/>
-</physical>
-</parameter>
-<parameter id="SHORT_JT_ON">
-<logical type="option">
-<option id="ONDELAY"/>
-<option id="ON"/>
-<option id="OFFDELAY" default="true"/>
-<option id="OFF"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+11.3"/>
-</physical>
-</parameter>
-<parameter id="SHORT_JT_OFFDELAY">
-<logical type="option">
-<option id="ONDELAY"/>
-<option id="ON"/>
-<option id="OFFDELAY"/>
-<option id="OFF" default="true"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+11.6"/>
-</physical>
-</parameter>
-<parameter id="SHORT_JT_OFF">
-<logical type="option">
-<option id="ONDELAY" default="true"/>
-<option id="ON"/>
-<option id="OFFDELAY"/>
-<option id="OFF"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+11.9"/>
-</physical>
-</parameter>
-
-
-<parameter id="LONG_ON_TIME_MODE">
-<logical type="option">
-<option id="MINIMAL"/>
-<option id="ABSOLUTE" default="true"/>
-</logical>
-<physical type="integer" size="0.1" interface="eeprom">
-<address index="+13.7"/>
-</physical>
-</parameter>
-<parameter id="LONG_OFF_TIME_MODE">
-<logical type="option">
-<option id="MINIMAL"/>
-<option id="ABSOLUTE" default="true"/>
-</logical>
-<physical type="integer" size="0.1" interface="eeprom">
-<address index="+13.6"/>
-</physical>
-</parameter>
-<parameter id="LONG_TOGGLE_USE">
-<logical type="option">
-<option id="DONT_USE" default="true"/>
-<option id="DIRECT"/>
-<option id="INVERTED"/>
-</logical>
-<physical type="integer" size="0.2" interface="eeprom">
-<address index="+13.4"/>
-</physical>
-<conversion type="option_integer">
-<value_map device_value="0x03" parameter_value="0" from_device="true" to_device="true"/>
-<value_map device_value="0x02" parameter_value="1" from_device="true" to_device="true"/>
-<value_map device_value="0x00" parameter_value="2" from_device="true" to_device="true"/>
+<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.6"/>
+<conversion type="integer_integer_map">
+<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
 </conversion>
 </parameter>
-<parameter id="LONG_MULTIEXECUTE">
-<logical type="boolean" default="true"/>
-<physical type="integer" size="0.1" interface="eeprom">
-<address index="+13.2"/>
-</physical>
-</parameter>
-<parameter id="LONG_ACTION_TYPE">
-<logical type="option">
-<option id="INACTIVE"/>
-<option id="ACTIVE" default="true"/>
-</logical>
-<physical type="integer" size="0.1" interface="eeprom">
-<address index="+13.0"/>
-</physical>
-</parameter>
-<parameter id="LONG_ONDELAY_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min"/>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+14"/>
-</physical>
-</parameter>
-<parameter id="LONG_ON_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min">
-<special_value id="NOT_USED" value="0"/>
-</logical>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+15"/>
-</physical>
-</parameter>
-<parameter id="LONG_OFFDELAY_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min"/>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+16"/>
-</physical>
-</parameter>
-<parameter id="LONG_OFF_TIME">
-<logical type="integer" min="0" max="255" default="0" unit="min">
-<special_value id="NOT_USED" value="0"/>
-</logical>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+17"/>
-</physical>
-</parameter>
-<parameter id="LONG_JT_ONDELAY">
-<logical type="option">
-<option id="ONDELAY"/>
-<option id="ON" default="true"/>
-<option id="OFFDELAY"/>
-<option id="OFF"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+18.0"/>
-</physical>
-</parameter>
-<parameter id="LONG_JT_ON">
-<logical type="option">
-<option id="ONDELAY"/>
-<option id="ON"/>
-<option id="OFFDELAY" default="true"/>
-<option id="OFF"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+18.3"/>
-</physical>
-</parameter>
-<parameter id="LONG_JT_OFFDELAY">
-<logical type="option">
-<option id="ONDELAY"/>
-<option id="ON"/>
-<option id="OFFDELAY"/>
-<option id="OFF" default="true"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+18.6"/>
-</physical>
-</parameter>
-<parameter id="LONG_JT_OFF">
-<logical type="option">
-<option id="ONDELAY" default="true"/>
-<option id="ON"/>
-<option id="OFFDELAY"/>
-<option id="OFF"/>
-<option id="NO_JUMP_IGNORE_COMMAND"/>
-</logical>
-<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-<address index="+18.9"/>
-</physical>
-</parameter>
+			 -->
+			<parameter id="SHORT_OFFDELAY_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+9"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_OFF_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+10"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_JT_ONDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON" default="true"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.0"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_JT_ON">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY" default="true"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.3"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_JT_OFFDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF" default="true"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.6"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_JT_OFF">
+				<logical type="option">
+					<option id="ONDELAY" default="true"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.9"/>
+				</physical>
+			</parameter>
 
+			<parameter id="LONG_ON_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+13.7"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_OFF_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+13.6"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_MULTIEXECUTE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+13.5"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ACTION_TYPE">
+				<logical type="option">
+					<option id="INACTIVE"/>
+					<option id="JUMP_TO_TARGET" default="true"/>
+					<option id="TOGGLE_TO_COUNTER"/>
+					<option id="TOGGLE_INVERS_TO_COUNTER"/>
+					<option id="TOGGLE"/>
+				</logical>
+				<physical type="integer" size="0.4" interface="eeprom">
+					<address index="+13.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ONDELAY_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+14"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ON_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+15"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_OFFDELAY_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+16"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_OFF_TIME">
+				<logical type="integer" min="0" max="255" default="0" unit="min">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+17"/>
+				</physical>
+			</parameter>
+				<parameter id="LONG_JT_ONDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON" default="true"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_JT_ON">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY" default="true"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.3"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_JT_OFFDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF" default="true"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.6"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_JT_OFF">
+				<logical type="option">
+					<option id="ONDELAY" default="true"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.9"/>
+				</physical>
+			</parameter>
 		</paramset>
-
 		<paramset id="hmw_switch_ch_values" type="VALUES">
 			<parameter id="STATE" operations="read,write,event" control="SWITCH.STATE">
 				<logical type="boolean" default="false"/>
@@ -432,5 +418,4 @@
 	</channel>
 -->
 </channels>
-
 </device>

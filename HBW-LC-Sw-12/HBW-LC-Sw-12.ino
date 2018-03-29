@@ -90,6 +90,10 @@
 #define JT_OFFDELAY 2
 #define JT_OFF 3
 #define JT_NO_JUMP_IGNORE_COMMAND 4
+#define ON_TIME_ABSOLUTE 10
+#define OFF_TIME_ABSOLUTE 11
+#define ON_TIME_MINIMAL 12
+#define OFF_TIME_MINIMAL 13
 #define FORCE_STATE_CHANGE 255
 
 struct hbw_config_switch {
@@ -118,9 +122,10 @@ class HBWChanSw : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
+
+  private:
     void setOutput(uint8_t const * const data);
     uint8_t getNextState(uint8_t bitshift);
-  private:
     uint8_t relayPos; // bit position for actual IO port
     uint8_t ledPos;
     ShiftRegister74HC595* shiftRegister;  // allow function calls to the correct shift register
@@ -137,14 +142,14 @@ class HBWChanSw : public HBWChannel {
     uint8_t offDelayTime;
     uint8_t onTime;
     uint8_t offTime;
+    boolean absoluteTimeRunning;
+    boolean stateTimerRunning;
     uint8_t currentState;
     uint8_t nextState;
-//    uint8_t newLevel;
-    uint16_t jumpTable;
+    uint16_t jumpTargets;
     unsigned long stateCangeWaitTime;
     unsigned long lastStateChangeTime;
-    //uint8_t linkIdentifier;
-    uint8_t lastLinkIdentifier;
+    uint8_t lastKeyEvent;
 };
 
 
@@ -188,13 +193,17 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
   operateRelay = false;
   onTime = 0;
   offTime = 0;
+  jumpTargets = 0;
+  absoluteTimeRunning = false;
+  stateTimerRunning = false;
   stateCangeWaitTime = 0;
-  lastLinkIdentifier = 0xFF;
+  lastStateChangeTime = 0;
 };
 
 // channel specific settings or defaults
-void HBWChanSw::afterReadConfig() {    //need intial reset (or set if inverterted) for all relays - bistable relays may have incorrect state!!!
-
+void HBWChanSw::afterReadConfig() {
+  
+  //need intial reset (or set if inverterted) for all relays - bistable relays may have incorrect state!!!
   if (config->n_inverted) { // off - perform reset
     shiftRegister->set(relayPos, LOW);      // set coil
     shiftRegister->set(relayPos +1, HIGH);  // reset coil
@@ -205,11 +214,10 @@ void HBWChanSw::afterReadConfig() {    //need intial reset (or set if inverterte
     shiftRegister->set(relayPos, HIGH);  // set coil
     shiftRegister->set(ledPos, HIGH); // LED
   }
-  //TODO: add pause? setting 12 relays at once would consume high current...
+  //TODO: add delay? setting 12 relays at once would consume high current...
 
   currentState = JT_OFF;
-  nextState = currentState;
-  //newLevel = 0;
+  nextState = currentState; // no action for state machine needed
 
   relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
   operateRelay = true;
@@ -217,35 +225,53 @@ void HBWChanSw::afterReadConfig() {    //need intial reset (or set if inverterte
 
 
 void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
-   
+  
   if (length > 1) {  // got called with additional peering parameters
     actiontype = *(data);
-    
-    if ((actiontype & B00110000) == 32) { // TOGGLE_USE: DIRECT
-      byte level = 255;
+    uint8_t actionValue = *(data+7);
+
+  hbwdebug(F("aV: "));
+  hbwdebughex(actionValue);
+  hbwdebug(F("\n"));
+
+ // TODO: disable toggle in minimal time mode? (stateTimerRunning), else clear timer!
+    if ((((actiontype & B00001111) > 1) && (!absoluteTimeRunning)) && !(lastKeyEvent == actionValue && !(bitRead(actiontype,5)))) {   // TOGGLE_USE 
+      byte level;
+      if ((actiontype & B00001111) == 2)   // TOGGLE_TO_COUNTER
+        level = (((actionValue >>2) %2 == 0) ? 0 : 200);  //  (keyPressNum start at 1 (always?) so switch on at odd numbers)
+      else if ((actiontype & B00001111) == 3)   // TOGGLE_INVERSE_TO_COUNTER
+        level = (((actionValue >>2) %2 == 0) ? 200 : 0);
+      else   // TOGGLE
+        level = 255;
+
+  hbwdebug(F("Tg to: "));
+  hbwdebughex(level);
+  hbwdebug(F("\n"));
+  
       setOutput(&level);
-      nextState = currentState; // avoid state machine to run - TODO: handle on_time / off_time??
+      nextState = currentState; // avoid state machine to run
     }
-    else {  // assign values based on EEPROM layout
+    else if (lastKeyEvent == actionValue && !(bitRead(actiontype,5))) {
+      // repeated key event, must be long press: LONG_MULTIEXECUTE not enabled
+    }
+    else if (!absoluteTimeRunning) {  // assign values based on EEPROM layout
       onDelayTime = *(data+1);
       onTime = *(data+2);
       offDelayTime = *(data+3);
       offTime = *(data+4);
-      jumpTable = ((uint16_t)(*(data+6)) << 8) | *(data+5);
-      uint8_t linkIdentifier = *(data+7);
-      if (linkIdentifier != lastLinkIdentifier) {
-        nextState = FORCE_STATE_CHANGE; // force update
-        lastLinkIdentifier = linkIdentifier;
-      }
+      jumpTargets = ((uint16_t)(*(data+6)) << 8) | *(data+5);
 
-      // actual state change happens in main loop
+      nextState = FORCE_STATE_CHANGE; // force update
     }
+    
+    lastKeyEvent = actionValue;
   }
-  else {  // set value - no peering event
+  else {  // set value - no peering event, overwrite any timer //TODO check: ignore absolute on/off time running? how do real devices handle this?
     setOutput(data);
-    nextState = currentState; // avoid state machine to run - TODO: handle on_time / off_time??
+    stateTimerRunning = false;
+    absoluteTimeRunning = false;
+    nextState = currentState; // avoid state machine to run
   }
-  
 };
 
 
@@ -298,10 +324,43 @@ uint8_t HBWChanSw::get(uint8_t* data) {
 };
 
 
-// read jump table entry
+// read jump target entry
 uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
-  return ((jumpTable >>bitshift) & B00000111);
-}
+  //return ((jumpTargets >>bitshift) & B00000111);
+
+  if (!stateTimerRunning)
+    absoluteTimeRunning = false;  // get nextState() only allowed if timer expired or MINIMAL timer running
+  
+  uint8_t nextJump = ((jumpTargets >>bitshift) & B00000111);
+  
+  if (nextJump == JT_ON) {
+    if (onTime != 0) {
+      if ((actiontype & B10000000) == 0) {  // on time MINIMAL
+        nextJump = ON_TIME_MINIMAL;
+      }
+      else {  // on time ABSOLUTE
+        nextJump = ON_TIME_ABSOLUTE;
+      }
+    }
+    else if (nextJump == JT_OFF) {
+      if (offTime != 0) {
+        if ((actiontype & B01000000) == 0) {  // off time MINIMAL
+          nextJump = OFF_TIME_MINIMAL;
+        }
+        else {  // off time ABSOLUTE
+          nextJump = OFF_TIME_ABSOLUTE;
+        }
+      }
+    }
+  }
+  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still runnung but update forced, only allowed for MINIMAL timer
+    if (currentState == JT_ON)
+      nextJump = ON_TIME_MINIMAL;
+    else if (currentState == JT_OFF)
+      nextJump = OFF_TIME_MINIMAL;
+  }
+  return nextJump;
+};
 
 
 void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
@@ -322,25 +381,19 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 // state machine
   bool setNewLevel = false;
 
-  // TODO: lock state for same long/short peering?? - wait for timer to finish? (needs numLink & longPress status)
+  if (((now - lastStateChangeTime > stateCangeWaitTime) && stateTimerRunning) || currentState != nextState) {
 
-  // on or off time is set and we are in on or off state -> wait time to count down
-  if ((onTime || offTime) && (currentState == JT_ON || currentState == JT_OFF) && (now - lastStateChangeTime > stateCangeWaitTime) && (nextState != FORCE_STATE_CHANGE)) {
-    if (currentState == JT_ON)
-      onTime = 0;
-    else
-      offTime = 0;
-    nextState = FORCE_STATE_CHANGE;
-  }
-  
-  if (((now - lastStateChangeTime > stateCangeWaitTime) && (currentState == JT_ONDELAY || currentState == JT_OFFDELAY)) || currentState != nextState) {
-    
+  if (currentState == nextState)  // no change to state, so must be time triggered
+    stateTimerRunning = false;
+
   hbwdebug(F("chan:"));
   hbwdebughex(channel);
   hbwdebug(F(" cs: "));
   hbwdebughex(currentState);
-  
-    switch (currentState) { // check next jump from current state
+
+    
+    // check next jump from current state
+    switch (currentState) {
       case JT_ONDELAY:      // jump from on delay state
         nextState = getNextState(0);
         break;
@@ -359,46 +412,104 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
   hbwdebughex(nextState);
   hbwdebug(F("\n"));
 
-  uint8_t newLevel = 0;
+    uint8_t newLevel = 0;
  
     if (nextState != JT_NO_JUMP_IGNORE_COMMAND) {
       
-      lastStateChangeTime = now;  // something valid will happen, update last action time
+      //lastStateChangeTime = now;  // something valid will happen, update last action time
         
       switch (nextState) {
         case JT_ONDELAY:
-          stateCangeWaitTime = (onDelayTime *60000); // TODO: change to dynamic factor? add relative & absolute handling
+          stateCangeWaitTime = (onDelayTime *1000); // TODO: change to dynamic factor? - set to minutes! (after testing :)
+          lastStateChangeTime = now;
+          stateTimerRunning = true;
           currentState = JT_ONDELAY;
           break;
+          
         case JT_ON:
           newLevel = 200;
-          stateCangeWaitTime = (onTime *60000);  //TODO: change to dynamic factor?
           setNewLevel = true;   //TODO: check for current level? don't set same level again?
+          //stateCangeWaitTime = 0;
+          stateTimerRunning = false;
+//          absoluteTimeRunning = false;
           break;
+          
         case JT_OFFDELAY:
-          stateCangeWaitTime = (offDelayTime *60000); // TODO: change to dynamic factor? add relative & absolute handling
+          stateCangeWaitTime = (offDelayTime *1000); // TODO: change to dynamic factor? - set to minutes! (after testing :)
+          lastStateChangeTime = now;
+          stateTimerRunning = true;
           currentState = JT_OFFDELAY;
           break;
+          
         case JT_OFF:
           newLevel = 0;
-          stateCangeWaitTime = (offTime *60000);  //TODO: change to dynamic factor?
-          setNewLevel = true;
+          setNewLevel = true;   //TODO: check for current level? don't set same level again?
+          //stateCangeWaitTime = 0;
+          stateTimerRunning = false;
+//          absoluteTimeRunning = false;
+          break;
+          
+        case ON_TIME_ABSOLUTE:
+          newLevel = 200;
+          setNewLevel = true;   //TODO: check for current level? don't set same level again?
+          stateCangeWaitTime = (onTime *1000);  //TODO: change to dynamic factor?
+          lastStateChangeTime = now;
+          stateTimerRunning = true;
+          absoluteTimeRunning = true;
+          nextState = JT_ON;
+          break;
+          
+        case OFF_TIME_ABSOLUTE:
+          newLevel = 0;
+          setNewLevel = true;   //TODO: check for current level? don't set same level again?
+          stateCangeWaitTime = (offTime *1000);  //TODO: change to dynamic factor? - set to minutes! (after testing :)
+          lastStateChangeTime = now;
+          stateTimerRunning = true;
+          absoluteTimeRunning = true;
+          nextState = JT_OFF;
+          break;
+          
+        case ON_TIME_MINIMAL:
+          newLevel = 200;
+          setNewLevel = true;   //TODO: check for current level? don't set same level again?
+          if (now - lastStateChangeTime < (onTime *1000)) {
+            stateCangeWaitTime = (onTime *1000);  //TODO: change to dynamic factor? - set to minutes! (after testing :)
+            lastStateChangeTime = now;
+            stateTimerRunning = true;
+          }
+          absoluteTimeRunning = false;
+          //stateTimerRunning = true; // needed? old timer should continue
+          nextState = JT_ON;
+          break;
+          
+        case OFF_TIME_MINIMAL:
+          newLevel = 0;
+          setNewLevel = true;   //TODO: check for current level? don't set same level again?
+          if (now - lastStateChangeTime < (offTime *1000)) {
+            stateCangeWaitTime = (offTime *1000);  //TODO: change to dynamic factor?
+            lastStateChangeTime = now;
+            stateTimerRunning = true;
+          }
+          absoluteTimeRunning = false;
+          //stateTimerRunning = true; // needed? old timer should continue
+          nextState = JT_OFF;
           break;
       }
     }
     else {  // NO_JUMP_IGNORE_COMMAND
       uint8_t level;
-      get(&level);
+      get(&level);    // get current level and update state, TODO: actually needed? or keep for robustness?
       currentState = (level ? JT_ON : JT_OFF );
       nextState = currentState;   // avoid to run into a loop
     }
 
     if (setNewLevel) {
-      setOutput(&newLevel);
+      setOutput(&newLevel);   //TODO: check for current level? don't set same level again?
       setNewLevel = false;
-      lastLinkIdentifier = 0xFF; // allow new action from same peering
     }
-  }
+
+  } // state machine - END
+  
 
 	now = millis(); // current timestamp needed!
   if(!nextFeedbackDelay)  // feedback trigger set?
@@ -416,9 +527,9 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
     nextFeedbackDelay = 250;
   else
     nextFeedbackDelay = 0;
-}
+};
 
-  
+
 void setup()
 {
    // assing switches (relay) pins
