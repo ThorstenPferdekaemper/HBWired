@@ -32,7 +32,7 @@ class HBWLinkSender {
 class HBWLinkReceiver {
   public:
 	  virtual void receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
-                                   uint8_t targetChannel, boolean longPress) = 0;
+                                   uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) = 0;
 };
 
 
@@ -90,7 +90,7 @@ class HBWDevice {
     virtual uint8_t sendKeyEvent(uint8_t srcChan, uint8_t length, void* data);
  								 
 	virtual void receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan, 
-	                             uint8_t dstChan, boolean longPress);
+                                 uint8_t dstChan, uint8_t keyPressNum, boolean longPress);
     virtual void processEvent(uint8_t const * const frameData, uint8_t frameDataLength,
                               boolean isBroadcast = false);
 	// read EEPROM

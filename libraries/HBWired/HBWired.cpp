@@ -427,7 +427,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 'K':                           // 0x4B Key-Event
          case 0xCB:   // 'Ë':       // Key-Sim-Event TODO: Es gibt da einen theoretischen Unterschied
-        	receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] & 0x01);
+        	receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3], frameData[3] & 0x01);
             break;
          case 'R':                                                              // Read EEPROM
         	// TODO: Check requested length...
@@ -510,12 +510,12 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
 };
 
 
+// Enhanced peering, needs more data
 void HBWDevice::receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan, 
-	                             uint8_t dstChan, boolean longPress) {
-    if(linkReceiver)								 
-        linkReceiver->receiveKeyEvent(this, senderAddress, srcChan, dstChan, longPress);
+	                             uint8_t dstChan, uint8_t keyPressNum, boolean longPress) {
+    if(linkReceiver)
+        linkReceiver->receiveKeyEvent(this, senderAddress, srcChan, dstChan, keyPressNum, longPress);
 };
-
 
    void HBWDevice::processEventGetLevel(byte channel, byte command){
 	 // get value from the hardware and send it back
