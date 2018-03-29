@@ -353,7 +353,7 @@ uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
       }
     }
   }
-  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still runnung but update forced, only allowed for MINIMAL timer
+  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running but update forced, only allowed for MINIMAL timer
     if (currentState == JT_ON)
       nextJump = ON_TIME_MINIMAL;
     else if (currentState == JT_OFF)
