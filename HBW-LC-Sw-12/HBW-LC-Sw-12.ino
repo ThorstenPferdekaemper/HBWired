@@ -233,27 +233,29 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   hbwdebughex(keyEvent);
   hbwdebug(F("\n"));
 
- // TODO: disable toggle in minimal time mode? (stateTimerRunning), else clear timer!
-    if ((((actiontype & B00001111) > 1) && (!absoluteTimeRunning)) && !(lastKeyEvent == keyEvent && !(bitRead(actiontype,5)))) {   // TOGGLE_USE 
+    //if ((((actiontype & B00001111) > 1) && !stateTimerRunning) && !(lastKeyEvent == keyEvent && !(bitRead(actiontype,5)))) {   // TOGGLE_USE 
+    if ((actiontype & B00001111) >1) {   // TOGGLE_USE
       byte level;
-      if ((actiontype & B00001111) == 2)   // TOGGLE_TO_COUNTER
-        level = (((keyEvent >>2) %2 == 0) ? 0 : 200);  //  (keyPressNum start at 1 (always?) so switch on at odd numbers)
-      else if ((actiontype & B00001111) == 3)   // TOGGLE_INVERSE_TO_COUNTER
-        level = (((keyEvent >>2) %2 == 0) ? 200 : 0);
-      else   // TOGGLE
-        level = 255;
+      if (!stateTimerRunning && lastKeyEvent != keyEvent) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
+        if ((actiontype & B00001111) == 2)   // TOGGLE_TO_COUNTER
+          level = (((keyEvent >>2) %2 == 0) ? 0 : 200);  //  (switch ON at odd numbers, OFF at even numbers)
+        else if ((actiontype & B00001111) == 3)   // TOGGLE_INVERSE_TO_COUNTER
+          level = (((keyEvent >>2) %2 == 0) ? 200 : 0);
+        else   // TOGGLE
+          level = 255;
 
   hbwdebug(F("Tg to: "));
   hbwdebughex(level);
   hbwdebug(F("\n"));
   
-      setOutput(&level);
-      nextState = currentState; // avoid state machine to run
+        setOutput(&level);
+        nextState = currentState; // avoid state machine to run
+      }
     }
     else if (lastKeyEvent == keyEvent && !(bitRead(actiontype,5))) {
       // repeated key event, must be long press: LONG_MULTIEXECUTE not enabled
     }
-    else if (!absoluteTimeRunning) {  // no interruption for ABSOLUTE time mode
+    else {
       // assign values based on EEPROM layout
       onDelayTime = *(data+1);
       onTime = *(data+2);
@@ -281,7 +283,7 @@ void HBWChanSw::setOutput(uint8_t const * const data) {
     byte level = *(data);
 
     if (level > 200) // toggle
-        level = !shiftRegister->get(ledPos); // get current state and negate
+      level = !shiftRegister->get(ledPos); // get current state and negate
     else if (level)   // set to 0 or 1
       level = (LOW ^ config->n_inverted);
     else
@@ -327,7 +329,7 @@ uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
   //return ((jumpTargets >>bitshift) & B00000111);
 
   if (!stateTimerRunning)
-    absoluteTimeRunning = false;  // get nextState() only allowed if timer expired or MINIMAL timer running
+    absoluteTimeRunning = false;  // get nextState() only allowed if timer expired or MINIMAL timer running //TODO: allow also ABSOLUTE time!?
   
   uint8_t nextJump = ((jumpTargets >>bitshift) & B00000111);
   
@@ -352,11 +354,11 @@ uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
     }
   }
   
-  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running but update forced, only allowed for MINIMAL timer. Go and compare new time.
+  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running, but update forced
     if (currentState == JT_ON)
-      nextJump = ON_TIME_MINIMAL;
+      nextJump = (actiontype & B10000000) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
     else if (currentState == JT_OFF)
-      nextJump = OFF_TIME_MINIMAL;
+      nextJump = (actiontype & B01000000) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
   }
   return nextJump;
 };
