@@ -34,6 +34,8 @@
 #define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
 
+//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
+
 #include "HBWSoftwareSerial.h"
 #include "FreeRam.h"    
 
@@ -104,7 +106,9 @@ HBBlDevice* device = NULL;
 
 void setup()
 {
+#ifndef NO_DEBUG_OUTPUT
   Serial.begin(19200);
+#endif
   rs485.begin();    // RS485 via SoftwareSerial
 
   // create channels
@@ -118,15 +122,20 @@ void setup()
   device = new HBBlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUMBER_OF_BLINDS,(HBWChannel**)blinds,
+  #ifdef NO_DEBUG_OUTPUT
+                         NULL,
+  #else
                          &Serial,
+  #endif
                          NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
    
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
 
-
+#ifndef NO_DEBUG_OUTPUT
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
   hbwdebug(F("\n"));
+#endif
 }
 
 

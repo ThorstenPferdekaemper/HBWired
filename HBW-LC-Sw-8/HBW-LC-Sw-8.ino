@@ -25,6 +25,9 @@
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x40
 
+
+//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
+
 #include "HBWSoftwareSerial.h"
 #include "FreeRam.h"    
 
@@ -94,7 +97,9 @@ HBSwDevice* device = NULL;
 
 void setup()
 {
+#ifndef NO_DEBUG_OUTPUT
   Serial.begin(19200);
+#endif
   rs485.begin();    // RS485 via SoftwareSerial
 
   // create channels
@@ -108,15 +113,21 @@ void setup()
   device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUM_CHANNELS,(HBWChannel**)switches,
+  #ifdef NO_DEBUG_OUTPUT
+                         NULL,
+  #else
                          &Serial,
+  #endif
                          NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
 
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
   
   
+#ifndef NO_DEBUG_OUTPUT
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
   hbwdebug(F("\n"));
+#endif
 }
 
 
