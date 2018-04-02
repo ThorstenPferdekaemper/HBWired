@@ -427,7 +427,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 'K':                           // 0x4B Key-Event
          case 0xCB:   // 'Ë':       // Key-Sim-Event TODO: Es gibt da einen theoretischen Unterschied
-        	receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3], frameData[3] & 0x01);
+        	receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] >>2, frameData[3] & 0x01);
             break;
          case 'R':                                                              // Read EEPROM
         	// TODO: Check requested length...
