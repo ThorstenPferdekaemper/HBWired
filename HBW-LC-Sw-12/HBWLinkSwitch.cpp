@@ -48,8 +48,6 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
 	  device->readEEPROM(&channelEEPROM, eepromStart + EEPROM_SIZE * i + 5, 1);
 	  if(channelEEPROM != targetChannel) continue;
 	  // ok, we have found a match
-    //data[7] = (i <<1) + longPress;  // use this as identifier for the specific peering action
-
     if (!longPress) { // differs for short and long
       device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);      // read shortPress actionType
       if (actionType & B00001111) {   // SHORT_ACTION_TYPE, ACTIVE

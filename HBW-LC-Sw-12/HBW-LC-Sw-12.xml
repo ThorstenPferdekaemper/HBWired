@@ -4,6 +4,7 @@
 	<type priority="2" id="HBW-LC-Sw-12" name="RS485 Homebrew switch actuator 12-channel (6+6)">
 		<parameter const_value="0x93" size="1" index="0"/>
 		<parameter const_value="0" size="1" index="1"/>
+		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -131,46 +132,48 @@
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ONDELAY_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+7"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
 			<parameter id="SHORT_ON_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min">
-					<special_value id="NOT_USED" value="0"/>
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+8"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
-<!--			
-<parameter id="SHORT_ON_TIME">
-<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
-<special_value id="NOT_USED" value="378000"/>
-</logical>
-<physical type="integer" size="1.0" interface="eeprom" endian="little">
-<address index="+8"/>
-</physical>
-<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.6"/>
-<conversion type="integer_integer_map">
-<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
-</conversion>
-</parameter>
-			 -->
 			<parameter id="SHORT_OFFDELAY_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+9"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
 			<parameter id="SHORT_OFF_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min">
-					<special_value id="NOT_USED" value="0"/>
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+10"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
 			<parameter id="SHORT_JT_ONDELAY">
 				<logical type="option">
@@ -258,32 +261,48 @@
 				</physical>
 			</parameter>
 			<parameter id="LONG_ONDELAY_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+14"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
 			<parameter id="LONG_ON_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min">
-					<special_value id="NOT_USED" value="0"/>
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+15"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min"/>
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+16"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
 			<parameter id="LONG_OFF_TIME">
-				<logical type="integer" min="0" max="255" default="0" unit="min">
-					<special_value id="NOT_USED" value="0"/>
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+17"/>
 				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
 			</parameter>
 				<parameter id="LONG_JT_ONDELAY">
 				<logical type="option">
