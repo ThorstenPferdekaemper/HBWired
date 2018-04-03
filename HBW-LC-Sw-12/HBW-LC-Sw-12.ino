@@ -191,8 +191,8 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
   lastFeedbackTime = 0;
   relayOperationTimeStart = 0;
   operateRelay = false;
-  onTime = 0;
-  offTime = 0;
+  onTime = 0xFF;
+  offTime = 0xFF;
   jumpTargets = 0;
   stateTimerRunning = false;
   stateCangeWaitTime = 0;
@@ -510,23 +510,28 @@ uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
 };
 
 
-// convert time value stored in EEPROM
+// convert time value stored in EEPROM -> return time in milliseconds
 uint32_t HBWChanSw::convertTime(uint8_t timeValue) {
   uint8_t factor = timeValue & 0xC0;    // mask out factor (higest two bits)
   timeValue &= 0x3F;    // keep time value only
+
   // factors: 1,60,1000,6000 (last one is not used)
   switch (factor) {
+    case 0:         // x1
+      return (uint32_t)timeValue *1000;
+      break;
     case 64:         // x60
-      timeValue *=60;
+      return (uint32_t)timeValue *60000;
       break;
     case 128:        // x1000
-      timeValue *=1000;
-      break;          
+      return (uint32_t)timeValue *1000000;
+      break;
     case 192:        // not used
-      timeValue = 0; // TODO: check how to handle this properly, what does on/off time == 0 mean? always on/off??
+      return 0;
+      //timeValue = 0; // TODO: check how to handle this properly, what does on/off time == 0 mean? always on/off??
       break;
   }
-  return (uint32_t)timeValue *1000;  // return milliseconds
+  return 0;
 };
 
 
