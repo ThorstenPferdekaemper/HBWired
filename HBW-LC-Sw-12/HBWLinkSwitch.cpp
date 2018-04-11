@@ -31,7 +31,6 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
   uint8_t actionType;
 
   uint8_t data[NUM_PEER_PARAMS];  // store all peer parameter
-  uint8_t *pdata = data;
   data[7] = keyPressNum;
   
   // read what to do from EEPROM
@@ -53,13 +52,14 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
       if (actionType & B00001111) {   // SHORT_ACTION_TYPE, ACTIVE
         // read other values and call set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6, 7);     // read all parameters (must be consecutive)
-  //           + 7        //  SHORT_ACTION_TYPE
+  //           + 6        //  SHORT_ACTION_TYPE
   //           + 7        //  SHORT_ONDELAY_TIME
   //           + 8        //  SHORT_ON_TIME
   //           + 9        //  SHORT_OFFDELAY_TIME
   //           + 10       //  SHORT_OFF_TIME
   //           + 11, 12   //  SHORT_JT_* table
-        device->set(targetChannel,NUM_PEER_PARAMS,pdata);    // channel, data length, data
+        //device->set(targetChannel,NUM_PEER_PARAMS,data);    // channel, data length, data
+        device->peeringEventTrigger(targetChannel,data);    // channel, data
       }
     }
     // read specific long action eeprom section
@@ -68,7 +68,8 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
       if (actionType & B00001111) {  // LONG_ACTION_TYPE, ACTIVE
         // read other values and call set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 13, 7);     // read all parameters (must be consecutive)
-        device->set(targetChannel,NUM_PEER_PARAMS,pdata);    // channel, data length, data
+        //device->set(targetChannel,NUM_PEER_PARAMS,data);    // channel, data length, data
+        device->peeringEventTrigger(targetChannel,data);    // channel, data
       }
     }
   }

@@ -7,7 +7,7 @@
 // 6 + 6 bistabile Relais über Shiftregister und [TODO: 6 Kanal Strommessung]
 // 
 // - Active HIGH oder LOW kann konfiguriert werden
-// - Direktes peering mit Zeitschaltfuntion (on/off delay, on/off time)
+// - Direktes peering mit Zeitschaltfuntion (on/off delay, on/off time, toggle/toggle to counter)
 
 // TODO: Test der hardware...
 //
@@ -121,9 +121,10 @@ class HBWChanSw : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
+    virtual void peeringEventTrigger(HBWDevice* device, uint8_t const * const data);
 
   private:
-    void setOutput(uint8_t const * const data);
+  //  void setOutput(uint8_t const * const data);
     uint8_t relayPos; // bit position for actual IO port
     uint8_t ledPos;
     ShiftRegister74HC595* shiftRegister;  // allow function calls to the correct shift register
@@ -134,7 +135,7 @@ class HBWChanSw : public HBWChannel {
     bool operateRelay;
     unsigned long relayOperationTimeStart;
     
-    // set from links/peering
+    // set from links/peering (implements state machine)
     uint8_t getNextState(uint8_t bitshift);
     uint32_t convertTime(uint8_t timeValue);
     uint8_t actiontype;
@@ -147,7 +148,6 @@ class HBWChanSw : public HBWChannel {
     uint8_t nextState;
     uint16_t jumpTargets;
     unsigned long stateCangeWaitTime;
-    //uint8_t stateCangeWaitTime;
     unsigned long lastStateChangeTime;
     uint8_t lastKeyEvent;
 };
@@ -189,6 +189,7 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
   shiftRegister = _shiftRegister;
   nextFeedbackDelay = 0;
   lastFeedbackTime = 0;
+  
   relayOperationTimeStart = 0;
   operateRelay = false;
   onTime = 0xFF;
@@ -223,15 +224,18 @@ void HBWChanSw::afterReadConfig() {
 }
 
 
-void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
-  
-  if (length > 1) {  // got called with additional peering parameters
+//void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const data) {
+
+  //if (length == 8) {  // got called with additional peering parameters // TODO: test for NUM_PEER_PARAMS or skip? (should be fixed lenght, e.g 8)
     actiontype = *(data);
     uint8_t keyEvent = *(data+7);
 
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("aV: "));
   hbwdebughex(keyEvent);
   hbwdebug(F("\n"));
+#endif
 
     //if ((((actiontype & B00001111) > 1) && !stateTimerRunning) && !(lastKeyEvent == keyEvent && !(bitRead(actiontype,5)))) {   // TOGGLE_USE 
     if ((actiontype & B00001111) >1) {   // TOGGLE_USE
@@ -244,11 +248,12 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
         else   // TOGGLE
           level = 255;
 
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("Tg to: "));
   hbwdebughex(level);
   hbwdebug(F("\n"));
-  
-        setOutput(&level);
+#endif
+        this->set(device,1,&level);
         nextState = currentState; // avoid state machine to run
       }
     }
@@ -263,24 +268,27 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       offTime = *(data+4);
       jumpTargets = ((uint16_t)(*(data+6)) << 8) | *(data+5);
 
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("onT: "));
   hbwdebughex(onTime);
   hbwdebug(F("\n"));
+#endif
 
       nextState = FORCE_STATE_CHANGE; // force update
     }
     
     lastKeyEvent = keyEvent;
-  }
-  else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
-    setOutput(data);
-    stateTimerRunning = false;
-    nextState = currentState; // avoid state machine to run
-  }
+  //}
+//  else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
+//    setOutput(data);
+//    stateTimerRunning = false;
+//    nextState = currentState; // avoid state machine to run
+//  }
 };
 
 
-void HBWChanSw::setOutput(uint8_t const * const data) {
+//void HBWChanSw::setOutput(uint8_t const * const data) {
+void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
   if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
     byte level = *(data);
@@ -341,7 +349,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
     operateRelay = false;
   }
   
-// state machine
+//*** state machine begin ***//
   bool setNewLevel = false;
 
   if (((now - lastStateChangeTime > stateCangeWaitTime) && stateTimerRunning) || currentState != nextState) {
@@ -349,10 +357,12 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
     if (currentState == nextState)  // no change to state, so must be time triggered
       stateTimerRunning = false;
 
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("chan:"));
   hbwdebughex(channel);
   hbwdebug(F(" cs: "));
   hbwdebughex(currentState);
+#endif
     
     // check next jump from current state
     switch (currentState) {
@@ -370,9 +380,11 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
         break;
     }
 
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F(" ns: "));
   hbwdebughex(nextState);
   hbwdebug(F("\n"));
+#endif
 
     uint8_t newLevel = 0;   // default value. Will only be set if setNewLevel was also set 'true'
     uint8_t currentLevel;
@@ -383,7 +395,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
       switch (nextState) {
         case JT_ONDELAY:
           stateCangeWaitTime = convertTime(onDelayTime);
-          //stateCangeWaitTime = onDelayTime;
           lastStateChangeTime = now;
           stateTimerRunning = true;
           currentState = JT_ONDELAY;
@@ -392,13 +403,11 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
         case JT_ON:
           newLevel = 200;
           setNewLevel = true;
-          //stateCangeWaitTime = 0;
           stateTimerRunning = false;
           break;
           
         case JT_OFFDELAY:
           stateCangeWaitTime = convertTime(offDelayTime);
-          //stateCangeWaitTime = offDelayTime;
           lastStateChangeTime = now;
           stateTimerRunning = true;
           currentState = JT_OFFDELAY;
@@ -407,7 +416,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
         case JT_OFF:
           //newLevel = 0; // 0 is default
           setNewLevel = true;
-          //stateCangeWaitTime = 0;
           stateTimerRunning = false;
           break;
           
@@ -415,7 +423,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
           newLevel = 200;
           setNewLevel = true;
           stateCangeWaitTime = convertTime(onTime);
-          //stateCangeWaitTime = onTime;
           lastStateChangeTime = now;
           stateTimerRunning = true;
           nextState = JT_ON;
@@ -425,7 +432,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
           //newLevel = 0; // 0 is default
           setNewLevel = true;
           stateCangeWaitTime = convertTime(offTime);
-          //stateCangeWaitTime = offTime;
           lastStateChangeTime = now;
           stateTimerRunning = true;
           nextState = JT_OFF;
@@ -436,7 +442,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
           setNewLevel = true;
           if (now - lastStateChangeTime < convertTime(onTime)) {
             stateCangeWaitTime = convertTime(onTime);
-            //stateCangeWaitTime = onTime;
             lastStateChangeTime = now;
             stateTimerRunning = true;
           }
@@ -448,7 +453,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
           setNewLevel = true;
           if (now - lastStateChangeTime < convertTime(offTime)) {
             stateCangeWaitTime = convertTime(offTime);
-            //stateCangeWaitTime = offTime;
             lastStateChangeTime = now;
             stateTimerRunning = true;
           }
@@ -461,10 +465,11 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
       nextState = currentState;   // avoid to run into a loop
     }
     if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
-      setOutput(&newLevel);
+      this->set(device,1,&newLevel);
       setNewLevel = false;
     }
-  }  // state machine - END
+  }
+  //*** state machine end ***//
   
 
 	now = millis(); // current timestamp needed!
@@ -486,7 +491,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 };
 
 
-// read jump target entry
+// read jump target entry - set by peering (used for state machine)
 uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
   
   uint8_t nextJump = ((jumpTargets >>bitshift) & B00000111);
@@ -510,7 +515,7 @@ uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
 };
 
 
-// convert time value stored in EEPROM -> return time in milliseconds
+// convert time value stored in EEPROM to milliseconds (used for state machine)
 uint32_t HBWChanSw::convertTime(uint8_t timeValue) {
   uint8_t factor = timeValue & 0xC0;    // mask out factor (higest two bits)
   timeValue &= 0x3F;    // keep time value only
@@ -526,10 +531,9 @@ uint32_t HBWChanSw::convertTime(uint8_t timeValue) {
     case 128:        // x1000
       return (uint32_t)timeValue *1000000;
       break;
-    case 192:        // not used
-      return 0;
-      //timeValue = 0; // TODO: check how to handle this properly, what does on/off time == 0 mean? always on/off??
-      break;
+//    case 192:        // not used value
+//      return 0; // TODO: check how to handle this properly, what does on/off time == 0 mean? always on/off??
+//      break;
   }
   return 0;
 };

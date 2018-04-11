@@ -363,6 +363,7 @@ void HBWDevice::receive(){
 
 // Basisklasse fuer Channels, defaults
 void HBWChannel::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
+void HBWChannel::peeringEventTrigger(HBWDevice* device, uint8_t const * const data) {};
 uint8_t HBWChannel::get(uint8_t* data) { return 0; };   
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
 void HBWChannel::afterReadConfig() {};
@@ -773,9 +774,16 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	}
     ledPin = _ledPin;	
 	if(ledPin != 0xFF) pinMode(ledPin,OUTPUT);
- };
-  
-  
+};
+
+
+void HBWDevice::peeringEventTrigger(uint8_t channel,uint8_t const * const data){
+	// to avoid crashes, do not try to set any channels, which do not exist
+	if(channel < numChannels)
+        channels[channel]->peeringEventTrigger(this, data);
+}
+
+
 void HBWDevice::set(uint8_t channel,uint8_t length,uint8_t const * const data){
 	if(hbwdebugstream) {
 	    hbwdebug(F("S: ")); hbwdebughex(channel); hbwdebug(F(" "));
