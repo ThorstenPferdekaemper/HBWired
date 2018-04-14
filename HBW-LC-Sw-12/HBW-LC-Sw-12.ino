@@ -265,7 +265,7 @@ void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const dat
   hbwdebughex(level);
   hbwdebug(F("\n"));
 #endif
-        this->set(device,1,&level);
+        this->set(device,2,&level);
         nextState = currentState; // avoid state machine to run
       }
     }
@@ -324,6 +324,9 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     
     relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
     operateRelay = true;
+
+    if (length == 1)
+      nextState = currentState; // avoid state machine to run TODO; clear timer?
   }
   // Logging
   // (logging is considered for locked channels)
@@ -474,7 +477,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
       nextState = currentState;   // avoid to run into a loop
     }
     if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
-      this->set(device,1,&newLevel);
+      this->set(device,2,&newLevel);
       setNewLevel = false;
     }
   }
