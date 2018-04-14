@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-LC-Sw-12" name="RS485 Homebrew switch actuator 12-channel (6+6)">
 		<parameter const_value="0x93" size="1" index="0"/>
 		<parameter const_value="0" size="1" index="1"/>
-		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
+		<parameter const_value="0x0003" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -388,41 +388,26 @@
 		</paramset>
 	</channel>
 	
-<!-- TODO: ...later use		
-	<channel index="31" count="6" physical_index_offset="-1" type="ANALOGSENSOR">
-	    <paramset type="MASTER" id="hmw_analog_ch_master" address_step="6" address_start="0x64">
-			<parameter id="SEND_DELTA_ANALOG">
-			   <logical type="integer" default="50" min="1" max="250">
-			       <special_value id="NOT_USED" value="0"/>
-			   </logical>	   
-               <physical size="1.0" type="integer" interface="eeprom">
+	<channel index="13" count="6" physical_index_offset="-1" type="ANALOGSENSOR">
+	    <paramset type="MASTER" id="hmw_analog_ch_master" address_step="2" address_start="0x14">
+			<parameter id="ENABLED">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="SAMPLES">
+			   <logical type="integer" default="2" min="1" max="7"/>   
+               <physical size="0.3" type="integer" interface="eeprom" endian="little">
+                  <address index="+0.1"/>
+               </physical>
+			</parameter>
+			<parameter id="SAMPLE_INTERVAL">
+			   <logical type="integer" unit="s" default="20" min="4" max="255"/>   
+               <physical size="1.0" type="integer" interface="eeprom" endian="little">
                   <address index="+1.0"/>
-               </physical>	
-               <conversion type="integer_integer_map">
-                 <value_map to_device="false" from_device="true" parameter_value="50" device_value="0xff"/>
-               </conversion>			   
-			</parameter>
-			<parameter id="SEND_MIN_INTERVAL">
-			   <logical type="integer" unit="s" default="10" min="5" max="3600">
-			     <special_value id="NOT_USED" value="0"/>
-			   </logical>	   
-               <physical size="2.0" type="integer" interface="eeprom" endian="little">
-                  <address index="+2.0"/>
-               </physical>	  
-               <conversion type="integer_integer_map">
-                 <value_map to_device="false" from_device="true" parameter_value="10" device_value="0xffff"/>
-               </conversion>				   
-			</parameter>
-			<parameter id="SEND_MAX_INTERVAL">
-			   <logical type="integer" unit="s" default="150" min="5" max="3600">
-			     <special_value id="NOT_USED" value="0"/>
-			   </logical>	   
-               <physical size="2.0" type="integer" interface="eeprom" endian="little">
-                  <address index="+4.0"/>
-               </physical>	
-               <conversion type="integer_integer_map">
-                 <value_map to_device="false" from_device="true" parameter_value="150" device_value="0xffff"/>
-               </conversion>				   
+               </physical>	  			   
 			</parameter>
 		</paramset>
 		<paramset type="VALUES" id="hmw_analog_input_values">
@@ -435,6 +420,6 @@
 			</parameter>
 		</paramset>		
 	</channel>
--->
+	
 </channels>
 </device>

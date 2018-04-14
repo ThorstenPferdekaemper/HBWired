@@ -19,14 +19,18 @@
 // - initial version
 // v0.2
 // - Added enhanced peering and basic state machine
+// v0.3
+// - Added analog inputs
 
 
 #define HMW_DEVICETYPE 0x93
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0002
+#define FIRMWARE_VERSION 0x0003
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART), this disables debug output
 
-#define NUM_CHANNELS 12
+#define NUM_SW_CHANNELS 12
+#define NUM_AD_CHANNELS 6
+#define NUM_CHANNELS 18
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x20
 
@@ -35,8 +39,9 @@
 
 // HB Wired protocol and module
 #include "HBWired.h"
-#include "HBWLinkSwitch.h"
-//#include "HBWSwitch.h"
+#include "HBWLinkSwitchAdvanced.h"
+//#include "HBWSwitchSerialAdvanced.h"
+#include "HBWAnalogIn.h"
 
 // shift register library
 #include "ShiftRegister74HC595.h"
@@ -79,6 +84,12 @@
 
 #define LED LED_BUILTIN        // Signal-LED
 
+#define CT_PIN1 A0  // analog input for current transformer, switch channel 1
+#define CT_PIN2 A1  // analog input for current transformer, switch channel 2
+#define CT_PIN3 A2
+#define CT_PIN4 A3
+#define CT_PIN5 A4
+#define CT_PIN6 A5
 
 
 #define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay
@@ -109,13 +120,13 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_switch switchcfg[NUM_CHANNELS]; // 0x07-0x... ?
+  hbw_config_switch switchcfg[NUM_SW_CHANNELS]; // 0x07-0x13 (2 bytes each)
+  hbw_config_analog_in ctcfg[NUM_AD_CHANNELS];    // 0x14-0x1A (2 bytes each)
 } hbwconfig;
 
 
 class HBWChanSw : public HBWChannel {
   public:
-    //HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, hbw_config_switch* _config);
     HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _shiftRegister, hbw_config_switch* _config);
     virtual uint8_t get(uint8_t* data);
     virtual void loop(HBWDevice*, uint8_t channel);
@@ -124,7 +135,6 @@ class HBWChanSw : public HBWChannel {
     virtual void peeringEventTrigger(HBWDevice* device, uint8_t const * const data);
 
   private:
-  //  void setOutput(uint8_t const * const data);
     uint8_t relayPos; // bit position for actual IO port
     uint8_t ledPos;
     ShiftRegister74HC595* shiftRegister;  // allow function calls to the correct shift register
@@ -137,27 +147,30 @@ class HBWChanSw : public HBWChannel {
     
     // set from links/peering (implements state machine)
     uint8_t getNextState(uint8_t bitshift);
-    uint32_t convertTime(uint8_t timeValue);
+    inline uint32_t convertTime(uint8_t timeValue);
     uint8_t actiontype;
     uint8_t onDelayTime;
-    uint8_t offDelayTime;
     uint8_t onTime;
+    uint8_t offDelayTime;
     uint8_t offTime;
+    union { uint16_t WORD;
+      uint8_t jt_hi_low[2];
+    } jumpTargets;
     boolean stateTimerRunning;
     uint8_t currentState;
     uint8_t nextState;
-    uint16_t jumpTargets;
     unsigned long stateCangeWaitTime;
     unsigned long lastStateChangeTime;
     uint8_t lastKeyEvent;
 };
 
 
-HBWChanSw* switches[NUM_CHANNELS];
+//HBWChanSw* switches[NUM_CHANNELS];
+HBWChannel* channels[NUM_CHANNELS];
 
 
 class HBSwDevice : public HBWDevice {
-    public: 
+    public:
     HBSwDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
                Stream* _rs485, uint8_t _txen, 
                uint8_t _configSize, void* _config, 
@@ -192,9 +205,10 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
   
   relayOperationTimeStart = 0;
   operateRelay = false;
+  
   onTime = 0xFF;
   offTime = 0xFF;
-  jumpTargets = 0;
+  jumpTargets.WORD = 0;
   stateTimerRunning = false;
   stateCangeWaitTime = 0;
   lastStateChangeTime = 0;
@@ -224,12 +238,11 @@ void HBWChanSw::afterReadConfig() {
 }
 
 
-//void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
 void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const data) {
 
-  //if (length == 8) {  // got called with additional peering parameters // TODO: test for NUM_PEER_PARAMS or skip? (should be fixed lenght, e.g 8)
+  //if (length >= 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
     actiontype = *(data);
-    uint8_t keyEvent = *(data+7);
+    uint8_t keyEvent = data[7];
 
 #ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("aV: "));
@@ -237,7 +250,6 @@ void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const dat
   hbwdebug(F("\n"));
 #endif
 
-    //if ((((actiontype & B00001111) > 1) && !stateTimerRunning) && !(lastKeyEvent == keyEvent && !(bitRead(actiontype,5)))) {   // TOGGLE_USE 
     if ((actiontype & B00001111) >1) {   // TOGGLE_USE
       if (!stateTimerRunning && lastKeyEvent != keyEvent) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
         byte level;
@@ -262,11 +274,12 @@ void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const dat
     }
     else {
       // assign values based on EEPROM layout
-      onDelayTime = *(data+1);
-      onTime = *(data+2);
-      offDelayTime = *(data+3);
-      offTime = *(data+4);
-      jumpTargets = ((uint16_t)(*(data+6)) << 8) | *(data+5);
+      onDelayTime = data[1];
+      onTime = data[2];
+      offDelayTime = data[3];
+      offTime = data[4];
+      jumpTargets.jt_hi_low[0] = data[5];
+      jumpTargets.jt_hi_low[1] = data[6];
 
 #ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("onT: "));
@@ -276,19 +289,15 @@ void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const dat
 
       nextState = FORCE_STATE_CHANGE; // force update
     }
-    
-    lastKeyEvent = keyEvent;
+    lastKeyEvent = keyEvent;  // store key press number, to identify repeated key events
   //}
-//  else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
-//    setOutput(data);
-//    stateTimerRunning = false;
-//    nextState = currentState; // avoid state machine to run
-//  }
 };
 
-
-//void HBWChanSw::setOutput(uint8_t const * const data) {
+// set value - no peering event, does not overwrite any timer //TODO check: keep on/off time running? how do original devices handle this?
 void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+  
+  // TODO: handle peering set() call different? - e.g. do not allow on/off changes when timers are running? - or allow it, but don't trigger next jump
+  // e.g. length > 1, nextState=currentState?
   
   if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
     byte level = *(data);
@@ -360,7 +369,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 #ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("chan:"));
   hbwdebughex(channel);
-  hbwdebug(F(" cs: "));
+  hbwdebug(F(" cs:"));
   hbwdebughex(currentState);
 #endif
     
@@ -381,7 +390,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
     }
 
 #ifndef USE_HARDWARE_SERIAL
-  hbwdebug(F(" ns: "));
+  hbwdebug(F(" ns:"));
   hbwdebughex(nextState);
   hbwdebug(F("\n"));
 #endif
@@ -494,7 +503,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 // read jump target entry - set by peering (used for state machine)
 uint8_t HBWChanSw::getNextState(uint8_t bitshift) {
   
-  uint8_t nextJump = ((jumpTargets >>bitshift) & B00000111);
+  uint8_t nextJump = ((jumpTargets.WORD >>bitshift) & B00000111);
   
   if (nextJump == JT_ON) {
     if (onTime != 0xFF)      // not used is 0xFF
@@ -546,12 +555,16 @@ void setup()
    uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // not only used for the LEDs, but also to keep track of the output state!
    uint8_t RelayBitPos[6] = {8, 10, 12,          // shift register 2: 3 relays (with 2 coils each)
                              16, 18, 20};        // shift register 3: 3 relays (with 2 coils each)
+   uint8_t currentTransformers[6] = {CT_PIN1, CT_PIN2, CT_PIN3, CT_PIN4, CT_PIN5, CT_PIN6};
+   
   // create channels
-  for(uint8_t i = 0; i < NUM_CHANNELS; i++){
-    if (i < 6)
-      switches[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &myShReg_one, &(hbwconfig.switchcfg[i]));
+  for(uint8_t i = 0; i < NUM_SW_CHANNELS; i++){
+    if (i < 6) {
+      channels[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &myShReg_one, &(hbwconfig.switchcfg[i]));
+      channels[i+NUM_SW_CHANNELS] = new HBWAnalogIn(currentTransformers[i], &(hbwconfig.ctcfg[i]));
+    }
     else
-      switches[i] = new HBWChanSw(RelayBitPos[i %6], LEDBitPos[i %6], &myShReg_two, &(hbwconfig.switchcfg[i]));
+      channels[i] = new HBWChanSw(RelayBitPos[i %6], LEDBitPos[i %6], &myShReg_two, &(hbwconfig.switchcfg[i]));
   };
 
   #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
@@ -559,7 +572,7 @@ void setup()
     
     device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                            &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
-                           NUM_CHANNELS,(HBWChannel**)switches,
+                           NUM_CHANNELS,(HBWChannel**)channels,
                            NULL,
                            NULL, new HBWLinkSwitch(NUM_LINKS,LINKADDRESSSTART));
     
@@ -571,7 +584,7 @@ void setup()
     
     device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                            &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
-                           NUM_CHANNELS, (HBWChannel**)switches,
+                           NUM_CHANNELS, (HBWChannel**)channels,
                            &Serial,
                            NULL, new HBWLinkSwitch(NUM_LINKS,LINKADDRESSSTART));
      

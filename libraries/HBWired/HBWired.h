@@ -73,7 +73,7 @@ class HBWDevice {
     uint8_t getLoggingTime();	
 
 	virtual void set(uint8_t,uint8_t,uint8_t const * const);    // channel, data length, data
-	virtual void peeringEventTrigger(uint8_t, uint8_t const * const);    // channel, data
+	void peeringEventTrigger(uint8_t, uint8_t const * const);    // channel, data
 	virtual uint8_t get(uint8_t channel, uint8_t* data);  // returns length
 	virtual void afterReadConfig();
 						   

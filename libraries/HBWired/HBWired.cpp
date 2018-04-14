@@ -777,14 +777,14 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 };
 
 
-void HBWDevice::peeringEventTrigger(uint8_t channel,uint8_t const * const data){
+void HBWDevice::peeringEventTrigger(uint8_t channel, uint8_t const * const data) {
 	// to avoid crashes, do not try to set any channels, which do not exist
 	if(channel < numChannels)
         channels[channel]->peeringEventTrigger(this, data);
 }
 
 
-void HBWDevice::set(uint8_t channel,uint8_t length,uint8_t const * const data){
+void HBWDevice::set(uint8_t channel, uint8_t length, uint8_t const * const data) {
 	if(hbwdebugstream) {
 	    hbwdebug(F("S: ")); hbwdebughex(channel); hbwdebug(F(" "));
 		for(uint8_t i = 0; i < length; i++)
