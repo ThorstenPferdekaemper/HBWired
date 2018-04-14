@@ -5,6 +5,7 @@
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
 ** des entsprechenden Typs.
 **
+** http://loetmeister.de/Elektronik/homematic/
 */
 
 #ifndef HBWLinkSwitchAdvanced_h
@@ -12,9 +13,9 @@
 
 #include "HBWired.h"
 
-class HBWLinkSwitch : public HBWLinkReceiver {
+class HBWLinkSwitchAdvanced : public HBWLinkReceiver {
   public:
-    HBWLinkSwitch(uint8_t _numLinks, uint16_t _eepromStart);
+    HBWLinkSwitchAdvanced(uint8_t _numLinks, uint16_t _eepromStart);
 	  void receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                            uint8_t targetChannel, uint8_t keyPressNum, boolean longPress);				
 
@@ -24,3 +25,4 @@ class HBWLinkSwitch : public HBWLinkReceiver {
 };
 
 #endif
+

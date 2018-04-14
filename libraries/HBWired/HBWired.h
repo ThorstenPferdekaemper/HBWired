@@ -16,7 +16,6 @@ class HBWDevice;
 class HBWChannel {
   public:	
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-    virtual void peeringEventTrigger(HBWDevice*, uint8_t const * const data);
     virtual uint8_t get(uint8_t* data);  // returns length, data must be big enough 
     virtual void loop(HBWDevice*, uint8_t channel);  // channel for feedbacks etc.
 	virtual void afterReadConfig();
@@ -73,7 +72,6 @@ class HBWDevice {
     uint8_t getLoggingTime();	
 
 	virtual void set(uint8_t,uint8_t,uint8_t const * const);    // channel, data length, data
-	void peeringEventTrigger(uint8_t, uint8_t const * const);    // channel, data
 	virtual uint8_t get(uint8_t channel, uint8_t* data);  // returns length
 	virtual void afterReadConfig();
 						   

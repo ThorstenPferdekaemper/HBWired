@@ -132,7 +132,7 @@ class HBWChanSw : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
-    virtual void peeringEventTrigger(HBWDevice* device, uint8_t const * const data);
+//    virtual void peeringEventTrigger(HBWDevice* device, uint8_t const * const data);
 
   private:
     uint8_t relayPos; // bit position for actual IO port
@@ -146,6 +146,7 @@ class HBWChanSw : public HBWChannel {
     unsigned long relayOperationTimeStart;
     
     // set from links/peering (implements state machine)
+    void setOutput(uint8_t const * const data);
     uint8_t getNextState(uint8_t bitshift);
     inline uint32_t convertTime(uint8_t timeValue);
     uint8_t actiontype;
@@ -165,7 +166,6 @@ class HBWChanSw : public HBWChannel {
 };
 
 
-//HBWChanSw* switches[NUM_CHANNELS];
 HBWChannel* channels[NUM_CHANNELS];
 
 
@@ -238,9 +238,10 @@ void HBWChanSw::afterReadConfig() {
 }
 
 
-void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const data) {
+//void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const data) {
+void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
 
-  //if (length >= 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
+  if (length >= 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
     actiontype = *(data);
     uint8_t keyEvent = data[7];
 
@@ -265,7 +266,8 @@ void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const dat
   hbwdebughex(level);
   hbwdebug(F("\n"));
 #endif
-        this->set(device,2,&level);
+//        this->set(device,2,&level);
+        setOutput(&level);
         nextState = currentState; // avoid state machine to run
       }
     }
@@ -290,11 +292,18 @@ void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const dat
       nextState = FORCE_STATE_CHANGE; // force update
     }
     lastKeyEvent = keyEvent;  // store key press number, to identify repeated key events
-  //}
+  }
+  else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
+    //if (!stateTimerRunning)??
+    setOutput(data);
+    stateTimerRunning = false;
+    nextState = currentState; // avoid state machine to run
+  }
 };
 
 // set value - no peering event, does not overwrite any timer //TODO check: keep on/off time running? how do original devices handle this?
-void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+//void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+void HBWChanSw::setOutput(uint8_t const * const data) {
   
   // TODO: handle peering set() call different? - e.g. do not allow on/off changes when timers are running? - or allow it, but don't trigger next jump
   // e.g. length > 1, nextState=currentState?
@@ -325,8 +334,10 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
     operateRelay = true;
 
-    if (length == 1)
-      nextState = currentState; // avoid state machine to run TODO; clear timer?
+//    if (length == 1) {
+//      stateTimerRunning = false;
+//      nextState = currentState; // avoid state machine to run TODO; clear timer?
+//    }
   }
   // Logging
   // (logging is considered for locked channels)
@@ -477,16 +488,17 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
       nextState = currentState;   // avoid to run into a loop
     }
     if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
-      this->set(device,2,&newLevel);
+//      this->set(device,2,&newLevel);
+      setOutput(&newLevel);
       setNewLevel = false;
     }
   }
   //*** state machine end ***//
   
-
-	now = millis(); // current timestamp needed!
+	
   if(!nextFeedbackDelay)  // feedback trigger set?
     return;
+  now = millis(); // current timestamp needed!
   if (now - lastFeedbackTime < nextFeedbackDelay)
     return;
   lastFeedbackTime = now;  // at least last time of trying
@@ -589,7 +601,7 @@ void setup()
                            &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                            NUM_CHANNELS, (HBWChannel**)channels,
                            &Serial,
-                           NULL, new HBWLinkSwitch(NUM_LINKS,LINKADDRESSSTART));
+                           NULL, new HBWLinkSwitchAdvanced(NUM_LINKS,LINKADDRESSSTART));
      
     device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
    

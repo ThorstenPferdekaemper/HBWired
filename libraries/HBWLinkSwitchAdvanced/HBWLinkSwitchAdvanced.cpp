@@ -5,15 +5,16 @@
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
 ** des entsprechenden Typs.
 **
+** http://loetmeister.de/Elektronik/homematic/
 */
 
 #include "HBWLinkSwitchAdvanced.h"
 
-#define EEPROM_SIZE 20
+#define EEPROM_SIZE 20  // "address_step"
 
-#define NUM_PEER_PARAMS 8
+#define NUM_PEER_PARAMS 8   // number of bytes for long or short peering action
 
-HBWLinkSwitch::HBWLinkSwitch(uint8_t _numLinks, uint16_t _eepromStart) {
+HBWLinkSwitchAdvanced::HBWLinkSwitchAdvanced(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
 	eepromStart = _eepromStart;
 }
@@ -23,7 +24,7 @@ HBWLinkSwitch::HBWLinkSwitch(uint8_t _numLinks, uint16_t _eepromStart) {
 //       wahrscheinlich besser vom Device ueber sendKeyEvent
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
-void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
+void HBWLinkSwitchAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                           uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {
   
   uint32_t sndAddrEEPROM;
@@ -52,13 +53,13 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
       if (actionType & B00001111) {   // SHORT_ACTION_TYPE, ACTIVE
         // read other values and call channel peeringEventTrigger()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6, NUM_PEER_PARAMS -1);     // read all parameters (must be consecutive)
-  //           + 6        //  SHORT_ACTION_TYPE
-  //           + 7        //  SHORT_ONDELAY_TIME
-  //           + 8        //  SHORT_ON_TIME
-  //           + 9        //  SHORT_OFFDELAY_TIME
-  //           + 10       //  SHORT_OFF_TIME
-  //           + 11, 12   //  SHORT_JT_* table
-        device->peeringEventTrigger(targetChannel,data);    // channel, data
+      //           + 6        //  SHORT_ACTION_TYPE
+      //           + 7        //  SHORT_ONDELAY_TIME
+      //           + 8        //  SHORT_ON_TIME
+      //           + 9        //  SHORT_OFFDELAY_TIME
+      //           + 10       //  SHORT_OFF_TIME
+      //           + 11, 12   //  SHORT_JT_* table
+        device->set(targetChannel,NUM_PEER_PARAMS,data);    // channel, data length, data
       }
     }
     // read specific long action eeprom section
@@ -67,10 +68,9 @@ void HBWLinkSwitch::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, u
       if (actionType & B00001111) {  // LONG_ACTION_TYPE, ACTIVE
         // read other values and call channel peeringEventTrigger()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 13, NUM_PEER_PARAMS -1);     // read all parameters (must be consecutive)
-        device->peeringEventTrigger(targetChannel,data);    // channel, data
+        device->set(targetChannel,NUM_PEER_PARAMS,data);    // channel, data length, data
       }
     }
   }
 }
- 
 
