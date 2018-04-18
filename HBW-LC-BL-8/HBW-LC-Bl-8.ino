@@ -27,11 +27,8 @@
 #define NUM_LINKS 64
 #define LINKADDRESSSTART 0x26
 
-#define HMW_DEVICETYPE 0x92 //BL4 device (make sure to import hbw_lc_bl-8.xml into FHEM)
+#define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
-
-//#include "HBWSoftwareSerial.h"  //don't need --> Using USART !! port PD0 & PD1
-//#include "FreeRam.h"
 
 // HB Wired protocol and module
 #include "HBWired.h"

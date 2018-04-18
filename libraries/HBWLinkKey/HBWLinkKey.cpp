@@ -42,7 +42,7 @@ void HBWLinkKey::sendKeyEvent(HBWDevice* device, uint8_t srcChan,
 		device->readEEPROM(&channelEEPROM, eepromStart + EEPROM_SIZE * i +5, 1);
 		// own address? -> internal peering
 		if(addrEEPROM == device->getOwnAddress()) {
-			device->receiveKeyEvent(addrEEPROM, srcChan, channelEEPROM, longPress);
+			device->receiveKeyEvent(addrEEPROM, srcChan, channelEEPROM, keyPressNum, longPress);
 		}else{
 			// external peering
 			// TODO: If bus busy, then try to repeat. ...aber zuerst feststellen, wie das die Original-Module machen (bzw. hier einfach so lassen)

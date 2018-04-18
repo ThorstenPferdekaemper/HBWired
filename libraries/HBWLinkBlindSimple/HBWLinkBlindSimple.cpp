@@ -23,7 +23,7 @@ HBWLinkBlindSimple::HBWLinkBlindSimple(uint8_t _numLinks, uint16_t _eepromStart)
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
 void HBWLinkBlindSimple::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
-                                          uint8_t targetChannel, boolean longPress) {
+                                          uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {
 
   uint32_t sndAddrEEPROM;
   uint8_t channelEEPROM;
