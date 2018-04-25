@@ -7,6 +7,7 @@ Basis ist ein Arduino NANO mit RS485-Interface.
 
 Direktes Peering möglich (HBWSwitchAdvanced & HBWLinkSwitchAdvanced):
 Peering mit TOGGLE, TOGGLE_TO_COUNTER, TOGGLE_INVERSE_TO_COUNTER, onTime, offTime (Ein-/Ausschaltdauer), onDelayTime, offDelayTime (Ein-/Ausschaltverzögerung).
+Maximale Ein-/Ausschaltdauer, Ein-/Ausschaltverzögerung, jeweils: 63000 Sekunden (17,5 Stunden).
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die HBW-LC-Sw-8.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x83 aus).
 
