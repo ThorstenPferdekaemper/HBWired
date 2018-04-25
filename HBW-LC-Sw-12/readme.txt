@@ -6,6 +6,7 @@ Homematic Wired Homebrew Relaismodul 12fach
 
 Das Modul HBW-LC-Sw-12 schaltet bis zu 12 angeschlossene bistabile Relais.
 Basis ist ein Arduino NANO mit RS485-Interface.
+(Hinweis Hex Dateien: Geeigent für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
 
 Direktes Peering möglich (HBWLinkSwitchSimple).
 

@@ -32,7 +32,7 @@
 #define NUM_AD_CHANNELS 6
 #define NUM_CHANNELS 18
 #define NUM_LINKS 36
-#define LINKADDRESSSTART 0x20
+#define LINKADDRESSSTART 0x40
 
 #include "FreeRam.h"
 
@@ -120,8 +120,8 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_switch switchcfg[NUM_SW_CHANNELS]; // 0x07-0x13 (2 bytes each)
-  hbw_config_analog_in ctcfg[NUM_AD_CHANNELS];    // 0x14-0x1A (2 bytes each)
+  hbw_config_switch switchcfg[NUM_SW_CHANNELS]; // 0x07-0x1F (2 bytes each)
+  hbw_config_analog_in ctcfg[NUM_AD_CHANNELS];    // 0x20-0x2C (2 bytes each)
 } hbwconfig;
 
 
@@ -221,15 +221,14 @@ void HBWChanSw::afterReadConfig() {
   if (config->n_inverted) { // off - perform reset
     shiftRegister->set(relayPos, LOW);      // set coil
     shiftRegister->set(relayPos +1, HIGH);  // reset coil
-    shiftRegister->set(ledPos, LOW); // LED
   }
   else {  // on - perform set
     shiftRegister->set(relayPos +1, LOW);    // reset coil
     shiftRegister->set(relayPos, HIGH);  // set coil
-    shiftRegister->set(ledPos, HIGH); // LED
   }
   //TODO: add delay? setting 12 relays at once would consume high current...
 
+  shiftRegister->set(ledPos, LOW); // LED
   currentState = JT_OFF;
   nextState = currentState; // no action for state machine needed
 
@@ -313,23 +312,28 @@ void HBWChanSw::setOutput(uint8_t const * const data) {
 
     if (level > 200) // toggle
       level = !shiftRegister->get(ledPos); // get current state and negate
-    else if (level)   // set to 0 or 1
+    else if (level) {   // set to 0 or 1
       level = (LOW ^ config->n_inverted);
-    else
+      shiftRegister->set(ledPos, HIGH); // set LEDs (register used for actual state!)
+      currentState = JT_ON;   // update for state machine
+    }
+    else {
       level = (HIGH ^ config->n_inverted);
+      shiftRegister->set(ledPos, LOW); // set LEDs (register used for actual state!)
+      currentState = JT_OFF;   // update for state machine
+    }
 // TODO:  zero crossing function?. Just set portStatus[]? + add portStatusDesired[]?
 
     if (level) { // on - perform set
       shiftRegister->set(relayPos +1, LOW);    // reset coil
       shiftRegister->set(relayPos, HIGH);  // set coil
-      currentState = JT_ON;   // update for state machine
+      
     }
     else {  // off - perform reset
       shiftRegister->set(relayPos, LOW);      // set coil
       shiftRegister->set(relayPos +1, HIGH);  // reset coil
-      currentState = JT_OFF;   // update for state machine
+      
     }
-    shiftRegister->set(ledPos, level); // set LEDs (register used for actual state!)
     
     relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
     operateRelay = true;
@@ -350,10 +354,11 @@ void HBWChanSw::setOutput(uint8_t const * const data) {
 
 uint8_t HBWChanSw::get(uint8_t* data) {
 // read current state from shift register array
-  if (shiftRegister->get(ledPos) ^ config->n_inverted)
-    (*data) = 0;
-  else
+  //if (shiftRegister->get(ledPos) ^ config->n_inverted)
+  if (shiftRegister->get(ledPos))
     (*data) = 200;
+  else
+    (*data) = 0;
   return 1;
 };
 
@@ -570,13 +575,13 @@ void setup()
    uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // not only used for the LEDs, but also to keep track of the output state!
    uint8_t RelayBitPos[6] = {8, 10, 12,          // shift register 2: 3 relays (with 2 coils each)
                              16, 18, 20};        // shift register 3: 3 relays (with 2 coils each)
-   uint8_t currentTransformers[6] = {CT_PIN1, CT_PIN2, CT_PIN3, CT_PIN4, CT_PIN5, CT_PIN6};
+   uint8_t currentTransformerPins[6] = {CT_PIN1, CT_PIN2, CT_PIN3, CT_PIN4, CT_PIN5, CT_PIN6};
    
   // create channels
   for(uint8_t i = 0; i < NUM_SW_CHANNELS; i++){
     if (i < 6) {
       channels[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &myShReg_one, &(hbwconfig.switchcfg[i]));
-      channels[i+NUM_SW_CHANNELS] = new HBWAnalogIn(currentTransformers[i], &(hbwconfig.ctcfg[i]));
+      channels[i+NUM_SW_CHANNELS] = new HBWAnalogIn(currentTransformerPins[i], &(hbwconfig.ctcfg[i]));
     }
     else
       channels[i] = new HBWChanSw(RelayBitPos[i %6], LEDBitPos[i %6], &myShReg_two, &(hbwconfig.switchcfg[i]));
@@ -589,7 +594,7 @@ void setup()
                            &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                            NUM_CHANNELS,(HBWChannel**)channels,
                            NULL,
-                           NULL, new HBWLinkSwitch(NUM_LINKS,LINKADDRESSSTART));
+                           NULL, new HBWLinkSwitchAdvanced(NUM_LINKS,LINKADDRESSSTART));
     
     device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
     
