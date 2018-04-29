@@ -24,8 +24,8 @@ Standard-Pinbelegung:
 A6 - Bedientaster (Reset)
 10 - BLIND1_ACT ("Ein-/Aus-Relais", Kanal 0)
 9  - BLIND1_DIR ("Richungs-Relais", Kanal 0)
-7  - BLIND2_ACT ("Ein-/Aus-Relais", Kanal 1)
-8  - BLIND2_DIR ("Richungs-Relais", Kanal 1)
+8  - BLIND2_ACT ("Ein-/Aus-Relais", Kanal 1)
+7  - BLIND2_DIR ("Richungs-Relais", Kanal 1)
 6  - BLIND3_ACT
 5  - BLIND3_DIR
 4  - BLIND4_ACT

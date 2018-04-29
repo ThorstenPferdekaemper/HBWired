@@ -43,8 +43,8 @@
 
 #define BLIND1_ACT 10		// "Ein-/Aus-Relais"
 #define BLIND1_DIR 9		// "Richungs-Relais"
-#define BLIND2_ACT 7
-#define BLIND2_DIR 8
+#define BLIND2_ACT 8
+#define BLIND2_DIR 7
 #define BLIND3_ACT 6
 #define BLIND3_DIR 5
 #define BLIND4_ACT 4
@@ -116,7 +116,7 @@ void setup()
                          NULL,
                          NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
    
-  device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default; use analogRead for 'BUTTON'
+  device->setConfigPins(BUTTON, LED);
   
 }
 
