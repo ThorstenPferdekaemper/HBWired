@@ -1,6 +1,3 @@
-###### Under development!!! Not tested!!! ######
-###### In Entwicklung!!! Nicht getestet!!! #####
-
 Homematic Wired Homebrew Relaismodul 12fach
 ==============================================
 
@@ -8,7 +5,9 @@ Das Modul HBW-LC-Sw-12 schaltet bis zu 12 angeschlossene bistabile Relais.
 Basis ist ein Arduino NANO mit RS485-Interface.
 (Hinweis Hex Dateien: Geeigent für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
 
-Direktes Peering möglich (HBWLinkSwitchSimple).
+! Die 6 Kanal Strommessung ist noch in der Entwicklung!
+
+Direktes Peering möglich (HBWLinkSwitchAdvanced).
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die HBW-LC-Sw-12.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x93 aus).
 
@@ -40,8 +39,8 @@ A6 - Bedientaster (Reset)
 10 - shiftRegOne_Data   (Drei Shiftregister 74HC595 für LEDs und Relais)
 3 - shiftRegOne_Clock
 4 - shiftRegOne_Latch
-12 - shiftRegTwo_Data   (Drei weitere Shiftregister 74HC595 für LEDs und Relais, in eigenem 6 TE Gehäuse)
-8 - shiftRegTwo_Clock
+7 - shiftRegTwo_Data   (Drei weitere Shiftregister 74HC595 für LEDs und Relais, in eigenem 6 TE Gehäuse)
+12 - shiftRegTwo_Clock
 9 - shiftRegTwo_Latch
 A0 - Stromsensor?
 A1 - Stromsensor?
