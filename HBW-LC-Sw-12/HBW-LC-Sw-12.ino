@@ -9,7 +9,6 @@
 // - Active HIGH oder LOW kann konfiguriert werden
 // - Direktes peering mit Zeitschaltfuntion (on/off delay, on/off time, toggle/toggle to counter)
 
-// TODO: Test der hardware...
 //
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -28,9 +27,9 @@
 #define FIRMWARE_VERSION 0x0003
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART), this disables debug output
 
-#define NUM_SW_CHANNELS 12
-#define NUM_AD_CHANNELS 6
-#define NUM_CHANNELS 18
+#define NUM_SW_CHANNELS 12  // switch/relay
+#define NUM_AD_CHANNELS 6   // analog input
+#define NUM_CHANNELS 18     // total amount
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x40
 
@@ -55,8 +54,8 @@
   #define shiftRegOne_Clock 3       //SH_CP shift register clock input
   #define shiftRegOne_Latch 4       //ST_CP storage register clock input
   // extension shifregister for another 6 relays and LEDs
-  #define shiftRegTwo_Data  12
-  #define shiftRegTwo_Clock 8
+  #define shiftRegTwo_Data  7
+  #define shiftRegTwo_Clock 12
   #define shiftRegTwo_Latch 9
 #else
   #define RS485_RXD 4
@@ -93,6 +92,7 @@
 
 
 #define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay
+
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY 0x00
@@ -132,7 +132,6 @@ class HBWChanSw : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
-//    virtual void peeringEventTrigger(HBWDevice* device, uint8_t const * const data);
 
   private:
     uint8_t relayPos; // bit position for actual IO port
@@ -216,20 +215,29 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
 
 // channel specific settings or defaults
 void HBWChanSw::afterReadConfig() {
+
+  uint8_t level = shiftRegister->get(ledPos);  // read current state (is zero/LOW on device reset), but keep state on EEPROM re-read!
   
   //need intial reset (or set if inverterted) for all relays - bistable relays may have incorrect state!!!
-  if (config->n_inverted) { // off - perform reset
+  if (level) {   // set to 0 or 1
+    level = (LOW ^ config->n_inverted);
+    currentState = JT_ON;   // update for state machine
+  }
+  else {
+    level = (HIGH ^ config->n_inverted);
+    currentState = JT_OFF;   // update for state machine
+  }
+// TODO: add zero crossing function?
+
+  if (level) { // on - perform set
+    shiftRegister->set(relayPos +1, LOW);    // reset coil
+    shiftRegister->set(relayPos, HIGH);      // set coil
+  }
+  else {  // off - perform reset
     shiftRegister->set(relayPos, LOW);      // set coil
     shiftRegister->set(relayPos +1, HIGH);  // reset coil
   }
-  else {  // on - perform set
-    shiftRegister->set(relayPos +1, LOW);    // reset coil
-    shiftRegister->set(relayPos, HIGH);  // set coil
-  }
-  //TODO: add delay? setting 12 relays at once would consume high current...
 
-  shiftRegister->set(ledPos, LOW); // LED
-  currentState = JT_OFF;
   nextState = currentState; // no action for state machine needed
 
   relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
@@ -237,7 +245,6 @@ void HBWChanSw::afterReadConfig() {
 }
 
 
-//void HBWChanSw::peeringEventTrigger(HBWDevice* device, uint8_t const * const data) {
 void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
 
   if (length >= 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
@@ -265,7 +272,7 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   hbwdebughex(level);
   hbwdebug(F("\n"));
 #endif
-//        this->set(device,2,&level);
+
         setOutput(&level);
         nextState = currentState; // avoid state machine to run
       }
@@ -300,12 +307,8 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   }
 };
 
-// set value - no peering event, does not overwrite any timer //TODO check: keep on/off time running? how do original devices handle this?
-//void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+// set actual outputs
 void HBWChanSw::setOutput(uint8_t const * const data) {
-  
-  // TODO: handle peering set() call different? - e.g. do not allow on/off changes when timers are running? - or allow it, but don't trigger next jump
-  // e.g. length > 1, nextState=currentState?
   
   if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
     byte level = *(data);
@@ -322,30 +325,25 @@ void HBWChanSw::setOutput(uint8_t const * const data) {
       shiftRegister->set(ledPos, LOW); // set LEDs (register used for actual state!)
       currentState = JT_OFF;   // update for state machine
     }
-// TODO:  zero crossing function?. Just set portStatus[]? + add portStatusDesired[]?
+// TODO: add zero crossing function?. Just set portStatus[]? + add portStatusDesired[]?
+// call same function from afterReadConfig()...
 
     if (level) { // on - perform set
       shiftRegister->set(relayPos +1, LOW);    // reset coil
-      shiftRegister->set(relayPos, HIGH);  // set coil
-      
+      shiftRegister->set(relayPos, HIGH);      // set coil
     }
     else {  // off - perform reset
       shiftRegister->set(relayPos, LOW);      // set coil
       shiftRegister->set(relayPos +1, HIGH);  // reset coil
-      
     }
     
-    relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable Relays!!)
+    relayOperationTimeStart = millis();  // Relay coil power must be removed after some ms (bistable Relays!!)
     operateRelay = true;
 
-//    if (length == 1) {
-//      stateTimerRunning = false;
-//      nextState = currentState; // avoid state machine to run TODO; clear timer?
-//    }
   }
   // Logging
   // (logging is considered for locked channels)
-  if(!nextFeedbackDelay && config->logging) {
+  if (!nextFeedbackDelay && config->logging) {
     lastFeedbackTime = millis();
     nextFeedbackDelay = device->getLoggingTime() * 100;
   }
@@ -354,7 +352,6 @@ void HBWChanSw::setOutput(uint8_t const * const data) {
 
 uint8_t HBWChanSw::get(uint8_t* data) {
 // read current state from shift register array
-  //if (shiftRegister->get(ledPos) ^ config->n_inverted)
   if (shiftRegister->get(ledPos))
     (*data) = 200;
   else
@@ -371,7 +368,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
   if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {
   // time to remove power from both coils?
     shiftRegister->setNoUpdate(relayPos +1, LOW);    // reset coil
-    shiftRegister->setNoUpdate(relayPos, LOW);  // set coil
+    shiftRegister->setNoUpdate(relayPos, LOW);       // set coil
     shiftRegister->updateRegisters();
     
     operateRelay = false;
@@ -493,7 +490,6 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
       nextState = currentState;   // avoid to run into a loop
     }
     if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
-//      this->set(device,2,&newLevel);
       setOutput(&newLevel);
       setNewLevel = false;
     }
@@ -578,7 +574,7 @@ void setup()
    uint8_t currentTransformerPins[6] = {CT_PIN1, CT_PIN2, CT_PIN3, CT_PIN4, CT_PIN5, CT_PIN6};
    
   // create channels
-  for(uint8_t i = 0; i < NUM_SW_CHANNELS; i++){
+  for(uint8_t i = 0; i < NUM_SW_CHANNELS; i++) {
     if (i < 6) {
       channels[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &myShReg_one, &(hbwconfig.switchcfg[i]));
       channels[i+NUM_SW_CHANNELS] = new HBWAnalogIn(currentTransformerPins[i], &(hbwconfig.ctcfg[i]));

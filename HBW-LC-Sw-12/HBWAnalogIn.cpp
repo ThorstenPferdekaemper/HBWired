@@ -10,6 +10,7 @@ HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
   lastReadTime = 0;
   currentValue = 0;
   ADCresult_sum = 0;
+  ADCindex = 0;
 };
 
 
@@ -17,6 +18,7 @@ HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
 void HBWAnalogIn::afterReadConfig() {
     pinMode(pin,INPUT);
     if (config->sample_interval == 0xFF) config->sample_interval = 20;		// TODO: set meaningfull value
+    if (config->samples > 7) config->samples = 6;
 }
 
 
@@ -43,8 +45,13 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   //  nextReadDelay = (config->sample_interval / config->samples) * 1000; // ???
   
   uint16_t ADCreading = analogRead(pin);
+  
+//  static unsigned int ADCresult_buf[7] = {0,0,0,0,0,0,0}; // array for ADC result (moving average)
+//  static unsigned int ADCresult_sum = 0;
+//  static unsigned char ADCindex = 0;
+  
   /* calculate the ADC average of the last n results */
-  ADCresult_sum += (ADCreading - ADCresult_buf[ADCindex]);  // add new and substract old value
+  ADCresult_sum += (ADCreading - ADCresult_buf[ADCindex]);  // add new and subtract old value
   ADCresult_buf[ADCindex] = ADCreading;  // update buffer with current reading
   currentValue = ADCresult_sum / config->samples;  // calculate average
 
