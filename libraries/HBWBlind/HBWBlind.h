@@ -18,10 +18,10 @@
 /* Config der Rollo-Steuerung:  */
 /********************************/
 
-#define ON LOW					// Möglichkeit für invertierte Logik
-#define OFF HIGH
-#define UP LOW					// "Richtungs-Relais"
-#define DOWN HIGH
+#define ON HIGH					// Möglichkeit für invertierte Logik
+#define OFF LOW
+#define UP HIGH					// "Richtungs-Relais"
+#define DOWN LOW
 #define BLIND_WAIT_TIME 200		// Wartezeit [ms] zwischen Ansteuerung des "Richtungs-Relais" und des "Ein-/Aus-Relais" (Bei Richtungswechsel 4-fache Wartezeit)
 #define BLIND_OFFSET_TIME 1000	// Zeit [ms], die beim Anfahren der Endlagen auf die berechnete Zeit addiert wird, um die Endlagen wirklich sicher zu erreichen
 
