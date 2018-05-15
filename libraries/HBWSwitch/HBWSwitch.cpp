@@ -20,8 +20,8 @@ HBWSwitch::HBWSwitch(uint8_t _pin, hbw_config_switch* _config) {
 void HBWSwitch::afterReadConfig() {
 	if (currentState == UNKNOWN_STATE) {
 	// All off on init, but consider inverted setting
-		pinMode(pin,OUTPUT);
 		digitalWrite(pin, config->n_inverted ? LOW : HIGH);		// 0=inverted, 1=not inverted (device reset will set to 1!)
+		pinMode(pin,OUTPUT);
 		currentState = OFF_STATE;
 	}
 	else {
