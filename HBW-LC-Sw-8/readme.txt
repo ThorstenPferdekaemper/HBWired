@@ -3,7 +3,7 @@ Homematic Wired Homebrew Relaismodul 8fach
 
 Das Modul HBW-LC-Sw-8 schaltet bis zu 8 angeschlossene Relais.
 Basis ist ein Arduino NANO mit RS485-Interface.
-(Hinweis Hex Dateien: Geeigent für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
+(Hinweis Hex Dateien: Geeignet für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
 
 Direktes Peering möglich (HBWLinkSwitchSimple).
 

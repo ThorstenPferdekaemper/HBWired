@@ -44,7 +44,7 @@ void ShiftRegister74HC595::setAll(uint8_t * digitalValues)
     int byte;
     
     for (byte = _numberOfShiftRegisters - 1; byte >= 0; byte--) {
-        shiftOut(_serialDataPin, _clockPin, MSBFIRST, digitalValues[byte]);	// shiftOut() use digitalWrite to set the IO pin. With 16MHz crystal it would result in approx. 145kHz
+        shiftOut(_serialDataPin, _clockPin, MSBFIRST, digitalValues[byte]);	// shiftOut() use digitalWrite to set the IO pin. With 16MHz crystal it would result in approx. 145kHz serial clock speed
     }
     
     _digitalValues = digitalValues; 
