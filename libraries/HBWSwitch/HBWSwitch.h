@@ -24,9 +24,10 @@ class HBWSwitch : public HBWChannel {
     virtual uint8_t get(uint8_t* data);   
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-	virtual void afterReadConfig();
+    virtual void afterReadConfig();
   private:
     uint8_t pin;
+    uint8_t currentState;    // keep track of logical state, not real IO
     hbw_config_switch* config; // logging
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
