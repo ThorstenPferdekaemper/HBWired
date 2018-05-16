@@ -35,14 +35,18 @@ void HBWSwitch::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 	if (config->output_unlocked) {	//0=LOCKED, 1=UNLOCKED
 		if(*data > 200) {   // toggle
 			digitalWrite(pin, digitalRead(pin) ? LOW : HIGH);
+			currentState = (currentState ? OFF_STATE : ON_STATE);
 		}
 		else {   // on or off
-			if (*data)
+			if (*data) {
 				digitalWrite(pin, LOW ^ config->n_inverted);	// on (if not inverted)
-			else
+				currentState = ON_STATE;
+			}
+			else {
 				digitalWrite(pin, HIGH ^ config->n_inverted);	// off (if not inverted)
+				currentState = OFF_STATE;
+			}
 		}
-		currentState = !(digitalRead(pin) ^ config->n_inverted);	// update logical state
 	}
 	// Logging
 	if(!nextFeedbackDelay && config->logging) {
