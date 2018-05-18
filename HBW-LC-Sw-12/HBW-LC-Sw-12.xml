@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-LC-Sw-12" name="RS485 Homebrew switch actuator 12-channel (6+6)">
 		<parameter const_value="0x93" size="1" index="0"/>
 		<parameter const_value="0" size="1" index="1"/>
-		<parameter const_value="0x0003" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
+		<parameter const_value="0x0004" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
