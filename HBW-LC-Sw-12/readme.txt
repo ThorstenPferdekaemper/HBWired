@@ -19,6 +19,7 @@ Standard-Pinbelegung:
 0 - Rx Debug
 1 - Tx Debug
 8 - Bedientaster (Reset)
+12 - shiftReg_OutputEnable (OE, output enable für alle Shiftregister)
 10 - shiftRegOne_Data   (Drei Shiftregister 74HC595 für LEDs und Relais)
 9 - shiftRegOne_Clock
 11 - shiftRegOne_Latch
@@ -36,6 +37,7 @@ Pinbelegung:
 2 - RS485 Enable
 13 - Status LED
 A6 - Bedientaster (Reset)
+8 - shiftReg_OutputEnable (OE, output enable für alle Shiftregister)
 10 - shiftRegOne_Data   (Drei Shiftregister 74HC595 für LEDs und Relais)
 3 - shiftRegOne_Clock
 4 - shiftRegOne_Latch
