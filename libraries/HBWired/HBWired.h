@@ -190,7 +190,16 @@ class HBWDevice {
 
     void factoryReset();
 	void handleConfigButton();
-	boolean afterReadConfigPending;
+	struct s_PendingActions
+	{
+		uint8_t afterReadConfig : 1;
+		uint8_t announced : 1;
+		// uint8_t resetSystem : 1;
+		// uint8_t startBooter : 1;
+		// uint8_t startFirmware : 1;
+		uint8_t zeroCommunicationActive : 1;
+	};
+	static s_PendingActions pendingActions;
 };
 
 

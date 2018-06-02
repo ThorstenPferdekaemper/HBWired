@@ -10,10 +10,10 @@
 //       callbacks fuer die einzelnen Kanaele aufzurufen 
 //       und den Kanaelen nur den Anfang "ihres" EEPROMs zu sagen
 struct hbw_config_analog_in {
-	uint8_t enabled:1;      // 0x0:1    0=disabled, 1=enabled
+  uint8_t n_enabled:1;      // 0x0:1    1=disabled, 0=enabled
   uint8_t samples:3;
-	uint8_t        :4;      // 0x0
-	uint8_t sample_interval;
+  uint8_t        :4;      // 0x0
+  uint8_t sample_interval;
 };
 
 
@@ -31,6 +31,9 @@ class HBWAnalogIn : public HBWChannel {
     uint16_t nextReadDelay;
     
     uint16_t currentValue;
+    unsigned int ADCresult_buf[7] = {0,0,0,0,0,0,0}; // array for ADC result (moving average)
+    unsigned int ADCresult_sum;
+    unsigned char ADCindex;
 };
 
 #endif

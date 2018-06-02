@@ -6,13 +6,14 @@
  *      Nach einer Vorlage von Dirk Hoffmann (dirk@hfma.de) 2012
  *
  *  HomeBrew-Wired RS485-Protokoll 
+ *
+ * Last updated: 21.05.2018
  */
 
 #include "HBWired.h"
 
 #include "Arduino.h"
 #include <EEPROM.h>
-
 
 // bus must be idle 210 + rand(0..100) ms
 #define DIFS_CONSTANT 210
@@ -32,6 +33,8 @@
 #define FRAME_START 1    // Startzeichen gefunden
 #define FRAME_ESCAPE 2   // Escape-Zeichen gefunden
 #define FRAME_SENTACKWAIT 8  // Nachricht wurde gesendet, warte auf ACK
+
+HBWDevice::s_PendingActions HBWDevice::pendingActions;
 
 // Methods
 
@@ -168,7 +171,7 @@ void HBWDevice::sendFrameSingle() {
 
       hbwdebug(F("T: "));
       digitalWrite(txEnablePin, HIGH);
-	  hbwdebughex(FRAME_STARTBYTE);
+      hbwdebughex(FRAME_STARTBYTE);
       serial->write(FRAME_STARTBYTE);  // send startbyte
       crc16Shift(FRAME_STARTBYTE , &crc16checksum);
 
@@ -193,9 +196,9 @@ void HBWDevice::sendFrameSingle() {
       tmpByte = txFrameDataLength + 2;                              // send data length
       sendFrameByte(tmpByte, &crc16checksum);
 
-    	for(i = 0; i < txFrameDataLength; i++){            // send data, falls was zu senden
-            sendFrameByte(txFrameData[i], &crc16checksum);
-    	}
+      for(i = 0; i < txFrameDataLength; i++){            // send data, falls was zu senden
+          sendFrameByte(txFrameData[i], &crc16checksum);
+      }
       crc16Shift(0 , &crc16checksum);
       crc16Shift(0 , &crc16checksum);
 
@@ -379,18 +382,26 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
       // Wenn irgendwas von Broadcast kommt, dann gibt es darauf keine
       // Reaktion, ausser z und Z (und es kommt von der Zentrale)
       // TODO: Muessen wir pruefen, ob's wirklich von der Zentrale kommt?
-      if(isBroadcast){
-    	/* switch(frameData[0]){
-    	  case 'Z':                                                               // End discovery mode
-    	    // reset hmwModuleDiscovering
-    	    // TODO: Discovery mode
-    	    break;
-    	  case 'z':                                                               // start discovery mode
-    	    // set hmwModuleDiscovering
-    	    // TODO: Discovery mode
-    	    break;
-    	} */
-    	return;
+      if(isBroadcast) {
+         switch(frameData[0]) {
+          case 'Z':                                            // end discovery mode
+            pendingActions.zeroCommunicationActive = false;
+            break;
+          case 'z':                                              // start discovery mode
+            pendingActions.zeroCommunicationActive = true;
+            break;
+        }
+        return;
+      };
+
+      if (pendingActions.zeroCommunicationActive) {				// block any messages in this state, except:
+         /*switch(frameData[0]){
+            case 'u':                                                              // Update (Bootloader starten)
+               goto *bootloader_start;			// Adresse des Bootloaders
+               // TODO: Bootloader?
+               break;
+         }*/
+         return;
       };
 
       txTargetAddress = senderAddress;
@@ -427,7 +438,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 'K':                           // 0x4B Key-Event
          case 0xCB:   // 'Ë':       // Key-Sim-Event TODO: Es gibt da einen theoretischen Unterschied
-        	receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] >>2, frameData[3] & 0x01);
+            receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] >>2, frameData[3] & 0x01);
             break;
          case 'R':                                                              // Read EEPROM
         	// TODO: Check requested length...
@@ -491,194 +502,192 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 's':   // level set
          case 'x':   // Level set. In der Protokollbeschreibung steht hier was von "install test",
-        	         // aber es sieht so aus, als ob 0x73 und 0x78 dasselbe tun
-			set(frameData[1], frameDataLength-2, &(frameData[2]));
+                     // aber es sieht so aus, als ob 0x73 und 0x78 dasselbe tun
+            set(frameData[1], frameDataLength-2, &(frameData[2]));
             // get what the hardware did and send it back
 			// TODO: Is this really what the standard modules do?
 			//       For slow modules, this might not be correct 
             processEventGetLevel(frameData[1], frameData[0]);  // for feedback
             txFrameData[0] = 'i';
             onlyAck = false; 
-			break;
+            break;
       }
 
-      if(onlyAck){
-    	  sendAck();
-      }else{
-    	  sendFrame();
+      if(onlyAck) {
+         sendAck();
+      }
+      else {
+         sendFrame();
       };
 };
 
 
 // Enhanced peering, needs more data
 void HBWDevice::receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan, 
-	                             uint8_t dstChan, uint8_t keyPressNum, boolean longPress) {
+                                uint8_t dstChan, uint8_t keyPressNum, boolean longPress) {
     if(linkReceiver)
         linkReceiver->receiveKeyEvent(this, senderAddress, srcChan, dstChan, keyPressNum, longPress);
 };
 
-   void HBWDevice::processEventGetLevel(byte channel, byte command){
-	 // get value from the hardware and send it back
-	 txFrameData[0] = 0x69;         // 'i'
-	 txFrameData[1] = channel;      // Sensornummer
-	 uint8_t length = get(channel, &(txFrameData[2]));
-	 // hmwrs485->txFrameData[2] = info / 0x100;
-	 // hmwrs485->txFrameData[3] = info & 0xFF;
-	 txFrameDataLength = 0x02 + length;      // Length
+void HBWDevice::processEventGetLevel(byte channel, byte command){
+   // get value from the hardware and send it back
+   txFrameData[0] = 0x69;         // 'i'
+   txFrameData[1] = channel;      // Sensornummer
+   uint8_t length = get(channel, &(txFrameData[2]));
+   // hmwrs485->txFrameData[2] = info / 0x100;
+   // hmwrs485->txFrameData[3] = info & 0xFF;
+   txFrameDataLength = 0x02 + length;      // Length
+};
+
+
+void HBWDevice::processEmessage(uint8_t const * const frameData) {
+   // process E-Message
+   
+   uint8_t blocksize = frameData[3];
+   uint8_t blocknum  = frameData[4];
+   
+   // length of response
+   txFrameDataLength = 4 + blocknum / 8;
+   // care for odd block numbers
+   if(blocknum % 8) txFrameDataLength++;
+   // we don't need to check the size as it can maximum
+   // be 4 + 255 div 8 + 1 = 36
+   // init to zero, mainly because we need it later
+   memset(txFrameData,0,txFrameDataLength);
+   // first byte "e" - answer on "E"
+   txFrameData[0]  = 0x65;  //e
+   // next 3 bytes are just repeated from request
+   txFrameData[1]  = frameData[1];
+   txFrameData[2]  = frameData[2];
+   txFrameData[3]  = frameData[3];
+   
+   // determine whether blocks are used
+   for(int block = 0; block <= blocknum; block++) {
+      // check this memory block
+      for(int byteIdx = 0; byteIdx < blocksize; byteIdx++) {
+         if(EEPROM.read(block * blocksize + byteIdx) != 0xFF) {
+            bitSet(txFrameData[4 + block / 8], block % 8);
+            break;
+         }
+      }
    };
+};
 
 
-   void HBWDevice::processEmessage(uint8_t const * const frameData) {
-	 // process E-Message
-
-     uint8_t blocksize = frameData[3];
-     uint8_t blocknum  = frameData[4];
-
-     // length of response
-     txFrameDataLength = 4 + blocknum / 8;
-     // care for odd block numbers
-     if(blocknum % 8) txFrameDataLength++;
-     // we don't need to check the size as it can maximum
-     // be 4 + 255 div 8 + 1 = 36
-     // init to zero, mainly because we need it later
-     memset(txFrameData,0,txFrameDataLength);
-     // first byte "e" - answer on "E"
-     txFrameData[0]  = 0x65;  //e
-     // next 3 bytes are just repeated from request
-     txFrameData[1]  = frameData[1];
-     txFrameData[2]  = frameData[2];
-     txFrameData[3]  = frameData[3];
-
-     // determine whether blocks are used
-     for(int block = 0; block <= blocknum; block++) {
-       // check this memory block
-       for(int byteIdx = 0; byteIdx < blocksize; byteIdx++) {
-    	 if(EEPROM.read(block * blocksize + byteIdx) != 0xFF) {
-    	   bitSet(txFrameData[4 + block / 8], block % 8);
-    	   break;
-    	 }
-       }
-     };
-   };
+// "Announce-Message" ueber broadcast senden
+byte HBWDevice::broadcastAnnounce(byte channel) {
+   txTargetAddress = 0xFFFFFFFF;  // broadcast
+   txFrameControlByte = 0xF8;     // control byte
+   txFrameDataLength = 16;      // Length
+   txFrameData[0] = 0x41;         // 'i'
+   txFrameData[1] = channel;      // Sensornummer
+   txFrameData[2] = deviceType;
+   txFrameData[3] = hardware_version;
+   txFrameData[4] = firmware_version / 0x100;
+   txFrameData[5] = firmware_version & 0xFF;
+   determineSerial(txFrameData + 6);
+   // only send, if bus is free. Don't send in zeroCommunication mode, return with "bus busy" instead
+   return (pendingActions.zeroCommunicationActive ? 1 : sendFrame(true));
+};
 
 
-   // "Announce-Message" ueber broadcast senden
-   byte HBWDevice::broadcastAnnounce(byte channel) {
-      txTargetAddress = 0xFFFFFFFF;  // broadcast
-      txFrameControlByte = 0xF8;     // control byte
-      txFrameDataLength = 16;      // Length
-      txFrameData[0] = 0x41;         // 'i'
-      txFrameData[1] = channel;      // Sensornummer
-      txFrameData[2] = deviceType;
-      txFrameData[3] = 0;          // TODO: should this be hardware version?
-      txFrameData[4] = firmware_version / 0x100;
-      txFrameData[5] = firmware_version & 0xFF;
-      determineSerial(txFrameData + 6);
-      return sendFrame(true);  // only if bus is free
-   };
+// "i-Message" senden
+// this is only called from "outside" and not as a response
+uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address) {
+   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   txTargetAddress = target_address;
+   if(!txTargetAddress) txTargetAddress = getCentralAddress();	
+   txFrameControlByte = 0xF8;     // control byte
+   txFrameDataLength = 0x02 + length;      // Length
+   txFrameData[0] = 0x69;         // 'i'
+   txFrameData[1] = channel;      // Sensornummer
+   memcpy(&(txFrameData[2]), data, length);
+   return sendFrame(true);  // only if bus is free
+};
 
 
-   // "i-Message" senden
-   // this is only called from "outside" and not as a response
- uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address) {
-	   txTargetAddress = target_address;
-       if(!txTargetAddress) txTargetAddress = getCentralAddress();	
-       txFrameControlByte = 0xF8;     // control byte
-  	   txFrameDataLength = 0x02 + length;      // Length
-  	   txFrameData[0] = 0x69;         // 'i'
-  	   txFrameData[1] = channel;      // Sensornummer
-	   memcpy(&(txFrameData[2]), data, length);
-  	   return sendFrame(true);  // only if bus is free
-     };
-
-	 
- // key-Event senden, inklusive peers etc.
+// key-Event senden, inklusive peers etc.
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {
+	if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
     if(linkSender)
         linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress);
     return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0);  // only if bus is free
 };
 
-	 
+
 // key-Event senden an bestimmtes Target
- uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, uint32_t targetAddr, uint8_t targetChan) {
- 	   txTargetAddress = targetAddr;  // target address
- 	   txFrameControlByte = 0xF8;     // control byte
- 	   txFrameDataLength = 0x04;      // Length
- 	   txFrameData[0] = 0x4B;         // 'K'
- 	   txFrameData[1] = srcChan;      // Sensornummer
- 	   txFrameData[2] = targetChan;   // Zielaktor
- 	   txFrameData[3] = (longPress ? 3 : 2) + (keyPressNum << 2);
- 	   return sendFrame(true);  // only if bus is free
- } ;
+uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, uint32_t targetAddr, uint8_t targetChan) {
+   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   txTargetAddress = targetAddr;  // target address
+   txFrameControlByte = 0xF8;     // control byte
+   txFrameDataLength = 0x04;      // Length
+   txFrameData[0] = 0x4B;         // 'K'
+   txFrameData[1] = srcChan;      // Sensornummer
+   txFrameData[2] = targetChan;   // Zielaktor
+   txFrameData[3] = (longPress ? 3 : 2) + (keyPressNum << 2);
+   return sendFrame(true);  // only if bus is free
+};
 
 
- // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
- uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
- 	   txTargetAddress = 0xFFFFFFFF;  // target address
- 	   txFrameControlByte = 0xF8;     // control byte
- 	   txFrameDataLength = 3 + length;      // Length
- 	   txFrameData[0] = 0x4B;         // 'K'
- 	   txFrameData[1] = srcChan;      // Sensornummer
- 	   txFrameData[2] = 0;   // Zielaktor
-  	   memcpy(&(txFrameData[3]), data, length);
- 	   return sendFrame(true);  // only if bus is free
- } ;
-
- 
-	 
-     void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
-       // save uppermost 4 bytes
-       if(!privileged && (address > E2END - 4))
-    	 return;
-       // write if not anyway the same value
-   	   if(value != EEPROM.read(address))
-   		 EEPROM.write(address, value);
-     };
+// Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
+uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
+   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   txTargetAddress = 0xFFFFFFFF;  // target address
+   txFrameControlByte = 0xF8;     // control byte
+   txFrameDataLength = 3 + length;      // Length
+   txFrameData[0] = 0x4B;         // 'K'
+   txFrameData[1] = srcChan;      // Sensornummer
+   txFrameData[2] = 0;   // Zielaktor
+   memcpy(&(txFrameData[3]), data, length);
+   return sendFrame(true);  // only if bus is free
+};
 
 
-     // read device address from EEPROM
-     // TODO: Avoid "central" addresses (like 0000...)
-     void HBWDevice::readAddressFromEEPROM(){
-       uint32_t address = 0;
-
-       for(byte i = 0; i < 4; i++){
-    	   address <<= 8;
-    	   address |= EEPROM.read(E2END - 3 + i);
-       }
-       if(address == 0xFFFFFFFF)
-    	   address = 0x42FFFFFF;
-       setOwnAddress(address);
-     }
+void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
+   // save uppermost 4 bytes
+   if(!privileged && (address > E2END - 4))
+      return;
+   // write if not anyway the same value
+   if(value != EEPROM.read(address))
+      EEPROM.write(address, value);
+};
 
 
-     void HBWDevice::determineSerial(byte* buf) {
-       char numAsStr[20];
-       sprintf(numAsStr, "%07lu", getOwnAddress() % 10000000L );
-       buf[0] = 'H';
-       buf[1] = 'B';
-       buf[2] = 'W';
-       memcpy(buf+3, numAsStr, 7);
-     };
+// read device address from EEPROM
+// TODO: Avoid "central" addresses (like 0000...)
+void HBWDevice::readAddressFromEEPROM(){
+   uint32_t address = 0;
+   
+   for(byte i = 0; i < 4; i++){
+      address <<= 8;
+      address |= EEPROM.read(E2END - 3 + i);
+   }
+   if(address == 0xFFFFFFFF)
+      address = 0x42FFFFFF;
+   setOwnAddress(address);
+}
 
-	 
+
+void HBWDevice::determineSerial(byte* buf) {
+   char numAsStr[20];
+   sprintf(numAsStr, "%07lu", getOwnAddress() % 10000000L );
+   buf[0] = 'H';
+   buf[1] = 'B';
+   buf[2] = 'W';
+   memcpy(buf+3, numAsStr, 7);
+};
+
+
 void HBWDevice::readConfig() {         // read config from EEPROM	
-    // read EEPROM
-    readEEPROM(config, 0x01, configSize);
-    // TODO: switch debugging
-	//       should probably be done in main program
-    /* if(config.nodebug){
-      hbwdebugstream = NULL;
-    }else{
-        hbwdebugstream = &Serial;
-    }; */
-    // turn around central address
-    uint32_t addr = *((uint32_t*)(config + 1));
-    for(uint8_t i = 0; i < 4; i++)
-      config[i+1] = ((uint8_t*)(&addr))[3-i];
-    // set defaults if values not provided from EEPROM
-	// or other device specific stuff
-	afterReadConfigPending = true; // tell main loop to run afterReadConfig() for device and channels
+   // read EEPROM
+   readEEPROM(config, 0x01, configSize);
+   
+   // turn around central address
+   uint32_t addr = *((uint32_t*)(config + 1));
+   for(uint8_t i = 0; i < 4; i++)
+     config[i+1] = ((uint8_t*)(&addr))[3-i];
+   // set defaults if values not provided from EEPROM or other device specific stuff
+   pendingActions.afterReadConfig = true; // tell main loop to run afterReadConfig() for device and channels
 }
 
 
@@ -687,32 +696,30 @@ uint32_t HBWDevice::getCentralAddress() {
 	return *((uint32_t*)(config + 1));
 }
 
-	
 
 // EEPROM lesen
 void HBWDevice::readEEPROM(void* dst, uint16_t address, uint16_t length, 
                            boolean lowByteFirst) {
-  byte* ptr = (byte*)(dst);
-  for(uint16_t offset = 0; offset < length; offset++){
-    *ptr = EEPROM.read(address + (lowByteFirst ? length - 1 - offset : offset));
-    ptr++;
-  };
+   byte* ptr = (byte*)(dst);
+   for(uint16_t offset = 0; offset < length; offset++){
+      *ptr = EEPROM.read(address + (lowByteFirst ? length - 1 - offset : offset));
+      ptr++;
+   };
 };
 
 
 // broadcast announce message once at the beginning
 // this might need to "wait" until the bus is free
 void HBWDevice::handleBroadcastAnnounce() {
-  static boolean announced = false;
-  // avoid sending broadcast in the first second
-  // we don't care for the overflow as the announce
-  // is sent after 40 days anyway (hopefully)
-  if(millis() < 1000) return;
-  if(announced) return;
-  // send methods return 0 if everything is ok
-  announced = (broadcastAnnounce(0) == 0);
+   // avoid sending broadcast in the first second
+   // we don't care for the overflow as the announce
+   // is sent after 40 days anyway (hopefully)
+   if(millis() < 1000) return;
+   if(pendingActions.announced) return;
+   // send methods return 0 if everything is ok
+   pendingActions.announced = (broadcastAnnounce(0) == 0);
 }
-	 
+
 
 /*
 ********************************
@@ -730,38 +737,39 @@ Stream* hbwdebugstream = 0;
 */
 
 HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
-              Stream* _rs485, uint8_t _txen, 
-	          uint8_t _configSize, void* _config, 
-			  uint8_t _numChannels, HBWChannel** _channels,
-			  Stream* _debugstream, HBWLinkSender* _linkSender, HBWLinkReceiver* _linkReceiver) {	
-    configSize = _configSize;     // size of config object without peerings
-	config = (uint8_t*)_config;        // pointer to config object 
-	numChannels = _numChannels;    // number of channels
-	channels = _channels;  // channels
-	linkSender = _linkSender;
-	linkReceiver = _linkReceiver;
-	hardware_version = _hardware_version;
-    firmware_version = _firmware_version;	
-	// lower layer						 
-	serial = _rs485;
-	txEnablePin = _txen;
-	pinMode(txEnablePin, OUTPUT);
-	digitalWrite(txEnablePin, LOW);
-	frameComplete = 0;
-	lastReceivedTime = 0;
-	minIdleTime = DIFS_CONSTANT;  // changes in setOwnAddress
-	// upper layer
-    deviceType = _devicetype;
-    readAddressFromEEPROM();
-	hbwdebugstream = _debugstream;    // debug stream, might be NULL
-	configPin = 0xFF;  //inactive by default
-	ledPin = 0xFF;     // inactive by default
-	// read config
-	readConfig();
+                     Stream* _rs485, uint8_t _txen, 
+                     uint8_t _configSize, void* _config, 
+                     uint8_t _numChannels, HBWChannel** _channels,
+                     Stream* _debugstream, HBWLinkSender* _linkSender, HBWLinkReceiver* _linkReceiver) {	
+   configSize = _configSize;     // size of config object without peerings
+   config = (uint8_t*)_config;        // pointer to config object 
+   numChannels = _numChannels;    // number of channels
+   channels = _channels;  // channels
+   linkSender = _linkSender;
+   linkReceiver = _linkReceiver;
+   hardware_version = _hardware_version;
+   firmware_version = _firmware_version;	
+   // lower layer						 
+   serial = _rs485;
+   txEnablePin = _txen;
+   pinMode(txEnablePin, OUTPUT);
+   digitalWrite(txEnablePin, LOW);
+   frameComplete = 0;
+   lastReceivedTime = 0;
+   minIdleTime = DIFS_CONSTANT;  // changes in setOwnAddress
+   // upper layer
+   deviceType = _devicetype;
+   readAddressFromEEPROM();
+   hbwdebugstream = _debugstream;    // debug stream, might be NULL
+   configPin = 0xFF;  //inactive by default
+   ledPin = 0xFF;     // inactive by default
+   readConfig();	// read config
+   pendingActions.announced = false;	// was initial broadcast announce message send?
+   pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
 }
   
 
- void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
+void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	configPin = _configPin;
 	if(configPin != 0xFF) {
 	#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
@@ -771,7 +779,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 	#endif
 		pinMode(configPin,INPUT_PULLUP);
 	}
-    ledPin = _ledPin;	
+	ledPin = _ledPin;	
 	if(ledPin != 0xFF) pinMode(ledPin,OUTPUT);
 };
 
@@ -780,7 +788,7 @@ void HBWDevice::set(uint8_t channel, uint8_t length, uint8_t const * const data)
 	if(hbwdebugstream) {
 	    hbwdebug(F("S: ")); hbwdebughex(channel); hbwdebug(F(" "));
 		for(uint8_t i = 0; i < length; i++)
-            hbwdebughex(data[i]); 
+			hbwdebughex(data[i]); 
 		hbwdebug("\n");
 	};
 	// to avoid crashes, do not try to set any channels, which do not exist
@@ -803,12 +811,12 @@ uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
 void HBWDevice::loop()
 {
   // read device and channel config, on init and if triggered by ReadConfig()
-   if (afterReadConfigPending) {
+   if (pendingActions.afterReadConfig) {
 		afterReadConfig();
 		for(uint8_t i = 0; i < numChannels; i++) {
 			channels[i]->afterReadConfig();
 		}
-		afterReadConfigPending = false;
+		pendingActions.afterReadConfig = false;
 	}
 // Daten empfangen und alles, was zur Kommunikationsschicht gehört
 // processEvent vom Modul wird als Callback aufgerufen
@@ -817,7 +825,7 @@ void HBWDevice::loop()
   // Check
   if(frameComplete) {
 	frameComplete = 0;   // only once
-    if(targetAddress == ownAddress || targetAddress == 0xFFFFFFFF){
+	if(targetAddress == ownAddress || targetAddress == 0xFFFFFFFF){
 	  if(parseFrame()) {
 	    processEvent(frameData, frameDataLength, (targetAddress == 0xFFFFFFFF));
 	  };	
@@ -840,7 +848,6 @@ uint8_t HBWDevice::getLoggingTime() {
 
 
 void HBWDevice::afterReadConfig() {};
-
 
 
 void HBWDevice::factoryReset() {
@@ -962,13 +969,3 @@ void hbwdebughex(uint8_t b) {
    hbwdebugstream->print(b >> 4, HEX);
    hbwdebugstream->print(b & 15, HEX);
 };
-
-
-
-
-
-
-
-
-
-

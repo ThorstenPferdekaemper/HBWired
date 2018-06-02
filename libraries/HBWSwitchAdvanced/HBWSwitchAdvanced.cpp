@@ -24,15 +24,16 @@
 #define OFF_TIME_ABSOLUTE 0x0B
 #define ON_TIME_MINIMAL 0x0C
 #define OFF_TIME_MINIMAL 0x0D
-#define FORCE_STATE_CHANGE 0xFF
+#define UNKNOWN_STATE 0xFF
+#define FORCE_STATE_CHANGE 0xFE
 
 
 // Switches
 HBWSwitchAdvanced::HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config) {
   pin = _pin;
-	config = _config;
-	nextFeedbackDelay = 0;
-	lastFeedbackTime = 0;
+  config = _config;
+  nextFeedbackDelay = 0;
+  lastFeedbackTime = 0;
   
   onTime = 0xFF;
   offTime = 0xFF;
@@ -40,16 +41,27 @@ HBWSwitchAdvanced::HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config) {
   stateTimerRunning = false;
   stateCangeWaitTime = 0;
   lastStateChangeTime = 0;
+  currentState = UNKNOWN_STATE;
 };
 
 
 // channel specific settings or defaults
 void HBWSwitchAdvanced::afterReadConfig() {
   
-  digitalWrite(pin, config->n_inverted ? LOW : HIGH);		// 0=inverted, 1=not inverted (device reset will set to 1!)
-  pinMode(pin,OUTPUT);
+  if (currentState == UNKNOWN_STATE) {
+  // All off on init, but consider inverted setting
+    digitalWrite(pin, config->n_inverted ? LOW : HIGH);    // 0=inverted, 1=not inverted (device reset will set to 1!)
+    pinMode(pin,OUTPUT);
+    currentState = JT_OFF;
+  }
+  else {
+  // Do not reset outputs on config change (EEPROM re-reads), but update its state
+    if (currentState == JT_ON)
+      digitalWrite(pin, LOW ^ config->n_inverted);
+    else if (currentState == JT_OFF)
+      digitalWrite(pin, HIGH ^ config->n_inverted);
+  }
   
-  currentState = JT_OFF;
   nextState = currentState; // no action for state machine needed
 }
 

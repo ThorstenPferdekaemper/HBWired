@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-LC-Sw-12" name="RS485 Homebrew switch actuator 12-channel (6+6)">
 		<parameter const_value="0x93" size="1" index="0"/>
 		<parameter const_value="0" size="1" index="1"/>
-		<parameter const_value="0x0003" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
+		<parameter const_value="0x0004" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -79,7 +79,7 @@
 			</parameter>		
 		</paramset>
 
-		<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="36" address_step="20" address_start="0x20">
+		<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="36" address_step="20" address_start="0x40">
 			<parameter id="UI_HINT">
 				<logical type="string" default="" use_default_on_failure="true"/>
 				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -389,13 +389,13 @@
 	</channel>
 	
 	<channel index="13" count="6" physical_index_offset="-1" type="ANALOGSENSOR">
-	    <paramset type="MASTER" id="hmw_analog_ch_master" address_step="2" address_start="0x14">
+	    <paramset type="MASTER" id="hmw_analog_ch_master" address_step="2" address_start="0x20">
 			<parameter id="ENABLED">
-				<logical type="boolean" default="true"/>
+				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
-					<address index="+0.0"/>
+					<address index="+0"/>
 				</physical>
-				<conversion type="boolean_integer" invert="false"/>
+				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="SAMPLES">
 			   <logical type="integer" default="2" min="1" max="7"/>   
@@ -418,7 +418,7 @@
 					<event frame="ANALOG_EVENT"/>
 				</physical>
 			</parameter>
-		</paramset>		
+		</paramset>
 	</channel>
 	
 </channels>
