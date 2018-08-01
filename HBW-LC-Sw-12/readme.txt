@@ -8,6 +8,8 @@ Basis ist ein Arduino NANO mit RS485-Interface.
 ! Die 6 Kanal Strommessung ist noch in der Entwicklung!
 
 Direktes Peering möglich (HBWLinkSwitchAdvanced).
+Peering mit TOGGLE, TOGGLE_TO_COUNTER, TOGGLE_INVERSE_TO_COUNTER, onTime, offTime (Ein-/Ausschaltdauer), onDelayTime, offDelayTime (Ein-/Ausschaltverzögerung).
+Maximale Ein-/Ausschaltdauer, Ein-/Ausschaltverzögerung, jeweils: 63000 Sekunden (17,5 Stunden).
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die HBW-LC-Sw-12.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x93 aus).
 
@@ -50,3 +52,4 @@ A2 - Stromsensor?
 A3 - Stromsensor?
 A4 - Stromsensor?
 A5 - Stromsensor?
+A6 - Busspannung
