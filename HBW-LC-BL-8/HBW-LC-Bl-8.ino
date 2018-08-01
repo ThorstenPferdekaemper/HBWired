@@ -5,7 +5,7 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 8 Kanal Rollosteuerung
-// - Direktes Peering möglich. (open: 100%, close: 0%, toggle/stop)
+// - Direktes Peering möglich. (open: 100%, close: 0%, toggle/stop, set level)
 //
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -18,10 +18,12 @@
 // - added additional pause, when changing direction
 // - added basic direct peering
 // - changed to USART instead of "HBWSoftwareSerial" to free up IO ports, sacrificed debugging (use HBW-LC-Bl-4 as test device)
+// v0.2
+// - added level option in peering to set target value
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0010
+#define FIRMWARE_VERSION 0x0014
 
 #define NUMBER_OF_BLINDS 8
 #define NUM_LINKS 64
