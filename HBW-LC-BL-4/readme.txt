@@ -1,5 +1,5 @@
 Homematic Wired Homebrew Rollosteuerung 4 Kanal 
-==============================================
+===============================================
 
 Das Modul HBW-LC-Bl-4 schaltet bis zu 4 Rollos (mit Hilfe von 8 Relais).
 Basis ist ein Arduino NANO mit RS485-Interface.
@@ -32,4 +32,4 @@ A4 - BLIND4_ACT
 A5 - BLIND4_DIR
 
 
-Quelle: https://github.com/kc-GitHub/HM485-Lib/tree/markus/HBW-LC-Bl4
+Quelle/Vorlage: https://github.com/kc-GitHub/HM485-Lib/tree/markus/HBW-LC-Bl4
