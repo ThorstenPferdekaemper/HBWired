@@ -418,13 +418,14 @@
 				</physical>
 			</parameter>
 			<parameter id="SHORT_DIM_STEP">
-				<logical type="float" min="0" max="15" default="5" unit="15%"/> <!-- scale *2 (15% = 30) -->
+				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+22.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_STEP">
-				<logical type="float" min="0" max="15" default="5" unit="15%"/> <!-- scale *2 (15% = 30) -->
+				<logical type="float" min="0" max="30" default="6" unit="30%"/> <!-- scale *2 on device (30% = level 60) -->
+				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+22.4"/>
 				</physical>
@@ -728,7 +729,8 @@
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_STEP">
-				<logical type="float" min="0" max="15" default="5" unit="15%"/>
+				<logical type="float" min="0" max="30" default="6" unit="30%"/>
+				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+40.4"/>
 				</physical>

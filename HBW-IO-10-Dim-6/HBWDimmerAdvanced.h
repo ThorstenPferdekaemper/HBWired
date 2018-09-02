@@ -60,6 +60,7 @@
 #define D_POS_dimMaxLevel    15
 #define D_POS_peerConfigStep 16
 #define D_POS_peerConfigOffDtime 17
+#define D_POS_peerKeyPressNum    18 // last array element used for keyPressNum
 
 #define DIM_UP true
 #define DIM_DOWN false
@@ -91,16 +92,14 @@ class HBWDimmerAdvanced : public HBWChannel {
     uint8_t oldValue;
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
-
-    // set from links/peering (implements state machine)
+    
     void setOutputNoLogging(uint8_t const * const data);
     void setOutput(HBWDevice* device, uint8_t const * const data);
     uint8_t dimUpDown(uint8_t const * const data, boolean dimUp);
+    void prepareOnOffRamp(uint8_t rampTime);
     uint8_t getNextState(uint8_t bitshift);
     inline uint32_t convertTime(uint8_t timeValue);
-    void prepareOnOffRamp(uint8_t rampTime);
     
-//    uint8_t peerParamActionType;
     union tag_actiontype {
       struct tag_actiontype_elements {
         uint8_t actionType:4;
@@ -113,15 +112,14 @@ class HBWDimmerAdvanced : public HBWChannel {
     } peerParamActionType;
 //#define BITMASK_ActionType        B00001111
 //#define BITMASK_LongMultiexecute  B00010000
-    
     uint8_t onDelayTime;
     uint8_t onTime;
     uint8_t offDelayTime;
     uint8_t offTime;
-    union { uint32_t DWORD;
+    union {
+      uint32_t DWORD;
       uint8_t jt_hi_low[4];
     } jumpTargets;
-    
     uint8_t onLevel;
     uint8_t onMinLevel;
     uint8_t offLevel;
@@ -153,7 +151,6 @@ class HBWDimmerAdvanced : public HBWChannel {
       } element;
       uint8_t byte:8;
     } peerConfigOffDtime;
-    
     boolean stateTimerRunning;
     boolean currentOnLevelPrio;
     uint8_t currentState;
@@ -164,6 +161,7 @@ class HBWDimmerAdvanced : public HBWChannel {
 
     volatile uint16_t rampStepCounter;
     uint8_t rampStep;
+    boolean offDelayNewTimeActive;
 };
 
 

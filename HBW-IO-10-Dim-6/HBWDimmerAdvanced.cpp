@@ -39,14 +39,15 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config) {
 void HBWDimmerAdvanced::afterReadConfig() {
   
   if (currentState == UNKNOWN_STATE) {
-  // All off on init
+    // All off on init
     analogWrite(pin, LOW);
     currentState = JT_OFF;
   }
   else {
-  // Do not reset outputs on config change (EEPROM re-reads), but update its state
+  // Do not reset outputs on config change (EEPROM re-reads), but update its state (to apply new settings)
     setOutputNoLogging(&currentValue);
   }
+  
   nextState = currentState; // no action for state machine needed
 };
 
@@ -63,7 +64,6 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     if ((peerParamActionType.element.actionType) >1) {   // ACTION_TYPE
       
       // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
-      //if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && bitRead(peerParamActionType,5)))) {
       if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && peerParamActionType.element.longMultiexecute))) {
         byte level = currentValue;
 
@@ -157,6 +157,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
 };
 
 
+/* private function - returns the new level (0...200) to be set */
 uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) {
   
   byte level = currentValue;  // keep current level if we cannot dim up or down anymore
@@ -196,7 +197,7 @@ uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) 
 };
 
 
-/* standard public function - returns length of data array. data array contains current channel reading */
+/* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDimmerAdvanced::get(uint8_t* data) {
   (*data) = currentValue;
 	return 1;
@@ -215,8 +216,7 @@ void HBWDimmerAdvanced::setOutput(HBWDevice* device, uint8_t const * const data)
   if (dataNew == 201) // use OLD_LEVEL for ON_LEVEL
     dataNew = oldValue;
   
-  if (currentValue != dataNew) {
-    
+  if (currentValue != dataNew) {  // only set output and send i-message if value was changed
     setOutputNoLogging(&dataNew);
     
     // Logging
@@ -233,11 +233,11 @@ void HBWDimmerAdvanced::setOutputNoLogging(uint8_t const * const data) {
   
   if (config->pwm_range >= 1) {   // 0=disabled
     //                        scale to 40%   50%   60%   70%   80%   90%  100%
-    static uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2295, 2550};  // to avoid float, devide by 10 when calling analogWrite()!
-    byte newValueMin = 0;
-    byte newValue;
+    static uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2295, 2550};  // to avoid float, must devide by 10 when calling analogWrite()!
+    uint8_t newValueMin = 0;
+    uint8_t newValue;
     
-    if (!config->voltage_default) newValueMin = 255; // set 25.5 min output level (need 0.5-5V for 1-10V mode)
+    if (!config->voltage_default) newValueMin = 255; // Factor 10! Set 25.5 min output level (need 0.5-5V for 1-10V mode)
     
     if (*data <= 200) {  // set value
       newValue = (map(*data, 0, 200, newValueMin, newValueMax[config->pwm_range -1])) /10;  // map 0-200 into correct PWM range
@@ -310,6 +310,7 @@ uint32_t HBWDimmerAdvanced::convertTime(uint8_t timeValue) {
 };
 
 
+/* private function - sets all variables for On/OffRamp. "rampStepCounter" must be set prior calling this function */
 void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime) {
 
   stateCangeWaitTime = convertTime(rampTime);
@@ -355,7 +356,8 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
   if (((now - lastStateChangeTime > stateCangeWaitTime) && stateTimerRunning) || currentState != nextState) {
 
-    if (rampStepCounter && (currentState == JT_RAMP_ON || currentState == JT_RAMP_OFF) && nextState != FORCE_STATE_CHANGE) { // TODO no need to check for currentState?? keep for robustness?
+    // on / off ramp
+    if (rampStepCounter && (currentState == JT_RAMP_ON || currentState == JT_RAMP_OFF) && nextState != FORCE_STATE_CHANGE) {
       uint8_t rampNewValue;
       lastStateChangeTime = now;
       
@@ -370,12 +372,26 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         rampStepCounter = 0;
       else
         rampStepCounter -= rampStep;
+    }
+    // off delay blink
+    else if (currentState == JT_OFFDELAY && peerConfigParam.element.offDelayBlink && rampStepCounter) {
+      uint8_t newValue;
+      lastStateChangeTime = now;
       
-//  #ifndef NO_DEBUG_OUTPUT
-//    hbwdebug(F("RmpStC:"));
-//    hbwdebug(rampStepCounter);
-//    hbwdebug(F("\n"));
-//  #endif
+      if (offDelayNewTimeActive) {
+        newValue = currentValue - (peerConfigStep.element.offDelayStep *4);
+        stateCangeWaitTime = peerConfigOffDtime.element.offDelayOldTime *1000;
+        offDelayNewTimeActive = false;
+      }
+      else {
+        newValue = currentValue + (peerConfigStep.element.offDelayStep *4);
+        stateCangeWaitTime = peerConfigOffDtime.element.offDelayNewTime *1000;
+        offDelayNewTimeActive = true;
+        rampStepCounter--;
+//        if (rampStepCounter == 1) // stop at old value
+//          rampStepCounter = 0;
+      }
+      setOutputNoLogging(&newValue);
     }
     else {
       
@@ -449,7 +465,20 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             break;
             
           case JT_OFFDELAY:
-            stateCangeWaitTime = convertTime(offDelayTime);
+            if (peerConfigParam.element.offDelayBlink) {
+              if ((currentValue - onMinLevel) > (peerConfigStep.element.offDelayStep *4)) {  // only blink if not going below min. on level
+                rampStepCounter = ((convertTime(offDelayTime) /1000) / (peerConfigOffDtime.element.offDelayNewTime + peerConfigOffDtime.element.offDelayOldTime));
+                stateCangeWaitTime = peerConfigOffDtime.element.offDelayNewTime *1000;
+                offDelayNewTimeActive = true;
+              }
+              else {
+                stateCangeWaitTime = 0;
+                rampStepCounter = 0;
+              }
+            }
+            else {
+              stateCangeWaitTime = convertTime(offDelayTime);
+            }
             lastStateChangeTime = now;
             stateTimerRunning = true;
             currentState = JT_OFFDELAY;
@@ -463,7 +492,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             break;
             
           case JT_OFF:
-            oldValue = currentValue;
+            oldValue = currentValue;  // save current value before turn off
             //newLevel = 0; // offLevel is default
             setNewLevel = true;
             stateTimerRunning = false;
@@ -512,7 +541,6 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         }
       }
       else {  // NO_JUMP_IGNORE_COMMAND
-  //      currentState = (currentLevel ? JT_ON : JT_OFF );    // get current level and update state // TODO: actually needed? or keep for robustness?
         nextState = currentState;   // avoid to run into a loop
       }
       //if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
@@ -527,20 +555,20 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
   
 	// feedback trigger set?
-    if(!nextFeedbackDelay) return;
-    now = millis();
-    if(now - lastFeedbackTime < nextFeedbackDelay) return;
-    lastFeedbackTime = now;  // at least last time of trying
-    // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
+  if(!nextFeedbackDelay) return;
+  now = millis();
+  if(now - lastFeedbackTime < nextFeedbackDelay) return;
+  lastFeedbackTime = now;  // at least last time of trying
+  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
 	// we know that the level has only 1 byte here
 	uint8_t level;
-    get(&level);	
-    uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
-    if(errcode == 1) {  // bus busy
-    // try again later, but insert a small delay
-    	nextFeedbackDelay = 250;
-    }else{
-    	nextFeedbackDelay = 0;
-    }
+  get(&level);	
+  uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
+  if(errcode == 1) {  // bus busy
+  	nextFeedbackDelay = 250;  // try again later, but insert a small delay
+  }
+  else {
+  	nextFeedbackDelay = 0;
+  }
 }
 
