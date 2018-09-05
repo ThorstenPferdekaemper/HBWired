@@ -15,6 +15,7 @@
 // - initial version
 // v0.2
 // - added OFFDELAY_BLINK, OFFDELAY_STEP peering setting
+// - clean-up
 //
 // TODO: Implement digital Input (+ key peering)
 //       Implement dim peering params: ON_LEVEL_PRIO, RAMP_START_STEP

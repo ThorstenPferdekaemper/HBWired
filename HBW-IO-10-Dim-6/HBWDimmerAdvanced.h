@@ -1,7 +1,7 @@
 /* 
 * HBWDimmerAdvanced
 *
-* Mit HBWDimmerAdvanced & HBWLinkSwitchAdvanced sind folgende Funktionen möglich:
+* Mit HBWDimmerAdvanced & HBWLinkDimmerAdvanced sind folgende Funktionen möglich:
 * Peering mit TOGGLE_TO_COUNTER, TOGGLE_INVERSE_TO_COUNTER, UPDIM, DOWNDIM,
 * TOGGLEDIM, TOGGLEDIM_TO_COUNTER, TOGGLEDIM_INVERSE_TO_COUNTER, onTime,
 * offTime (Ein-/Ausschaltdauer), onDelayTime, offDelayTime (Ein-/Ausschaltverzögerung)
@@ -61,6 +61,8 @@
 #define D_POS_peerConfigStep 16
 #define D_POS_peerConfigOffDtime 17
 #define D_POS_peerKeyPressNum    18 // last array element used for keyPressNum
+
+#define ON_LEVEL_USE_OLD_VALUE  202
 
 #define DIM_UP true
 #define DIM_DOWN false
@@ -155,13 +157,14 @@ class HBWDimmerAdvanced : public HBWChannel {
     boolean currentOnLevelPrio;
     uint8_t currentState;
     uint8_t nextState;
-    unsigned long stateCangeWaitTime;
+    unsigned long stateChangeWaitTime;
     volatile unsigned long lastStateChangeTime;
     uint8_t lastKeyNum;
 
     volatile uint16_t rampStepCounter;
     uint8_t rampStep;
     boolean offDelayNewTimeActive;
+    boolean offDelaySingleStep;
 };
 
 
