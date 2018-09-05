@@ -327,7 +327,7 @@
 			</parameter>
 			<parameter id="SHORT_ON_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="1.0" unit="%">
-					<special_value id="OLD_LEVEL" value="1.005"/>
+					<special_value id="OLD_LEVEL" value="1.01"/>
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
@@ -630,7 +630,7 @@
 			</parameter>
 			<parameter id="LONG_ON_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="1.0" unit="%">
-					<special_value id="OLD_LEVEL" value="1.005"/>
+					<special_value id="OLD_LEVEL" value="1.01"/>
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
