@@ -48,7 +48,6 @@ void HBWDimmerAdvanced::afterReadConfig() {
   // Do not reset outputs on config change (EEPROM re-reads), but update its state (to apply new settings)
     setOutputNoLogging(&currentValue);
   }
-  
   nextState = currentState; // no action for state machine needed
 };
 
@@ -113,12 +112,6 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   #endif
       }
     }
-    //else if (lastKeyNum == currentKeyNum && !(peerParamActionType & B00010000)) {
-    //else if (lastKeyNum == currentKeyNum && !(bitRead(peerParamActionType,5))) {
-//    else if (lastKeyNum == currentKeyNum && !(peerParamActionType.element.longMultiexecute)) {
-//      // repeated key event, must be long press, but longMultiexecute is not enabled... so ignore!
-//      asm ("nop");
-//    }
     else {
       // action type: JUMP_TO_TARGET
       // assign values based on EEPROM layout (XML and link/peering details must match!)
@@ -250,7 +243,6 @@ void HBWDimmerAdvanced::setOutputNoLogging(uint8_t const * const data) {
       newValue = (map(*data, 0, 200, newValueMin, newValueMax[config->pwm_range -1])) /10;  // map 0-200 into correct PWM range
       currentValue = (*data);
     }
-    
     analogWrite(pin, newValue);
     
 #ifdef DEBUG_OUTPUT
@@ -412,13 +404,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         rampStepCounter = 0;
         stateChangeWaitTime = convertTime(offDelayTime);
         // TODO: do not set lastStateChangeTime = now; for this case?
-//#ifdef DEBUG_OUTPUT
-//  hbwdebug(F("-once"));
-//#endif
       }
-//#ifdef DEBUG_OUTPUT
-//  hbwdebug(F("\n"));
-//#endif
     }
     else {
       bool setNewLevel = false;
@@ -594,7 +580,6 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         nextState = currentState;   // avoid to run into a loop
       }
       //if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
-      //if (currentValue != newLevel && setNewLevel) {   // check for current level. don't set same level again
       if (setNewLevel) {
         setOutput(device, &newLevel);   // checks for current level. don't set same level again
         setNewLevel = false;

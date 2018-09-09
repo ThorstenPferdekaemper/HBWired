@@ -31,11 +31,11 @@ void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAd
   uint8_t channelEEPROM;
   uint8_t actionType;
 
-  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (use max+1 for keyPressNum)
+  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (use extra element for keyPressNum)
   data[NUM_PEER_PARAMS] = keyPressNum;
   
   // read what to do from EEPROM
-  for(byte i = 0; i < numLinks; i++) {   
+  for(byte i = 0; i < numLinks; i++) {
 	  device->readEEPROM(&sndAddrEEPROM, eepromStart + EEPROM_SIZE * i, 4, true);
 	  // TODO: is the following really ok?
 	  //       it reads to all links, even if none is set 
@@ -86,4 +86,3 @@ void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAd
     }
   }
 }
-

@@ -25,4 +25,3 @@ class HBWLinkDimmerAdvanced : public HBWLinkReceiver {
 };
 
 #endif
-

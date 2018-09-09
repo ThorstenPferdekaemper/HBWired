@@ -281,7 +281,7 @@
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
 				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-					<address index="+12.1"/> <!-- 11.9 vs 12.1 to 12.3 -->
+					<address index="+12.1"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_RAMPON">

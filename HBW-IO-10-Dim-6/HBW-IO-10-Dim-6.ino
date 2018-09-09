@@ -4,8 +4,9 @@
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
-// PWM/0-10V/1-10V Master Dimmer + 10 digitale Eingänge
+// PWM/0-10V/1-10V Master Dimmer + 10 digitale Eingänge (Sensor)
 // - Direktes Peering für Dimmer möglich. (HBWLinkDimmerAdvanced)
+// - Direktes Peering für Taster möglich. (HBWLinkKey)
 //
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -30,7 +31,7 @@
 #define NUMBER_OF_DIM_CHAN 6  // PWM & analog output channels
 
 #define NUM_LINKS_DIM 20    // address step 42
-#define LINKADDRESSSTART_DIM 0x38   // ends @0x37F
+#define LINKADDRESSSTART_DIM 0x038   // ends @0x37F
 #define NUM_LINKS_INPUT 20    // address step 6
 #define LINKADDRESSSTART_INPUT 0x380   // ends @0x3F7
 
@@ -187,7 +188,7 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN,(HBWChannel**)channels,
                              NULL,
-                             new HBWLinkKey(NUM_LINKS_INPUT,LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM,LINKADDRESSSTART_DIM));
+                             new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
@@ -199,8 +200,7 @@ void setup()
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
-                             //new HBWLinkKey(NUM_LINKS_INPUT,LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM,LINKADDRESSSTART_DIM)); //TODO: fixme... not working with FHEM
-                             NULL, new HBWLinkDimmerAdvanced(NUM_LINKS_DIM,LINKADDRESSSTART_DIM));
+                             new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
 
