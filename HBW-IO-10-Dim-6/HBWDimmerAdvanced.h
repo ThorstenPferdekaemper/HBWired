@@ -18,9 +18,9 @@
 #include "HBWired.h"
 
 
-//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
+#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define RAMP_MIN_STEP_WIDTH 100 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 450ms
+#define RAMP_MIN_STEP_WIDTH 200 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 450ms
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY  0x00

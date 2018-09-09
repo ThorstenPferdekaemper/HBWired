@@ -10,7 +10,7 @@
 
 #include "HBWLinkDimmerAdvanced.h"
 
-#define EEPROM_SIZE 42   // "=address_step in XML"
+#define EEPROM_SIZE 42   // "address_step" in XML
 
 #define NUM_PEER_PARAMS 18   // number of bytes for long and short peering action each (without address and channel)
 
@@ -31,7 +31,7 @@ void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAd
   uint8_t channelEEPROM;
   uint8_t actionType;
 
-  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (+1 for keyPressNum)
+  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (use max+1 for keyPressNum)
   data[NUM_PEER_PARAMS] = keyPressNum;
   
   // read what to do from EEPROM
@@ -80,7 +80,7 @@ void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAd
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6 + NUM_PEER_PARAMS, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
      //         + 6+ NUM_PEER_PARAMS      //  LONG_ACTION_TYPE
      //         + 7+ NUM_PEER_PARAMS      //  LONG_ONDELAY_TIME
-     // ... and so on. Layout for LONG_* and SHORT_* must have the same layout
+     // ... and so on. Layout for LONG_* and SHORT_* must be the same
         device->set(targetChannel, NUM_PEER_PARAMS +1, data);    // channel, data length, data
       }
     }

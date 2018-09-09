@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-IO-10-Dim-6" name="RS485 6-channel master dimming actuator and 10 Digital inputs">
 		<parameter const_value="0x96" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="0" size="1" index="1"/>
-		<parameter const_value="0x0001" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
+		<parameter const_value="0x0003" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -40,6 +40,9 @@
 	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
 		<parameter size="0.3" index="12.4" type="integer" param="STATE_FLAGS"/>
+	</frame>
+	<frame id="STATE_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
+		<parameter size="1.0" index="11.0" type="integer" param="STATE"/>
 	</frame>
 	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
 		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
@@ -124,7 +127,7 @@
 			</parameter>
 		</paramset>
 		
-		<paramset type="LINK" id="hmw_blind_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x40" address_step="42">
+		<paramset type="LINK" id="hmw_dim_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x38" address_step="42">
 			<parameter id="UI_HINT">
 				<logical type="string" default="" use_default_on_failure="true"/>
 				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -278,11 +281,9 @@
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
 				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-					<address index="+11.9"/> <!-- 12.1 to 12.3 -->
+					<address index="+12.1"/> <!-- 11.9 vs 12.1 to 12.3 -->
 				</physical>
 			</parameter>
-			
-			<!-- TODO: implement new for dimming -->
 			<parameter id="SHORT_JT_RAMPON">
 				<logical type="option">
 					<option id="ONDELAY"/>
@@ -341,7 +342,7 @@
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom" index="+17.0"/> <!-- TODO: works like this? - check! -->
 			</parameter>
-			<parameter id="SHORT_ON_LEVEL_PRIO"> <!-- give prio to level and ontime -->
+			<parameter id="SHORT_ON_LEVEL_PRIO"> <!-- defines prio of level and ontime -->
 				<logical type="option">
 					<option id="HIGH" default="true"/>
 					<option id="LOW"/>
@@ -366,7 +367,6 @@
 					<address index="+17.4"/>
 				</physical>
 			</parameter>
-			
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
 					<special_value id="NOT_USED" value="378000"/><!-- TODO: fixme! FEHM not showing NOT_USED state.. -->
@@ -391,18 +391,6 @@
 					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
 				</conversion>
 			</parameter>
-			
-			<!-- TODO: implement other syntax? <parameter id="SHORT_RAMPON_TIME">
-<logical type="float" min="0.0" max="111600.0" default="0" unit="s"/>
-<physical type="integer" interface="config" list="3" index="0x13" size="1"/>
-<conversion type="float_configtime"/>
-</parameter>
-<parameter id="SHORT_RAMPOFF_TIME">
-<logical type="float" min="0.0" max="111600.0" default="0" unit="s"/>
-<physical type="integer" interface="config" list="3" index="0x14" size="1"/>
-<conversion type="float_configtime"/>
-</parameter>			-->
-			
 			<parameter id="SHORT_DIM_MIN_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
@@ -424,7 +412,7 @@
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_STEP">
-				<logical type="float" min="0" max="30" default="6" unit="30%"/> <!-- scale *2 on device (30% = level 60) -->
+				<logical type="float" min="0" max="30" default="10" unit="30%"/> <!-- scale *2 on device (30% = level 60) -->
 				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+22.4"/>
@@ -442,8 +430,6 @@
 					<address index="+23.4"/>
 				</physical>
 			</parameter>
-			
-
 			<parameter id="LONG_ON_TIME_MODE">
 				<logical type="option">
 					<option id="MINIMAL"/>
@@ -581,11 +567,10 @@
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
 				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
-					<address index="+29.9"/>
+					<address index="+30.1"/>
 				</physical>
 			</parameter>
 			
-			<!-- TODO: implement -->
 			<parameter id="LONG_JT_RAMPON">
 				<logical type="option">
 					<option id="ONDELAY"/>
@@ -671,7 +656,6 @@
 					<address index="+35.4"/>
 				</physical>
 			</parameter>
-
 			<parameter id="LONG_RAMPON_TIME"> <!-- TODO: implement. Change to 0.1 min value? -->
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
 					<special_value id="NOT_USED" value="378000"/>
@@ -696,18 +680,6 @@
 					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
 				</conversion>
 			</parameter>
-			
-			<!-- TODO: implement other syntax? <parameter id="LONG_RAMPON_TIME">
-<logical type="float" min="0.0" max="111600.0" default="0" unit="s"/>
-<physical type="integer" interface="config" list="3" index="0x13" size="1"/>
-<conversion type="float_configtime"/>
-</parameter>
-<parameter id="LONG_RAMPOFF_TIME">
-<logical type="float" min="0.0" max="111600.0" default="0" unit="s"/>
-<physical type="integer" interface="config" list="3" index="0x14" size="1"/>
-<conversion type="float_configtime"/>
-</parameter>			-->
-			
 			<parameter id="LONG_DIM_MIN_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
@@ -729,7 +701,7 @@
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_STEP">
-				<logical type="float" min="0" max="30" default="6" unit="30%"/>
+				<logical type="float" min="0" max="30" default="10" unit="30%"/>
 				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+40.4"/>
@@ -749,8 +721,7 @@
 			</parameter>
 		</paramset>
 
-
-		<paramset id="hmw_dim_ch_values" type="VALUES">
+		<paramset type="VALUES" id="hmw_dim_ch_values">
 			<parameter id="LEVEL" operations="read,write,event" control="DIMMER.LEVEL">
 				<logical type="float" unit="100%" default="0.0" max="1.0" min="0.0"/>
 				<physical type="integer" interface="command" value_id="LEVEL">
@@ -760,7 +731,6 @@
 				</physical>
 				<conversion type="float_integer_scale" factor="200"/>
 			</parameter>
-			
 			<parameter id="WORKING" operations="read,event" ui_flags="internal">
 				<logical type="boolean" default="false"/>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
@@ -785,5 +755,128 @@
 			</parameter>
 		</paramset>
 	</channel>
+	
+	<channel index="7" physical_index_offset="-1" count="10" type="SENSOR">
+		<paramset type="MASTER" id="hmw_sensor_ch_master" address_start="0x13" address_step="1">
+		    <parameter id="INPUT_LOCKED">
+                <logical type="boolean" default="false"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="+0.0"/>
+                </physical>
+                <conversion type="boolean_integer" invert="true"/>
+            </parameter>
+			<parameter id="INVERTED">
+                <logical type="boolean" default="false"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="+0.1"/>
+                </physical>
+                <conversion type="boolean_integer" invert="true"/>
+            </parameter>
+		</paramset>
+		
+		<paramset type="VALUES" id="hmw_sensor_ch_values">
+			<parameter id="SENSOR" operations="read,event" control="DOOR_SENSOR.STATE">
+				<logical type="boolean"/>
+				<physical type="integer" interface="command" value_id="STATE">
+					<event frame="STATE_LEVEL" auth_violate_policy="reject"/>
+					<get request="LEVEL_GET" response="STATE_LEVEL"/>
+				</physical>
+			</parameter>
+			<parameter id="INSTALL_TEST" operations="event" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TEST_COUNTER">
+					<event frame="STATE_LEVEL"/>
+				</physical>
+			</parameter>
+		</paramset>
+	</channel>
+	
+	<channel index="17" type="KEY" count="10" physical_index_offset="-1">
+		<link_roles>
+			<target name="SWITCH"/>
+		</link_roles>
+		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x1D" address_step="2">
+		    <parameter id="INPUT_LOCKED">
+                <logical type="boolean" default="false"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="+0.0"/>
+                </physical>
+                <conversion type="boolean_integer" invert="true"/>
+            </parameter>
+			<parameter id="INVERTED">
+                <logical type="boolean" default="false"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="+0.1"/>
+                </physical>
+                <conversion type="boolean_integer" invert="true"/>
+            </parameter>
+			<parameter id="PULLUP">
+                <logical type="boolean" default="true"/>
+                <physical size="0.1" type="integer" interface="eeprom">
+                    <address index="+0.2"/>
+                </physical>
+                <conversion type="boolean_integer" invert="false"/>
+            </parameter>
+			<parameter id="INPUT_TYPE">
+				<logical type="option">
+					<option id="DOORSENSOR" default="true"/>
+					<option id="MOTIONSENSOR"/>
+					<option id="SWITCH"/>
+					<option id="PUSHBUTTON"/>
+				</logical>
+				<physical size="0.2" type="integer" interface="eeprom">
+					<address index="+0.3"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_PRESS_TIME">
+				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+1"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
+				</conversion>
+			</parameter>
+		</paramset>
+		
+		<paramset id="hmw_input_ch_link" type="LINK" channel_param="CHANNEL" peer_param="ACTUATOR" count="20" address_start="0x380" address_step="6">
+            <parameter hidden="true" id="CHANNEL" operations="none">
+                <logical type="integer" default="255" max="255" min="0"/>
+                <physical size="1.0" type="integer" interface="eeprom">
+                    <address index="+0"/>
+                </physical>
+            </parameter>
+            <parameter hidden="true" id="ACTUATOR" operations="none">
+                <logical type="address"/>
+                <physical type="array">
+                    <physical size="4.0" type="integer" interface="eeprom">
+                        <address index="+1"/>
+                    </physical>
+                    <physical size="1.0" type="integer" interface="eeprom">
+                        <address index="+5"/>
+                    </physical>
+                </physical>
+            </parameter>
+        </paramset>
+		
+		<paramset type="VALUES" id="hbw_input_ch_values">
+			<parameter id="PRESS_SHORT" operations="event" loopback="true" control="BUTTON.SHORT">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<parameter id="PRESS_LONG" operations="event" loopback="true" control="BUTTON.LONG">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_LONG"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+		</paramset>
+	</channel>
+		
 </channels>
 </device>
