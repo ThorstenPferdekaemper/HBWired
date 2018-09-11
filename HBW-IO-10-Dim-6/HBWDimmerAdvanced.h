@@ -66,6 +66,8 @@
 
 #define DIM_UP true
 #define DIM_DOWN false
+#define ON_LEVEL_PRIO_HIGH  0
+#define ON_LEVEL_PRIO_LOW   1
 
 
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read

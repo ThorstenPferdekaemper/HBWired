@@ -30,7 +30,8 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config) {
   stateChangeWaitTime = 0;
   lastStateChangeTime = 0;
   currentState = UNKNOWN_STATE;
-  
+
+  currentOnLevelPrio = ON_LEVEL_PRIO_LOW;
   rampStepCounter = 0;
   offDelaySingleStep = false;
 };
@@ -58,11 +59,17 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   if (length >= NUM_PEER_PARAMS) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
     //peerParamActionType = *(data);
     peerParamActionType.byte = *(data);
+    peerConfigParam.byte = data[D_POS_peerConfigParam];
     uint8_t currentKeyNum = data[NUM_PEER_PARAMS];
 
-// TODO: add check for OnLevelPrio (currentOnLevelPrio && (onLevelPrio & currentOnLevelPrio))
     //if ((peerParamActionType & BITMASK_ActionType) >1) {   // ACTION_TYPE
-    if ((peerParamActionType.element.actionType) >1) {   // ACTION_TYPE
+    if (peerParamActionType.element.actionType >1) {   // ACTION_TYPE
+    if ((currentState == JT_ON) &&
+        (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && peerConfigParam.element.onLevelPrio == ON_LEVEL_PRIO_LOW)) { 
+          //do nothing in this case
+          //TODO: optimize condition - reduce code size
+    }
+    else {
       
       // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
       if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && peerParamActionType.element.longMultiexecute))) {
@@ -100,7 +107,8 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
           currentState = JT_ON;
         else
           currentState = JT_OFF;
-    
+
+        currentOnLevelPrio = peerConfigParam.element.onLevelPrio;
         nextState = currentState; // avoid state machine to run
         
   #ifdef DEBUG_OUTPUT
@@ -111,6 +119,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     hbwdebug(F("\n"));
   #endif
       }
+    }
     }
     else {
       // action type: JUMP_TO_TARGET
@@ -140,6 +149,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
     //if (!stateTimerRunning)??
     stateTimerRunning = false;
+    //TODO add peerConfigParam.element.onLevelPrio = HIGH to overwrite? then back to LOW after setOutput()??
     setOutput(device, data);
     
     // keep track of the operations state
@@ -275,6 +285,8 @@ uint8_t HBWDimmerAdvanced::getNextState(uint8_t bitshift) {
     if (currentState == JT_ON)
       //nextJump = (peerParamActionType & B10000000) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
       nextJump = (peerParamActionType.element.onTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
+      // TODO: add peerConfigParam.element.onLevelPrio
+      // does HIGH onLevelPrio overwrites ON_TIME_ABSOLUTE and vice versa?
     else if (currentState == JT_OFF)
       //nextJump = (peerParamActionType & B01000000) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
       nextJump = (peerParamActionType.element.offTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
@@ -380,7 +392,6 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
     // off delay blink
     else if (currentState == JT_OFFDELAY && rampStepCounter) {
       uint8_t newValue;
-      lastStateChangeTime = now;
       
       if (offDelayNewTimeActive) {
         newValue = currentValue - (peerConfigStep.element.offDelayStep *4);
@@ -393,22 +404,22 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         offDelayNewTimeActive = true;
         rampStepCounter--;
       }
-#ifdef DEBUG_OUTPUT
-  hbwdebug(F("BLINK "));
-#endif
-
+//#ifdef DEBUG_OUTPUT
+//  hbwdebug(F("BLINK "));
+//#endif
       setOutputNoLogging(&newValue);
       
-      if (offDelaySingleStep) {
+      if (offDelaySingleStep) {   // no blink, reduce level only once, reset counter and set wait time
         offDelaySingleStep = false;
         rampStepCounter = 0;
         stateChangeWaitTime = convertTime(offDelayTime);
-        // TODO: do not set lastStateChangeTime = now; for this case?
       }
+      else
+        lastStateChangeTime = now;    // only update in blink mode
     }
     else {
       bool setNewLevel = false;
-      rampStepCounter = 0;  // clear counter, when state change was forced TODO: needed?
+      rampStepCounter = 0;  // clear counter, when state change was forced
       
       if (currentState == nextState)  // no change to state, so must be time triggered
         stateTimerRunning = false;
@@ -429,7 +440,6 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
           nextState = getNextState(12);
           break;
         case JT_ON:       // jump from on state
-          //if (currentValue > onMinLevel) oldValue = currentValue;  // save current on value before off ramp or switching off
           oldValue = currentValue;  // save current on value before off ramp or switching off
           nextState = getNextState(3);
           break;
@@ -458,7 +468,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         switch (nextState) {
           
           case JT_ONDELAY:
-            if (peerConfigParam.element.onDelayMode == 0)  setNewLevel = true;
+            if (peerConfigParam.element.onDelayMode == 0)  setNewLevel = true;  //0=SET_TO_OFF, 1=NO_CHANGE
             stateChangeWaitTime = convertTime(onDelayTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
@@ -495,8 +505,24 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             break;
           
           case JT_ON:
-            newLevel = onLevel;
+            //newLevel = onLevel;
             setNewLevel = true;
+    #ifdef DEBUG_OUTPUT
+      hbwdebug(F("onLvlPrio:"));
+      hbwdebug(currentOnLevelPrio);
+    #endif
+            if (currentOnLevelPrio == peerConfigParam.element.onLevelPrio || peerConfigParam.element.onLevelPrio == ON_LEVEL_PRIO_HIGH) {
+              newLevel = onLevel;
+              currentOnLevelPrio = peerConfigParam.element.onLevelPrio;
+            }
+            else {
+              setNewLevel = false;
+            }
+    #ifdef DEBUG_OUTPUT
+      hbwdebug(F(" newPrio:"));
+      hbwdebug(currentOnLevelPrio);
+      hbwdebug(F("\n"));
+    #endif
             stateTimerRunning = false;
             currentState = JT_ON;
             break;

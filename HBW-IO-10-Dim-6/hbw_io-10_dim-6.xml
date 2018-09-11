@@ -342,7 +342,7 @@
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom" index="+17.0"/> <!-- TODO: works like this? - check! -->
 			</parameter>
-			<parameter id="SHORT_ON_LEVEL_PRIO"> <!-- defines prio of level and ontime -->
+			<parameter id="SHORT_ON_LEVEL_PRIO"> <!-- defines prio of onlevel and ontime -->
 				<logical type="option">
 					<option id="HIGH" default="true"/>
 					<option id="LOW"/>

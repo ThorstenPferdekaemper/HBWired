@@ -20,7 +20,7 @@
 // v0.3
 // - added input channels: Key & Sensor
 //
-// TODO: Implement dim peering params: ON_LEVEL_PRIO, RAMP_START_STEP
+// TODO: Implement dim peering params: ON_LEVEL_PRIO for onTime, RAMP_START_STEP
 
 
 #define HARDWARE_VERSION 0x01
