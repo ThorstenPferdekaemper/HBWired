@@ -20,7 +20,7 @@
 
 #define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define RAMP_MIN_STEP_WIDTH 200 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 450ms
+#define RAMP_MIN_STEP_WIDTH 70 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 240ms
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY  0x00
@@ -100,7 +100,7 @@ class HBWDimmerAdvanced : public HBWChannel {
     void setOutputNoLogging(uint8_t const * const data);
     void setOutput(HBWDevice* device, uint8_t const * const data);
     uint8_t dimUpDown(uint8_t const * const data, boolean dimUp);
-    void prepareOnOffRamp(uint8_t rampTime);
+    void prepareOnOffRamp(uint8_t rampTime, uint8_t level);
     uint8_t getNextState(uint8_t bitshift);
     inline uint32_t convertTime(uint8_t timeValue);
     
@@ -114,8 +114,11 @@ class HBWDimmerAdvanced : public HBWChannel {
       } element;
       uint8_t byte:8;
     } peerParamActionType;
+//    uint8_t peerParamActionType;
 //#define BITMASK_ActionType        B00001111
-//#define BITMASK_LongMultiexecute  B00010000
+//#define BITMASK_LongMultiexecute  B00100000
+//#define BITMASK_OffTimeMode       B01000000
+//#define BITMASK_OnTimeMode        B10000000
     uint8_t onDelayTime;
     uint8_t onTime;
     uint8_t offDelayTime;

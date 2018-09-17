@@ -73,6 +73,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
       
       // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
       if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && peerParamActionType.element.longMultiexecute))) {
+      //if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && (peerParamActionType & BITMASK_LongMultiexecute)))) {
         byte level = currentValue;
 
         //switch (peerParamActionType & BITMASK_ActionType) {
@@ -273,22 +274,22 @@ uint8_t HBWDimmerAdvanced::getNextState(uint8_t bitshift) {
   
   if (nextJump == JT_ON) {
     if (onTime != 0xFF)      // not used is 0xFF
-      //nextJump = (peerParamActionType & B10000000) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
+      //nextJump = (peerParamActionType & BITMASK_OnTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
       nextJump = (peerParamActionType.element.onTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
   }
   else if (nextJump == JT_OFF) {
     if (offTime != 0xFF)      // not used is 0xFF
-      //nextJump = (peerParamActionType & B01000000) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
+      //nextJump = (peerParamActionType & BITMASK_OffTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
       nextJump = (peerParamActionType.element.offTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
   }
   if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running, but update forced
     if (currentState == JT_ON)
-      //nextJump = (peerParamActionType & B10000000) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
+      //nextJump = (peerParamActionType & BITMASK_OnTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
       nextJump = (peerParamActionType.element.onTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
       // TODO: add peerConfigParam.element.onLevelPrio
       // does HIGH onLevelPrio overwrites ON_TIME_ABSOLUTE and vice versa?
     else if (currentState == JT_OFF)
-      //nextJump = (peerParamActionType & B01000000) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
+      //nextJump = (peerParamActionType & BITMASK_OffTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
       nextJump = (peerParamActionType.element.offTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
   }
   return nextJump;
@@ -321,15 +322,16 @@ uint32_t HBWDimmerAdvanced::convertTime(uint8_t timeValue) {
 };
 
 
-/* private function - sets all variables for On/OffRamp. "rampStepCounter" must be set prior calling this function */
-void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime) {
+/* private function - sets all variables required for On/OffRamp */
+void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime, uint8_t level) {
 
-  stateChangeWaitTime = convertTime(rampTime);
+  //stateChangeWaitTime = convertTime(rampTime);
   
-  if (stateChangeWaitTime != 255 && stateChangeWaitTime != 0 && rampStepCounter) {   // time == 0xFF when not used
-  // TODO: && onLevel > onMinLevel ???
-    //rampStepCounter = (onLevel - onMinLevel) *10;
-
+  if (rampTime != 255 && rampTime != 0 && (level > onMinLevel)) {   // time == 0xFF when not used
+    
+    stateChangeWaitTime = convertTime(rampTime);
+    rampStepCounter = (level - onMinLevel) *10;  // do not create overflow by subtraction
+    
     if (stateChangeWaitTime > rampStepCounter * (RAMP_MIN_STEP_WIDTH/10)) {
       rampStep = 10;      // factor 10
       stateChangeWaitTime = stateChangeWaitTime / (rampStepCounter /10);
@@ -350,6 +352,8 @@ void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime) {
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("stChgWaitTime: "));
   hbwdebug(stateChangeWaitTime);
+  hbwdebug(F(" RmpStCt: "));
+  hbwdebug(rampStepCounter);
   hbwdebug(F(" RmpSt: "));
   hbwdebug(rampStep);
   hbwdebug(F("\n"));
@@ -496,8 +500,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
       hbwdebug(onLevel);
       hbwdebug(F("\n"));
     #endif
-            rampStepCounter = (onLevel - onMinLevel) *10;
-            prepareOnOffRamp(rampOnTime); // rampStepCounter must be calculated before calling
+            prepareOnOffRamp(rampOnTime, onLevel);
             rampStepCounter -= rampStep; // reduce by one step, as we go to min. on level immediately
             newLevel = onMinLevel;
             setNewLevel = true;
@@ -549,11 +552,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             break;
             
           case JT_RAMP_OFF:
-            if (currentValue > onMinLevel)
-              rampStepCounter = (currentValue - onMinLevel) *10;  // do not create overflow by subtraction
-            else
-              rampStepCounter = 0;
-            prepareOnOffRamp(rampOffTime);
+            prepareOnOffRamp(rampOffTime, currentValue);
             currentState = JT_RAMP_OFF;
             break;
             
