@@ -12,21 +12,6 @@
 
 #include "HBWSwitchAdvanced.h"
 
-//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
-
-// peering/link values must match the XML/EEPROM values!
-#define JT_ONDELAY 0x00
-#define JT_ON 0x01
-#define JT_OFFDELAY 0x02
-#define JT_OFF 0x03
-#define JT_NO_JUMP_IGNORE_COMMAND 0x04
-#define ON_TIME_ABSOLUTE 0x0A
-#define OFF_TIME_ABSOLUTE 0x0B
-#define ON_TIME_MINIMAL 0x0C
-#define OFF_TIME_MINIMAL 0x0D
-#define UNKNOWN_STATE 0xFF
-#define FORCE_STATE_CHANGE 0xFE
-
 
 // Switches
 HBWSwitchAdvanced::HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config) {
@@ -39,7 +24,7 @@ HBWSwitchAdvanced::HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config) {
   offTime = 0xFF;
   jumpTargets.WORD = 0;
   stateTimerRunning = false;
-  stateCangeWaitTime = 0;
+  stateChangeWaitTime = 0;
   lastStateChangeTime = 0;
   currentState = UNKNOWN_STATE;
 };
@@ -70,15 +55,15 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   
   if (length >= 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
     actiontype = *(data);
-    uint8_t keyEvent = data[7];
+    uint8_t currentKeyNum = data[7];
 
     if ((actiontype & B00001111) >1) {   // TOGGLE_USE
-      if (!stateTimerRunning && lastKeyEvent != keyEvent) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
+      if (!stateTimerRunning && lastKeyNum != currentKeyNum) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
         byte level;
         if ((actiontype & B00001111) == 2)   // TOGGLE_TO_COUNTER
-          level = ((keyEvent %2 == 0) ? 0 : 200);  //  (switch ON at odd numbers, OFF at even numbers)
+          level = ((currentKeyNum %2 == 0) ? 0 : 200);  //  (switch ON at odd numbers, OFF at even numbers)
         else if ((actiontype & B00001111) == 3)   // TOGGLE_INVERSE_TO_COUNTER
-          level = ((keyEvent %2 == 0) ? 200 : 0);
+          level = ((currentKeyNum %2 == 0) ? 200 : 0);
         else   // TOGGLE
           level = 255;
         
@@ -86,7 +71,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
         nextState = currentState; // avoid state machine to run
       }
     }
-    else if (lastKeyEvent == keyEvent && !(bitRead(actiontype,5))) {
+    else if (lastKeyNum == currentKeyNum && !(bitRead(actiontype,5))) {
       // repeated key event, must be long press: LONG_MULTIEXECUTE not enabled
     }
     else {
@@ -100,7 +85,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
 
       nextState = FORCE_STATE_CHANGE; // force update
     }
-    lastKeyEvent = keyEvent;  // store key press number, to identify repeated key events
+    lastKeyNum = currentKeyNum;  // store key press number, to identify repeated key events
   }
   else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
     //if (!stateTimerRunning)??
@@ -113,11 +98,11 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
 
 uint8_t HBWSwitchAdvanced::get(uint8_t* data) {
   
-	if (digitalRead(pin) ^ config->n_inverted)
-		(*data) = 0;
-	else
-		(*data) = 200;
-	return 1;
+  if (digitalRead(pin) ^ config->n_inverted)
+    (*data) = 0;
+  else
+    (*data) = 200;
+  return 1;
 };
 
 
@@ -200,7 +185,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
  //*** state machine begin ***//
   bool setNewLevel = false;
 
-  if (((now - lastStateChangeTime > stateCangeWaitTime) && stateTimerRunning) || currentState != nextState) {
+  if (((now - lastStateChangeTime > stateChangeWaitTime) && stateTimerRunning) || currentState != nextState) {
 
     if (currentState == nextState)  // no change to state, so must be time triggered
       stateTimerRunning = false;
@@ -241,7 +226,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
       
       switch (nextState) {
         case JT_ONDELAY:
-          stateCangeWaitTime = convertTime(onDelayTime);
+          stateChangeWaitTime = convertTime(onDelayTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           currentState = JT_ONDELAY;
@@ -254,7 +239,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
           break;
           
         case JT_OFFDELAY:
-          stateCangeWaitTime = convertTime(offDelayTime);
+          stateChangeWaitTime = convertTime(offDelayTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           currentState = JT_OFFDELAY;
@@ -269,7 +254,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         case ON_TIME_ABSOLUTE:
           newLevel = 200;
           setNewLevel = true;
-          stateCangeWaitTime = convertTime(onTime);
+          stateChangeWaitTime = convertTime(onTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           nextState = JT_ON;
@@ -278,7 +263,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         case OFF_TIME_ABSOLUTE:
           //newLevel = 0; // 0 is default
           setNewLevel = true;
-          stateCangeWaitTime = convertTime(offTime);
+          stateChangeWaitTime = convertTime(offTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           nextState = JT_OFF;
@@ -288,7 +273,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
           newLevel = 200;
           setNewLevel = true;
           if (now - lastStateChangeTime < convertTime(onTime)) {
-            stateCangeWaitTime = convertTime(onTime);
+            stateChangeWaitTime = convertTime(onTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
           }
@@ -299,7 +284,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
           //newLevel = 0; // 0 is default
           setNewLevel = true;
           if (now - lastStateChangeTime < convertTime(offTime)) {
-            stateCangeWaitTime = convertTime(offTime);
+            stateChangeWaitTime = convertTime(offTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
           }
@@ -319,21 +304,21 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
   //*** state machine end ***//
 
   
-	// feedback trigger set?
+  // feedback trigger set?
     if(!nextFeedbackDelay) return;
     now = millis();
     if(now - lastFeedbackTime < nextFeedbackDelay) return;
     lastFeedbackTime = now;  // at least last time of trying
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-	// we know that the level has only 1 byte here
-	uint8_t level;
-    get(&level);	
+  // we know that the level has only 1 byte here
+  uint8_t level;
+    get(&level);  
     uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
     if(errcode == 1) {  // bus busy
     // try again later, but insert a small delay
-    	nextFeedbackDelay = 250;
+      nextFeedbackDelay = 250;
     }else{
-    	nextFeedbackDelay = 0;
+      nextFeedbackDelay = 0;
     }
 }
 
