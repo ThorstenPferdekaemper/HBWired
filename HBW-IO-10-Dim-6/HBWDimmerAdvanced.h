@@ -18,9 +18,9 @@
 #include "HBWired.h"
 
 
-#define DEBUG_OUTPUT   // extra debug output on serial/USB
+#define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
 
-#define RAMP_MIN_STEP_WIDTH 70 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 240ms
+#define RAMP_MIN_STEP_WIDTH 130 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 240ms
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY  0x00
@@ -60,7 +60,7 @@
 #define D_POS_dimMaxLevel    15
 #define D_POS_peerConfigStep 16
 #define D_POS_peerConfigOffDtime 17
-#define D_POS_peerKeyPressNum    18 // last array element used for keyPressNum
+#define D_POS_peerKeyPressNum    18 // last array element always used for keyPressNum
 
 #define ON_LEVEL_USE_OLD_VALUE  202
 
@@ -89,6 +89,7 @@ class HBWDimmerAdvanced : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
+    
   private:
     uint8_t pin;
     hbw_config_dim* config; // logging
@@ -166,8 +167,8 @@ class HBWDimmerAdvanced : public HBWChannel {
     volatile unsigned long lastStateChangeTime;
     uint8_t lastKeyNum;
 
-    volatile uint16_t rampStepCounter;
-    uint8_t rampStep;
+    uint16_t rampStepCounter;
+    uint16_t rampStep;
     boolean offDelayNewTimeActive;
     boolean offDelaySingleStep;
 };
