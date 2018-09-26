@@ -19,9 +19,7 @@ HBWLinkDimmerAdvanced::HBWLinkDimmerAdvanced(uint8_t _numLinks, uint16_t _eeprom
 	eepromStart = _eepromStart;
 }
  
-// processKeyEvent wird aufgerufen, wenn ein Tastendruck empfangen wurde
-// TODO: von wem aufgerufen? Direkt von der Tasten-Implementierung oder vom Device? 
-//       wahrscheinlich besser vom Device ueber sendKeyEvent
+// receiveKeyEvent wird aufgerufen, wenn ein Tastendruck empfangen wurde
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
 void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
@@ -86,3 +84,4 @@ void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAd
     }
   }
 }
+

@@ -5,7 +5,7 @@
 #include "HBWired.h"
 
 
-#define DEBUG_OUTPUT   // extra debug output on serial/USB
+//#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
 #define DEBOUNCE_TIME 865  // ms
 

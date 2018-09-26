@@ -155,7 +155,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
   //handle blinds
   
   uint8_t data;
-  now = millis();
+  unsigned long now = millis();
 
   if ((blindForceNextState == true) || (now - blindTimeLastAction >= blindNextStateDelayTime)) {
 
@@ -163,10 +163,6 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
       case RELAIS_OFF:
         // Switch off the "direction" relay
         digitalWrite(blindDir, OFF);
-
-        // debug message
-//        debugStateChange(blindNextState, channel);
-
         blindCurrentState = RELAIS_OFF;
         blindTimeLastAction = now;
         blindNextStateDelayTime = 20000;  // time is increased to avoid cyclic call
@@ -182,9 +178,6 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         // switch on the "direction" relay
         digitalWrite(blindDir, blindDirection);
 
-        // debug message
-//        debugStateChange(blindNextState, channel);
-
         // Set next state & delay time
         blindCurrentState = WAIT;
         blindNextState = TURN_AROUND;
@@ -197,10 +190,6 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
       case MOVE:
         // switch on the "active" relay
         digitalWrite(blindAct, ON);
-
-        // debug message
-//        debugStateChange(blindNextState, channel);
-
         blindTimeStart = now;
         blindTimeLastAction = now;
         blindPositionLast = blindPositionActual;
@@ -255,9 +244,6 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         // switch off the "active" relay
         digitalWrite(blindAct, OFF);
 
-        // debug message
-//        debugStateChange(blindNextState, channel);
-
         // Set next state & delay time
         blindCurrentState = STOP;
         blindNextState = RELAIS_OFF;
@@ -278,10 +264,6 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         digitalWrite(blindAct, ON);
         blindTimeStart = now;
         blindTimeLastAction = now;
-
-        // debug message
-//        debugStateChange(blindNextState, channel);
-
         blindCurrentState = TURN_AROUND;
         blindNextState = MOVE;
         if (blindDirection == UP)	// Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
@@ -292,13 +274,9 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         
 
       case SWITCH_DIRECTION:
-
         // switch off the "active" relay
         digitalWrite(blindAct, OFF);
         blindTimeLastAction = now;
-
-        // debug message
-//        debugStateChange(blindNextState, channel);
 
         // Set current state, next state & delay time
         blindCurrentState = SWITCH_DIRECTION;
@@ -331,6 +309,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
 
 
 void HBWChanBl::getCurrentPosition() {
+  unsigned long now = millis();
   
   if (blindCurrentState == MOVE) {
     if (blindDirection == UP) {

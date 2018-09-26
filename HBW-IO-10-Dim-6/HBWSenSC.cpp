@@ -1,9 +1,11 @@
 /*
  * HBWSenSC.cpp
- *
- * Updated: 09.09.2018
  * 
- * sensor/shutter contact
+ * sensor/shutter contact 
+ * 
+ * Updated: 09.09.2018
+ * www.loetmeister.de
+ * 
  */
 
 #include "HBWSenSC.h"
@@ -19,6 +21,7 @@ HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config) {
 };
 
 
+// channel specific settings or defaults
 void HBWSenSC::afterReadConfig() {
     
 #ifdef DEBUG_OUTPUT
@@ -29,6 +32,7 @@ void HBWSenSC::afterReadConfig() {
 };
 
 
+/* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWSenSC::get(uint8_t* data) {
   
   if (currentValue)
@@ -39,6 +43,7 @@ uint8_t HBWSenSC::get(uint8_t* data) {
 };
 
 
+/* standard public function - called by main loop for every channel in sequential order */
 void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
   
   if (config->n_input_locked) {   // not locked?
@@ -50,13 +55,13 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
     uint32_t now = millis();
       
     if (!keyPressedMillis) {
-        // Taste war vorher nicht gedrueckt
-        keyPressedMillis = now ? now : 1;
-      }
-      else if (now - keyPressedMillis >= DEBOUNCE_TIME) {
-        currentValue = buttonState;
-        keyPressedMillis = 0;
-        //TODO: check if broadcast message should be send on state changes?
+      // Taste war vorher nicht gedrueckt
+      keyPressedMillis = now ? now : 1;
+    }
+    else if (now - keyPressedMillis >= DEBOUNCE_TIME) {
+      currentValue = buttonState;
+      keyPressedMillis = 0;
+      //TODO: check if broadcast message should be send on state changes? (avoid risk to 'spam' the bus?)
         
   #ifdef DEBUG_OUTPUT
     hbwdebug(F("SC-ch:"));
@@ -69,3 +74,4 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
     }
   }
 };
+

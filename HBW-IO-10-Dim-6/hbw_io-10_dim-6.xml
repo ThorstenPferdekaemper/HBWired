@@ -514,7 +514,7 @@
 					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
 				</conversion>
 			</parameter>
-				<parameter id="LONG_JT_ONDELAY">
+			<parameter id="LONG_JT_ONDELAY">
 				<logical type="option">
 					<option id="ONDELAY"/>
 					<option id="RAMPON" default="true"/>

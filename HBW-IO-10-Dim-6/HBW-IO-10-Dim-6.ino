@@ -12,12 +12,12 @@
 //
 //*******************************************************************
 // Changes
-// v0.1
+// v0.01
 // - initial version
-// v0.2
+// v0.02
 // - added OFFDELAY_BLINK, OFFDELAY_STEP peering setting
 // - clean-up
-// v0.3
+// v0.03
 // - added input channels: Key & Sensor
 //
 // TODO: Implement dim peering params: ON_LEVEL_PRIO for onTime, RAMP_START_STEP
@@ -43,11 +43,11 @@
 #include "FreeRam.h"
 
 // HB Wired protocol and module
-#include "HBWired.h"
+#include <HBWired.h>
 #include "HBWLinkDimmerAdvanced.h"
 #include "HBWDimmerAdvanced.h"
-#include "HBWLinkKey.h"
-#include "HBWKey.h"
+#include <HBWLinkKey.h>
+#include <HBWKey.h>
 #include "HBWSenSC.h"
 
 // Pins
@@ -206,8 +206,6 @@ void setup()
 
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
-  hbwdebug(F(" szChan:"));
-  hbwdebug(sizeof(channels));
   hbwdebug(F("\n"));
   
   // show timer register for debug purpose
