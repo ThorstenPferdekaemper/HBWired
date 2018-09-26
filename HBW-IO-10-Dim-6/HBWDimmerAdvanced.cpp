@@ -353,7 +353,7 @@ void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime, uint8_t level) {
   stateTimerRunning = true;
 
 #ifdef DEBUG_OUTPUT
-  hbwdebug(F(" stChgWaitTime: "));
+  hbwdebug(F("stChgWaitTime: "));
   hbwdebug(stateChangeWaitTime);
   hbwdebug(F(" RmpStCt: "));
   hbwdebug(rampStepCounter);

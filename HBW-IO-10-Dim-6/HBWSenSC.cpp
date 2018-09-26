@@ -17,7 +17,6 @@ HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config) {
   keyPressedMillis = 0;
   currentValue = false;
   pinMode(pin, INPUT);
-  //pinMode(pin, INPUT_PULLUP);
 };
 
 

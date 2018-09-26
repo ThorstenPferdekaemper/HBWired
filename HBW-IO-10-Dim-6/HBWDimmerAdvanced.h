@@ -115,7 +115,6 @@ class HBWDimmerAdvanced : public HBWChannel {
       } element;
       uint8_t byte:8;
     } peerParamActionType;
-//    uint8_t peerParamActionType;
 //#define BITMASK_ActionType        B00001111
 //#define BITMASK_LongMultiexecute  B00100000
 //#define BITMASK_OffTimeMode       B01000000

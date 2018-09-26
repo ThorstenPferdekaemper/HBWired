@@ -41,8 +41,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
     bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
     
     switch (config->input_type) {
-    case IN_SWITCH:
-      // sends a short KeyEvent, each time the switch changes the polarity
+      case IN_SWITCH:
+    // sends a short KeyEvent, each time the switch changes the polarity
         if (buttonState) {
           if (!keyPressedMillis) {
            // Taste war vorher nicht gedrueckt
@@ -111,7 +111,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
         }
         break;
     
-     case IN_MOTIONSENSOR:
+      case IN_MOTIONSENSOR:
     // sends a short KeyEvent for raising or falling edge - not both
         if (buttonState) {
           if (!keyPressedMillis) {
@@ -136,7 +136,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
         break;
     
 #ifdef IN_DOORSENSOR
-    case IN_DOORSENSOR:
+      case IN_DOORSENSOR:
     // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
         if (buttonState) {
           if (!keyPressedMillis) {
