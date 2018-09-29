@@ -1,7 +1,7 @@
 /*
  * HBWKey.cpp
  *
- * Updated (www.loetmeister.de): 09.09.2018
+ * Updated (www.loetmeister.de): 29.09.2018
  * - Added: input_locked, n_inverted, input_type (SWITCH, MOTIONSENSOR, DOORSENSOR)
  * - Changes require new XML layout for config!
  * 
@@ -36,7 +36,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   
   uint32_t now = millis();
   
-  if (config->n_input_locked) {
+  if (config->n_input_locked) {   // skip locked channels
     
     bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
     
@@ -128,7 +128,6 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
         }
         else {
           if (lastSentLong) {
-            //keyPressNum++;
             lastSentLong = 0;
           }
           keyPressedMillis = 0;
@@ -138,27 +137,18 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
 #ifdef IN_DOORSENSOR
       case IN_DOORSENSOR:
     // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
-        if (buttonState) {
+        if (buttonState != oldButtonState) {
           if (!keyPressedMillis) {
-            // Taste war vorher nicht gedrueckt
             keyPressedMillis = now ? now : 1;
           }
-          else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
-            // if bus is not idle, retry next time
-            if (device->sendKeyEvent(channel, keyPressNum, false) == 0) {
-             keyPressNum++;
-             lastSentLong = now ? now : 1;
+          else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+            if (device->sendKeyEvent(channel, keyPressNum, !buttonState) == 0) {
+              keyPressNum++;
+              oldButtonState = buttonState;
             }
           }
         }
         else {
-          if (lastSentLong) {
-            // if bus is not idle, retry next time
-            if (device->sendKeyEvent(channel, keyPressNum, true) == 0) {
-              keyPressNum++;
-              lastSentLong = 0;
-            }
-          }
           keyPressedMillis = 0;
         }
         break;

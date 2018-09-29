@@ -8,7 +8,8 @@
 //#define DEBUG_OUTPUT
 
 #define KEY_DEBOUNCE_TIME 65  // ms
-#define SWITCH_DEBOUNCE_TIME 155  // ms
+#define SWITCH_DEBOUNCE_TIME 145  // ms
+#define DOORSENSOR_DEBOUNCE_TIME 330  // ms
 
 #define IN_DOORSENSOR   0    // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
 #define IN_MOTIONSENSOR 1    // sends a short KeyEvent for raising or falling edge - not both
@@ -32,12 +33,14 @@ class HBWKey : public HBWChannel {
     HBWKey(uint8_t _pin, hbw_config_key* _config);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void afterReadConfig();
+	
   private:
     uint8_t pin;   // Pin
     uint32_t keyPressedMillis;  // Zeit, zu der die Taste gedrueckt wurde (fuer's Entprellen)
     uint32_t lastSentLong;      // Zeit, zu der das letzte Mal longPress gesendet wurde
     uint8_t keyPressNum;
     hbw_config_key* config;
+	boolean oldButtonState;
 };
 
 #endif
