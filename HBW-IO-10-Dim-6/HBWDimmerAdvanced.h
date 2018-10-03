@@ -20,7 +20,7 @@
 
 #define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
 
-#define RAMP_MIN_STEP_WIDTH 130 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 240ms
+#define RAMP_MIN_STEP_WIDTH 250//160 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 250ms
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY  0x00
@@ -162,8 +162,8 @@ class HBWDimmerAdvanced : public HBWChannel {
     boolean currentOnLevelPrio;
     uint8_t currentState;
     uint8_t nextState;
-    unsigned long stateChangeWaitTime;
-    volatile unsigned long lastStateChangeTime;
+    uint32_t stateChangeWaitTime;
+    volatile uint32_t lastStateChangeTime;
     uint8_t lastKeyNum;
 
     uint16_t rampStepCounter;

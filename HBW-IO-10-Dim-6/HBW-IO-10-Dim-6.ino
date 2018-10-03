@@ -19,16 +19,19 @@
 // - clean-up
 // v0.03
 // - added input channels: Key & Sensor
+// v0.04
+// - added input channel: Bus voltage
 //
 // TODO: Implement dim peering params: ON_LEVEL_PRIO for onTime, RAMP_START_STEP
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0003
+#define FIRMWARE_VERSION 0x0004
 
 #define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
-#define NUMBER_OF_SEN_INPUT_CHAN 10  // same number of sensor channels, mapped to INPUT_CHAN
+#define NUMBER_OF_SEN_INPUT_CHAN 10  // equal number of sensor channels, using same ports/IOs as INPUT_CHAN
 #define NUMBER_OF_DIM_CHAN 6  // PWM & analog output channels
+#define NUMBER_OF_ANALOG_CHAN 1  // analog input channels
 
 #define NUM_LINKS_DIM 20    // address step 42
 #define LINKADDRESSSTART_DIM 0x038   // ends @0x37F
@@ -49,11 +52,13 @@
 #include <HBWLinkKey.h>
 #include <HBWKey.h>
 #include "HBWSenSC.h"
+#include "HBWAnalogIn.h"
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
+  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
   #define PWM1 3  // PWM out (controlled by timer2)
   #define PWM2_DAC 5  // PWM out (controlled by timer0)
@@ -72,12 +77,12 @@
   #define ADC4 A3
   #define ADC5 A4
   #define ADC6 A5
-  
 #else
   #define RS485_RXD 4
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
   #define BUTTON 8  // Button fuer Factory-Reset etc.
+  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
   #define PWM1 NOT_A_PIN  // dummy pin to fill the array elements
   #define PWM2_DAC 5
@@ -105,7 +110,7 @@
 #define LED LED_BUILTIN        // Signal-LED
 
 #define NUMBER_OF_DIM NUMBER_OF_DIM_DAC + NUMBER_OF_DIM_PWM
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_ANALOG_CHAN
 
 
 struct hbw_config {
@@ -116,6 +121,7 @@ struct hbw_config {
   hbw_config_dim dimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x12 (address step 2)
   hbw_config_senSC senCfg[NUMBER_OF_SEN_INPUT_CHAN]; // 0x13 - 0x1C (address step 1)
   hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
+  hbw_config_analog_in adcInCfg[NUMBER_OF_ANALOG_CHAN]; // 0x31 - 0x32 (address step 2)
 } hbwconfig;
 
 
@@ -173,13 +179,16 @@ void setup()
   byte digitalInput[10] = {IO1, IO2, IO3, IO4, ADC1, ADC2, ADC3, ADC4, ADC5, ADC6};  // assing pins
   
   for(uint8_t i = 0; i < NUMBER_OF_INPUT_CHAN; i++) {
-    channels[i +NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]));
-    channels[i +NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
   };
 #else
   #error Input channel count and pin missmatch!
 #endif
 
+#if NUMBER_OF_ANALOG_CHAN == 1
+  channels[NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWAnalogIn(ADC_BUS_VOLTAGE, &(hbwconfig.adcInCfg[0]));
+#endif
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);

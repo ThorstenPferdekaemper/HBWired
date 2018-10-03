@@ -57,12 +57,11 @@ void HBWDimmerAdvanced::afterReadConfig() {
 void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
   if (length >= NUM_PEER_PARAMS) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
-    //peerParamActionType = *(data);
+    
     peerParamActionType.byte = *(data);
     peerConfigParam.byte = data[D_POS_peerConfigParam];
     uint8_t currentKeyNum = data[NUM_PEER_PARAMS];
 
-    //if ((peerParamActionType & BITMASK_ActionType) >1) {   // ACTION_TYPE
     if (peerParamActionType.element.actionType >1) {   // ACTION_TYPE
       if ((currentState == JT_ON) &&
           (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && peerConfigParam.element.onLevelPrio == ON_LEVEL_PRIO_LOW)) { 
@@ -70,10 +69,9 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
             //TODO: optimize condition - reduce code size
       }
       else {
-        
         // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
         if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && peerParamActionType.element.longMultiexecute))) {
-        //if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && (peerParamActionType & BITMASK_LongMultiexecute)))) {
+          
           byte level = currentValue;
   
           //switch (peerParamActionType & BITMASK_ActionType) {
@@ -185,7 +183,7 @@ uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) 
       }
     }
     else {
-      level = data[D_POS_dimMaxLevel];  // TODO: only set, if current prio is low or new value is with high prio
+      level = data[D_POS_dimMaxLevel];
     }
   }
   // DOWNDIM
@@ -200,7 +198,7 @@ uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) 
         level = data[D_POS_offLevel];
     }
     else
-      level = data[D_POS_dimMinLevel];  // TODO: only set, if current prio is low or new value is with high prio
+      level = data[D_POS_dimMinLevel];
   }
   
   return level;
@@ -285,7 +283,7 @@ uint8_t HBWDimmerAdvanced::getNextState(uint8_t bitshift) {
       //nextJump = (peerParamActionType & BITMASK_OffTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
       nextJump = (peerParamActionType.element.offTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
   }
-  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running, but update forced
+  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running, but update forced // TODO: integrate into above "if". ?Fix: not checking time for 0xFF?
     if (currentState == JT_ON)
       //nextJump = (peerParamActionType & BITMASK_OnTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
       nextJump = (peerParamActionType.element.onTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
@@ -327,16 +325,13 @@ uint32_t HBWDimmerAdvanced::convertTime(uint8_t timeValue) {
 
 /* private function - sets all variables required for On/OffRamp */
 void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime, uint8_t level) {
-
-  //stateChangeWaitTime = convertTime(rampTime);
   
-  if (rampTime != 255 && rampTime != 0 && (level > onMinLevel)) {   // time == 0xFF when not used
-    
+  if (rampTime != 255 && rampTime != 0 && (level > onMinLevel)) {   // time == 0xFF when not used  
     stateChangeWaitTime = convertTime(rampTime);
-    rampStepCounter = (level - onMinLevel) *10;  // do not create overflow by subtraction
+    rampStepCounter = (level - onMinLevel) *10;  // do not create overflow by subtraction (level > onMinLevel)
     
     if (stateChangeWaitTime > rampStepCounter * (RAMP_MIN_STEP_WIDTH/10)) {
-      rampStep = 10;      // factor 10
+      rampStep = 10;      // factor 10 (1 step = 0.5%)
       stateChangeWaitTime = stateChangeWaitTime / (rampStepCounter /10);
     }
     else {
@@ -347,6 +342,7 @@ void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime, uint8_t level) {
   else {
     rampStepCounter = 0;
     rampStep = 0;
+    stateChangeWaitTime = 0;
   }
   
   lastStateChangeTime = millis();
@@ -565,6 +561,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             break;
             
           case ON_TIME_ABSOLUTE:
+          //TODO: add peerConfigParam.element.onLevelPrio. Keep onLevel and onTime if onLevelPrio high?
             newLevel = onLevel;
             setNewLevel = true;
             stateChangeWaitTime = convertTime(onTime);

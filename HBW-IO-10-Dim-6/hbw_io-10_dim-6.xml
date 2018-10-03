@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-IO-10-Dim-6" name="RS485 6-channel master dimming actuator and 10 Digital inputs">
 		<parameter const_value="0x96" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="0" size="1" index="1"/>
-		<parameter const_value="0x0003" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
+		<parameter const_value="0x0004" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -65,6 +65,9 @@
 	</frame>
 	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
 		<parameter param="toggle_flag" size="1.0" index="11.0" type="integer"/>
+	</frame>
+	<frame id="ANALOG_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
 	</frame>
 </frames>
 
@@ -756,22 +759,31 @@
 		</paramset>
 	</channel>
 	
-	<channel index="7" physical_index_offset="-1" count="10" type="SENSOR">
+	<channel index="7" physical_index_offset="-1" count="10" type="SENSOR">	<!-- input sensor contact chan -->
 		<paramset type="MASTER" id="hmw_sensor_ch_master" address_start="0x13" address_step="1">
 		    <parameter id="INPUT_LOCKED">
-                <logical type="boolean" default="false"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="+0.0"/>
-                </physical>
-                <conversion type="boolean_integer" invert="true"/>
-            </parameter>
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
 			<parameter id="INVERTED">
-                <logical type="boolean" default="false"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="+0.1"/>
-                </physical>
-                <conversion type="boolean_integer" invert="true"/>
-            </parameter>
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<parameter id="NOTIFY">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF" default="true"/>
+				</logical>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.2"/>
+				</physical>
+			</parameter>
 		</paramset>
 		
 		<paramset type="VALUES" id="hmw_sensor_ch_values">
@@ -791,32 +803,32 @@
 		</paramset>
 	</channel>
 	
-	<channel index="17" type="KEY" count="10" physical_index_offset="-1">
+	<channel index="17" type="KEY" count="10" physical_index_offset="-1">	<!-- input key chan -->
 		<link_roles>
 			<target name="SWITCH"/>
 		</link_roles>
 		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x1D" address_step="2">
 		    <parameter id="INPUT_LOCKED">
-                <logical type="boolean" default="false"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="+0.0"/>
-                </physical>
-                <conversion type="boolean_integer" invert="true"/>
-            </parameter>
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
 			<parameter id="INVERTED">
-                <logical type="boolean" default="false"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="+0.1"/>
-                </physical>
-                <conversion type="boolean_integer" invert="true"/>
-            </parameter>
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
 			<parameter id="PULLUP">
-                <logical type="boolean" default="true"/>
-                <physical size="0.1" type="integer" interface="eeprom">
-                    <address index="+0.2"/>
-                </physical>
-                <conversion type="boolean_integer" invert="false"/>
-            </parameter>
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.2"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
 			<parameter id="INPUT_TYPE">
 				<logical type="option">
 					<option id="DOORSENSOR" default="true"/>
@@ -841,24 +853,24 @@
 		</paramset>
 		
 		<paramset id="hmw_input_ch_link" type="LINK" channel_param="CHANNEL" peer_param="ACTUATOR" count="20" address_start="0x380" address_step="6">
-            <parameter hidden="true" id="CHANNEL" operations="none">
-                <logical type="integer" default="255" max="255" min="0"/>
-                <physical size="1.0" type="integer" interface="eeprom">
-                    <address index="+0"/>
-                </physical>
-            </parameter>
-            <parameter hidden="true" id="ACTUATOR" operations="none">
-                <logical type="address"/>
-                <physical type="array">
-                    <physical size="4.0" type="integer" interface="eeprom">
-                        <address index="+1"/>
-                    </physical>
-                    <physical size="1.0" type="integer" interface="eeprom">
-                        <address index="+5"/>
-                    </physical>
-                </physical>
-            </parameter>
-        </paramset>
+			<parameter hidden="true" id="CHANNEL" operations="none">
+				<logical type="integer" default="255" max="255" min="0"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+			</parameter>
+			<parameter hidden="true" id="ACTUATOR" operations="none">
+				<logical type="address"/>
+				<physical type="array">
+					<physical size="4.0" type="integer" interface="eeprom">
+						<address index="+1"/>
+					</physical>
+					<physical size="1.0" type="integer" interface="eeprom">
+						<address index="+5"/>
+					</physical>
+				</physical>
+			</parameter>
+		</paramset>
 		
 		<paramset type="VALUES" id="hbw_input_ch_values">
 			<parameter id="PRESS_SHORT" operations="event" loopback="true" control="BUTTON.SHORT">
@@ -877,6 +889,44 @@
 			</parameter>
 		</paramset>
 	</channel>
+	
+	<channel index="27" physical_index_offset="-1" count="1" type="MODULE BUS VOLTAGE">	<!-- module voltage chan (special variant of analog input channel) -->
+		<paramset type="MASTER" id="hmw_analog_ch_master" address_start="0x31" address_step="2">
+		    <parameter id="INPUT_ENABLED">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="NOTIFY">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF" default="true"/>
+				</logical>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+			</parameter>
+			<parameter id="UPDATE_INTERVAL">	<!--TODO: implement-->
+				<logical type="integer" default="180" min="1" max="255"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+1.0"/>
+				</physical>
+			</parameter>
+		</paramset>
 		
+		<paramset type="VALUES" id="hmw_busvoltage_input_values">
+			<parameter id="VALUE" operations="read,event">
+				<logical type="float" min="0.0" max="1023.0"/>
+				<physical type="float" interface="command" value_id="ANALOGVALUE">
+					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
+					<event frame="ANALOG_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="34.1"/>
+			</parameter>
+		</paramset>
+	</channel>
+	
 </channels>
 </device>

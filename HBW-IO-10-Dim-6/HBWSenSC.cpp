@@ -3,7 +3,7 @@
  * 
  * sensor/shutter contact 
  * 
- * Updated: 09.09.2018
+ * Updated: 29.09.2018
  * www.loetmeister.de
  * 
  */
@@ -15,17 +15,27 @@ HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config) {
   pin = _pin;
   config = _config;
   keyPressedMillis = 0;
-  currentValue = false;
+  nextFeedbackDelay = 0;
+  currentState = false; // use as init flag
+  
   pinMode(pin, INPUT);
 };
 
 
 // channel specific settings or defaults
 void HBWSenSC::afterReadConfig() {
-    
+
+  //avoid notify messages on device start
+  if (currentState == false) {
+    currentValue = (digitalRead(pin) ^ !config->n_inverted);
+    currentState = true;
+  }
+  
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("cfg SCPin:"));
   hbwdebug(pin);
+  hbwdebug(F(" val:"));
+  hbwdebug(currentValue);
   hbwdebug(F("\n"));
 #endif
 };
@@ -46,31 +56,46 @@ uint8_t HBWSenSC::get(uint8_t* data) {
 void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
   
   if (config->n_input_locked) {   // not locked?
-
     bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
     
     if (buttonState != currentValue) {
+      uint32_t now = millis();
       
-    uint32_t now = millis();
-      
-    if (!keyPressedMillis) {
-      // Taste war vorher nicht gedrueckt
-      keyPressedMillis = now ? now : 1;
-    }
-    else if (now - keyPressedMillis >= DEBOUNCE_TIME) {
-      currentValue = buttonState;
-      keyPressedMillis = 0;
-      //TODO: check if broadcast message should be send on state changes? (avoid risk to 'spam' the bus?)
+      if (!keyPressedMillis) {
+        // Taste war vorher nicht gedrueckt
+        keyPressedMillis = now ? now : 1;
+      }
+      else if (now - keyPressedMillis >= DEBOUNCE_TIME) {
+        currentValue = buttonState;
+        keyPressedMillis = 0;
+  
+        if (!config->notify_disabled) {  // notify/i-message enabled
+          lastFeedbackTime = now;   // rapid state changes would reset the counter and not flood the bus with messages
+          nextFeedbackDelay = DEBOUNCE_TIME +300;
+        }
         
-  #ifdef DEBUG_OUTPUT
-    hbwdebug(F("SC-ch:"));
-    hbwdebug(channel);
-    hbwdebug(F(" val:"));
-    hbwdebug(currentValue);
-    hbwdebug(F("\n"));
-  #endif
+    #ifdef DEBUG_OUTPUT
+      hbwdebug(F("sc-ch:"));
+      hbwdebug(channel);
+      hbwdebug(F(" val:"));
+      hbwdebug(currentValue);
+      hbwdebug(F("\n"));
+    #endif
       }
     }
+    else {
+      keyPressedMillis = 0;
+    }
+    // feedback trigger set?
+    if(!nextFeedbackDelay) return;
+    if(millis() - lastFeedbackTime < nextFeedbackDelay) return;
+    lastFeedbackTime = millis();  // at least last time of trying
+    // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
+    // we know that the level has only 1 byte here
+    uint8_t level;
+    get(&level);
+    device->sendInfoMessage(channel, 1, &level);
+    nextFeedbackDelay = 0;  // do not resend (sendInfoMessage perform 3 retries anyway)
   }
 };
 
