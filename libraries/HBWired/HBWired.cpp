@@ -834,8 +834,10 @@ void HBWDevice::loop()
   // send announce message, if not done yet
   handleBroadcastAnnounce();
 // feedback from switches and handle keys
-   for(uint8_t i = 0; i < numChannels; i++)
-        channels[i]->loop(this,i);
+   static uint8_t loopCurrentChannel = 0;
+   channels[loopCurrentChannel]->loop(this,loopCurrentChannel);
+   loopCurrentChannel++;
+   if (loopCurrentChannel >= numChannels) loopCurrentChannel = 0;
 // config Button
    handleConfigButton();
 };

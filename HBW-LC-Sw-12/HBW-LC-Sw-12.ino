@@ -165,9 +165,9 @@ class HBWChanSw : public HBWChannel {
     boolean stateTimerRunning;
     uint8_t currentState;
     uint8_t nextState;
-    unsigned long stateCangeWaitTime;
+    unsigned long stateChangeWaitTime;
     unsigned long lastStateChangeTime;
-    uint8_t lastKeyEvent;
+    uint8_t lastKeyNum;
 };
 
 
@@ -215,7 +215,7 @@ HBWChanSw::HBWChanSw(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _
   offTime = 0xFF;
   jumpTargets.WORD = 0;
   stateTimerRunning = false;
-  stateCangeWaitTime = 0;
+  stateChangeWaitTime = 0;
   lastStateChangeTime = 0;
 //  currentState = UNKNOWN_STATE;
 };
@@ -256,21 +256,21 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 
   if (length >= 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
     actiontype = *(data);
-    uint8_t keyEvent = data[7];
+    uint8_t currentKeyNum = data[7];
 
 #ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("aV: "));
-  hbwdebughex(keyEvent);
+  hbwdebughex(currentKeyNum);
   hbwdebug(F("\n"));
 #endif
 
     if ((actiontype & B00001111) >1) {   // TOGGLE_USE
-      if (!stateTimerRunning && lastKeyEvent != keyEvent) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
+      if (!stateTimerRunning && lastKeyNum != currentKeyNum) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
         byte level;
         if ((actiontype & B00001111) == 2)   // TOGGLE_TO_COUNTER
-          level = ((keyEvent %2 == 0) ? 0 : 200);  //  (switch ON at odd numbers, OFF at even numbers)
+          level = ((currentKeyNum %2 == 0) ? 0 : 200);  //  (switch ON at odd numbers, OFF at even numbers)
         else if ((actiontype & B00001111) == 3)   // TOGGLE_INVERSE_TO_COUNTER
-          level = ((keyEvent %2 == 0) ? 200 : 0);
+          level = ((currentKeyNum %2 == 0) ? 200 : 0);
         else   // TOGGLE
           level = 255;
         
@@ -284,7 +284,7 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 #endif
       }
     }
-    else if (lastKeyEvent == keyEvent && !(bitRead(actiontype,5))) {
+    else if (lastKeyNum == currentKeyNum && !(bitRead(actiontype,5))) {
       // repeated key event, must be long press: LONG_MULTIEXECUTE not enabled
     }
     else {
@@ -305,7 +305,7 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 #endif
 
     }
-    lastKeyEvent = keyEvent;  // store key press number, to identify repeated key events
+    lastKeyNum = currentKeyNum;  // store key press number, to identify repeated key events
   }
   else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
     //if (!stateTimerRunning)??
@@ -384,7 +384,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
 //*** state machine begin ***//
   bool setNewLevel = false;
 
-  if (((now - lastStateChangeTime > stateCangeWaitTime) && stateTimerRunning) || currentState != nextState) {
+  if (((now - lastStateChangeTime > stateChangeWaitTime) && stateTimerRunning) || currentState != nextState) {
 
     if (currentState == nextState)  // no change to state, so must be time triggered
       stateTimerRunning = false;
@@ -426,7 +426,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
       
       switch (nextState) {
         case JT_ONDELAY:
-          stateCangeWaitTime = convertTime(onDelayTime);
+          stateChangeWaitTime = convertTime(onDelayTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           currentState = JT_ONDELAY;
@@ -439,7 +439,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
           break;
           
         case JT_OFFDELAY:
-          stateCangeWaitTime = convertTime(offDelayTime);
+          stateChangeWaitTime = convertTime(offDelayTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           currentState = JT_OFFDELAY;
@@ -454,7 +454,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
         case ON_TIME_ABSOLUTE:
           newLevel = 200;
           setNewLevel = true;
-          stateCangeWaitTime = convertTime(onTime);
+          stateChangeWaitTime = convertTime(onTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           nextState = JT_ON;
@@ -463,7 +463,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
         case OFF_TIME_ABSOLUTE:
           //newLevel = 0; // 0 is default
           setNewLevel = true;
-          stateCangeWaitTime = convertTime(offTime);
+          stateChangeWaitTime = convertTime(offTime);
           lastStateChangeTime = now;
           stateTimerRunning = true;
           nextState = JT_OFF;
@@ -473,7 +473,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
           newLevel = 200;
           setNewLevel = true;
           if (now - lastStateChangeTime < convertTime(onTime)) {
-            stateCangeWaitTime = convertTime(onTime);
+            stateChangeWaitTime = convertTime(onTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
           }
@@ -484,7 +484,7 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
           //newLevel = 0; // 0 is default
           setNewLevel = true;
           if (now - lastStateChangeTime < convertTime(offTime)) {
-            stateCangeWaitTime = convertTime(offTime);
+            stateChangeWaitTime = convertTime(offTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
           }

@@ -45,6 +45,7 @@ NOTE!
 
  
  History:
+ 2018.09.18 - Use pinMode() to enable internal pullup resistor (fit to current Arduino lib)
  2013.08.29 - Some small clean-up of code, more sensible variable names etc.
                 Added another example code for multiple buttons in an object array
  2013.04.23 - A "minor" debugging: active-high buttons now work (wops)!
@@ -103,9 +104,10 @@ ClickButton::ClickButton(uint8_t buttonPin, boolean activeType, boolean internal
   debounceTime   = 20;            // Debounce timer in ms
   multiclickTime = 250;           // Time limit for multi clicks
   longClickTime  = 1000;          // time until "long" click register
-  pinMode(_pin, INPUT);
+  
   // Turn on internal pullup resistor if applicable
-  if (_activeHigh == LOW && internalPullup == CLICKBTN_PULLUP) digitalWrite(_pin,HIGH);
+  if (_activeHigh == LOW && internalPullup == CLICKBTN_PULLUP) pinMode(_pin, INPUT_PULLUP);
+  else pinMode(_pin, INPUT);
 }
 
 

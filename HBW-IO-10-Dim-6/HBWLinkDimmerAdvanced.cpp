@@ -10,7 +10,7 @@
 
 #include "HBWLinkDimmerAdvanced.h"
 
-#define EEPROM_SIZE 42   // "=address_step in XML"
+#define EEPROM_SIZE 42   // "address_step" in XML
 
 #define NUM_PEER_PARAMS 18   // number of bytes for long and short peering action each (without address and channel)
 
@@ -19,9 +19,7 @@ HBWLinkDimmerAdvanced::HBWLinkDimmerAdvanced(uint8_t _numLinks, uint16_t _eeprom
 	eepromStart = _eepromStart;
 }
  
-// processKeyEvent wird aufgerufen, wenn ein Tastendruck empfangen wurde
-// TODO: von wem aufgerufen? Direkt von der Tasten-Implementierung oder vom Device? 
-//       wahrscheinlich besser vom Device ueber sendKeyEvent
+// receiveKeyEvent wird aufgerufen, wenn ein Tastendruck empfangen wurde
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
 void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
@@ -31,11 +29,11 @@ void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAd
   uint8_t channelEEPROM;
   uint8_t actionType;
 
-  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (+1 for keyPressNum)
+  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (use extra element for keyPressNum)
   data[NUM_PEER_PARAMS] = keyPressNum;
   
   // read what to do from EEPROM
-  for(byte i = 0; i < numLinks; i++) {   
+  for(byte i = 0; i < numLinks; i++) {
 	  device->readEEPROM(&sndAddrEEPROM, eepromStart + EEPROM_SIZE * i, 4, true);
 	  // TODO: is the following really ok?
 	  //       it reads to all links, even if none is set 
@@ -80,7 +78,7 @@ void HBWLinkDimmerAdvanced::receiveKeyEvent(HBWDevice* device, uint32_t senderAd
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6 + NUM_PEER_PARAMS, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
      //         + 6+ NUM_PEER_PARAMS      //  LONG_ACTION_TYPE
      //         + 7+ NUM_PEER_PARAMS      //  LONG_ONDELAY_TIME
-     // ... and so on. Layout for LONG_* and SHORT_* must have the same layout
+     // ... and so on. Layout for LONG_* and SHORT_* must be the same
         device->set(targetChannel, NUM_PEER_PARAMS +1, data);    // channel, data length, data
       }
     }

@@ -54,10 +54,9 @@ class HBWChanBl : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
-    void getCurrentPosition();
-    unsigned long now;
 	
   private:
+    void getCurrentPosition();
     uint8_t blindDir;   // direction relay
     uint8_t blindAct;   // activity relay
     hbw_config_blind* config; // logging
@@ -71,7 +70,7 @@ class HBWChanBl : public HBWChannel {
     byte blindPositionLast;
     byte blindAngleActual;
     byte blindDirection;
-    byte blindForceNextState;
+    bool blindForceNextState;
     bool blindPositionKnown;
     bool blindSearchingForRefPosition;
     unsigned int blindNextStateDelayTime;

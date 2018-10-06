@@ -1,7 +1,7 @@
 /* 
 * HBWDimmerAdvanced
 *
-* Mit HBWDimmerAdvanced & HBWLinkSwitchAdvanced sind folgende Funktionen möglich:
+* Mit HBWDimmerAdvanced & HBWLinkDimmerAdvanced sind folgende Funktionen möglich:
 * Peering mit TOGGLE_TO_COUNTER, TOGGLE_INVERSE_TO_COUNTER, UPDIM, DOWNDIM,
 * TOGGLEDIM, TOGGLEDIM_TO_COUNTER, TOGGLEDIM_INVERSE_TO_COUNTER, onTime,
 * offTime (Ein-/Ausschaltdauer), onDelayTime, offDelayTime (Ein-/Ausschaltverzögerung)
@@ -27,11 +27,13 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config) {
   offTime = 0xFF;
   jumpTargets.DWORD = 0;
   stateTimerRunning = false;
-  stateCangeWaitTime = 0;
+  stateChangeWaitTime = 0;
   lastStateChangeTime = 0;
   currentState = UNKNOWN_STATE;
-  
+
+  currentOnLevelPrio = ON_LEVEL_PRIO_LOW;
   rampStepCounter = 0;
+  offDelaySingleStep = false;
 };
 
 
@@ -39,88 +41,91 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config) {
 void HBWDimmerAdvanced::afterReadConfig() {
   
   if (currentState == UNKNOWN_STATE) {
-  // All off on init
+    // All off on init
     analogWrite(pin, LOW);
     currentState = JT_OFF;
   }
   else {
-  // Do not reset outputs on config change (EEPROM re-reads), but update its state
+  // Do not reset outputs on config change (EEPROM re-reads), but update its state (to apply new settings)
     setOutputNoLogging(&currentValue);
   }
   nextState = currentState; // no action for state machine needed
 };
 
 
+/* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
 void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
   if (length >= NUM_PEER_PARAMS) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
-    //peerParamActionType = *(data);
+    
     peerParamActionType.byte = *(data);
+    peerConfigParam.byte = data[D_POS_peerConfigParam];
     uint8_t currentKeyNum = data[NUM_PEER_PARAMS];
 
-// TODO: add check for OnLevelPrio (currentOnLevelPrio && (onLevelPrio & currentOnLevelPrio))
-    //if ((peerParamActionType & BITMASK_ActionType) >1) {   // ACTION_TYPE
-    if ((peerParamActionType.element.actionType) >1) {   // ACTION_TYPE
-      
-      // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
-      //if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && bitRead(peerParamActionType,5)))) {
-      if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && peerParamActionType.element.longMultiexecute))) {
-        byte level = currentValue;
-
-        //switch (peerParamActionType & BITMASK_ActionType) {
-        switch (peerParamActionType.element.actionType) {
-          case 2:  // TOGGLE_TO_COUNTER
-            level = (currentKeyNum %2 == 0) ? data[D_POS_offLevel] : data[D_POS_onLevel];  // switch ON at odd numbers, OFF at even numbers
-            break;
-          case 3:  // TOGGLE_INVERSE_TO_COUNTER
-            level = (currentKeyNum %2 == 0) ? data[D_POS_onLevel] : data[D_POS_offLevel];  // ON/OFF inverse
-            break;
-          case 4:  // UPDIM
-            level = dimUpDown(data, DIM_UP);
-            break;
-          case 5:  // DOWNDIM
-            level = dimUpDown(data, DIM_DOWN);
-            break;
-          case 6:  // TOGGLEDIM
-            // check for currentState? - dim down initially [what defines "initially"?] when state is ON, else DOWN - but still alternate by currentKeyNum????
-            // or - do now downDim, if already below onMinLevel && do not upDim when already at onLevel. (currentKeyNum %2 == toggleDimInv) toggleDimInv = true ||false???
-          case 7:  // TOGGLEDIM_TO_COUNTER
-            level = (currentKeyNum %2 == 0) ? dimUpDown(data, DIM_DOWN) : dimUpDown(data, DIM_UP);  // dim up at odd numbers, dim down at even numbers
-            break;
-          case 8:  // TOGGLEDIM_INVERS_TO_COUNTER
-            level = (currentKeyNum %2 == 0) ? dimUpDown(data, DIM_UP) : dimUpDown(data, DIM_DOWN);  // up/down inverse
-            break;
-        }
-
-//        if (level != currentValue)
-        setOutput(device, &level);
-
-        // keep track of the operations state
-        if (currentValue >= onMinLevel)
-          currentState = JT_ON;
-        else
-          currentState = JT_OFF;
-    
-        nextState = currentState; // avoid state machine to run
-        
-  #ifndef NO_DEBUG_OUTPUT
-    hbwdebug(F("TgDi_lvl: "));
+    if (peerParamActionType.element.actionType >1) {   // ACTION_TYPE
+      if ((currentState == JT_ON) &&
+          (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && peerConfigParam.element.onLevelPrio == ON_LEVEL_PRIO_LOW)) { 
+            //do nothing in this case
+            //TODO: optimize condition - reduce code size
+      }
+      else {
+        // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
+        if ((!stateTimerRunning) && ((lastKeyNum != currentKeyNum) || (lastKeyNum == currentKeyNum && peerParamActionType.element.longMultiexecute))) {
+          
+          byte level = currentValue;
+  
+          //switch (peerParamActionType & BITMASK_ActionType) {
+          switch (peerParamActionType.element.actionType) {
+            case 2:  // TOGGLE_TO_COUNTER
+              level = (currentKeyNum %2 == 0) ? data[D_POS_offLevel] : data[D_POS_onLevel];  // switch ON at odd numbers, OFF at even numbers
+              break;
+            case 3:  // TOGGLE_INVERSE_TO_COUNTER
+              level = (currentKeyNum %2 == 0) ? data[D_POS_onLevel] : data[D_POS_offLevel];  // ON/OFF inverse
+              break;
+            case 4:  // UPDIM
+              level = dimUpDown(data, DIM_UP);
+              break;
+            case 5:  // DOWNDIM
+              level = dimUpDown(data, DIM_DOWN);
+              break;
+            case 6:  // TOGGLEDIM
+              // check for currentState? - dim down initially [what defines "initially"?] when state is ON, else DOWN - but still alternate by currentKeyNum????
+              // or - do now downDim, if already below onMinLevel && do not upDim when already at onLevel. (currentKeyNum %2 == toggleDimInv) toggleDimInv = true ||false???
+            case 7:  // TOGGLEDIM_TO_COUNTER
+              level = (currentKeyNum %2 == 0) ? dimUpDown(data, DIM_DOWN) : dimUpDown(data, DIM_UP);  // dim up at odd numbers, dim down at even numbers
+              break;
+            case 8:  // TOGGLEDIM_INVERS_TO_COUNTER
+              level = (currentKeyNum %2 == 0) ? dimUpDown(data, DIM_UP) : dimUpDown(data, DIM_DOWN);  // up/down inverse
+              break;
+          }
+  
+          setOutput(device, &level);
+  
+          // keep track of the operations state
+          if (currentValue >= onMinLevel)
+            currentState = JT_ON;
+          else
+            currentState = JT_OFF;
+  
+          currentOnLevelPrio = peerConfigParam.element.onLevelPrio;
+          nextState = currentState; // avoid state machine to run
+          
+  #ifdef DEBUG_OUTPUT
+    hbwdebug(F("Tgl_lvl: "));
     hbwdebug(level);
     hbwdebug(F(" aType: "));
     hbwdebug(peerParamActionType.byte);
     hbwdebug(F("\n"));
   #endif
+        }
       }
     }
-    //else if (lastKeyNum == currentKeyNum && !(peerParamActionType & B00010000)) {
-    //else if (lastKeyNum == currentKeyNum && !(bitRead(peerParamActionType,5))) {
-//    else if (lastKeyNum == currentKeyNum && !(peerParamActionType.element.longMultiexecute)) {
-//      // repeated key event, must be long press, but longMultiexecute is not enabled... so ignore!
-//      asm ("nop");
-//    }
-    else {
-      // action type: JUMP_TO_TARGET
-      // assign values based on EEPROM layout (XML and link/peering details must match!)
+    else if (lastKeyNum == currentKeyNum && !peerParamActionType.element.longMultiexecute) {
+      // repeated key event for ACTION_TYPE == 1 (ACTION_TYPE == 0 already filtered by receiveKeyEvent, HBWLinkReceiver)
+      // must be long press, but LONG_MULTIEXECUTE not enabled
+    }
+    else {  // action type: JUMP_TO_TARGET
+      
       onDelayTime = data[D_POS_onDelayTime];
       onTime = data[D_POS_onTime];
       offDelayTime = data[D_POS_offDelayTime];
@@ -131,7 +136,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
       offLevel = data[D_POS_offLevel];
       onMinLevel = data[D_POS_onMinLevel];
       onLevel = data[D_POS_onLevel];
-      peerConfigParam.byte = data[D_POS_peerConfigParam];
+//      peerConfigParam.byte = data[D_POS_peerConfigParam];
       rampOnTime = data[D_POS_rampOnTime];
       rampOffTime = data[D_POS_rampOffTime];
 //      dimMinLevel = data[D_POS_dimMinLevel];
@@ -146,17 +151,21 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
     //if (!stateTimerRunning)??
     stateTimerRunning = false;
+    //TODO add peerConfigParam.element.onLevelPrio = HIGH to overwrite? then back to LOW after setOutput()??
     setOutput(device, data);
+    
     // keep track of the operations state
     if (currentValue)
       currentState = JT_ON;
     else
       currentState = JT_OFF;
+    
     nextState = currentState; // avoid state machine to run
   }
 };
 
 
+/* private function - returns the new level (0...200) to be set */
 uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) {
   
   byte level = currentValue;  // keep current level if we cannot dim up or down anymore
@@ -174,7 +183,7 @@ uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) 
       }
     }
     else {
-      level = data[D_POS_dimMaxLevel];  // TODO: only set, if current prio is low or new value is with high prio
+      level = data[D_POS_dimMaxLevel];
     }
   }
   // DOWNDIM
@@ -189,14 +198,14 @@ uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) 
         level = data[D_POS_offLevel];
     }
     else
-      level = data[D_POS_dimMinLevel];  // TODO: only set, if current prio is low or new value is with high prio
+      level = data[D_POS_dimMinLevel];
   }
   
   return level;
 };
 
 
-/* standard public function - returns length of data array. data array contains current channel reading */
+/* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDimmerAdvanced::get(uint8_t* data) {
   (*data) = currentValue;
 	return 1;
@@ -206,17 +215,20 @@ uint8_t HBWDimmerAdvanced::get(uint8_t* data) {
 /* private function - sets/operates the actual outputs. Sets timer for logging/i-message */
 void HBWDimmerAdvanced::setOutput(HBWDevice* device, uint8_t const * const data) {
 
-#ifndef NO_DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT
   hbwdebug(F("l-"));    // indicate set output _with_ logging
 #endif
 
   uint8_t dataNew = (*data);
   
-  if (dataNew == 201) // use OLD_LEVEL for ON_LEVEL
-    dataNew = oldValue;
+  if (dataNew >= ON_LEVEL_USE_OLD_VALUE) {  // use OLD_LEVEL for ON_LEVEL
+    if (oldValue > onMinLevel)
+      dataNew = oldValue;
+    else
+      dataNew = onMinLevel; // TODO: what to use? onMinLevel or offLevel?
+  }
   
-  if (currentValue != dataNew) {
-    
+  if (currentValue != dataNew) {  // only set output and send i-message if value was changed
     setOutputNoLogging(&dataNew);
     
     // Logging
@@ -233,21 +245,20 @@ void HBWDimmerAdvanced::setOutputNoLogging(uint8_t const * const data) {
   
   if (config->pwm_range >= 1) {   // 0=disabled
     //                        scale to 40%   50%   60%   70%   80%   90%  100%
-    static uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2295, 2550};  // to avoid float, devide by 10 when calling analogWrite()!
-    byte newValueMin = 0;
-    byte newValue;
+    static uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2295, 2550};  // to avoid float, must devide by 10 when calling analogWrite()!
+    uint8_t newValueMin = 0;
+    uint8_t newValue;
     
-    if (!config->voltage_default) newValueMin = 255; // set 25.5 min output level (need 0.5-5V for 1-10V mode)
+    if (!config->voltage_default) newValueMin = 255; // Factor 10! Set 25.5 min output level (need 0.5-5V for 1-10V mode)
     
     if (*data <= 200) {  // set value
       newValue = (map(*data, 0, 200, newValueMin, newValueMax[config->pwm_range -1])) /10;  // map 0-200 into correct PWM range
       currentValue = (*data);
     }
-    
     analogWrite(pin, newValue);
     
-#ifndef NO_DEBUG_OUTPUT
-  hbwdebug(F("set PWM: "));
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("setPWM: "));
   hbwdebug(newValue);
   hbwdebug(F(" max: "));
   hbwdebug((newValueMax[config->pwm_range -1])/10);
@@ -264,20 +275,22 @@ uint8_t HBWDimmerAdvanced::getNextState(uint8_t bitshift) {
   
   if (nextJump == JT_ON) {
     if (onTime != 0xFF)      // not used is 0xFF
-      //nextJump = (peerParamActionType & B10000000) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
+      //nextJump = (peerParamActionType & BITMASK_OnTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
       nextJump = (peerParamActionType.element.onTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
   }
   else if (nextJump == JT_OFF) {
     if (offTime != 0xFF)      // not used is 0xFF
-      //nextJump = (peerParamActionType & B01000000) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
+      //nextJump = (peerParamActionType & BITMASK_OffTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
       nextJump = (peerParamActionType.element.offTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;  // off time ABSOLUTE or MINIMAL?
   }
-  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running, but update forced
+  if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running, but update forced // TODO: integrate into above "if". ?Fix: not checking time for 0xFF?
     if (currentState == JT_ON)
-      //nextJump = (peerParamActionType & B10000000) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
+      //nextJump = (peerParamActionType & BITMASK_OnTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
       nextJump = (peerParamActionType.element.onTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;
+      // TODO: add peerConfigParam.element.onLevelPrio
+      // does HIGH onLevelPrio overwrites ON_TIME_ABSOLUTE and vice versa?
     else if (currentState == JT_OFF)
-      //nextJump = (peerParamActionType & B01000000) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
+      //nextJump = (peerParamActionType & BITMASK_OffTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
       nextJump = (peerParamActionType.element.offTimeMode) ? OFF_TIME_ABSOLUTE : OFF_TIME_MINIMAL;
   }
   return nextJump;
@@ -310,52 +323,59 @@ uint32_t HBWDimmerAdvanced::convertTime(uint8_t timeValue) {
 };
 
 
-void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime) {
-
-  stateCangeWaitTime = convertTime(rampTime);
+/* private function - sets all variables required for On/OffRamp */
+void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime, uint8_t level) {
   
-  if (stateCangeWaitTime != 255 && stateCangeWaitTime != 0) {   // time == 0xFF when not used
-  // TODO: && onLevel > onMinLevel ???
-    //rampStepCounter = (onLevel - onMinLevel) *10;
-
-    if (stateCangeWaitTime > rampStepCounter * (RAMP_MIN_STEP_WIDTH/10)) {
-      rampStep = 10;      // factor 10
-      stateCangeWaitTime = stateCangeWaitTime / (rampStepCounter /10);
+  if (rampTime != 255 && rampTime != 0 && (level > onMinLevel)) {   // time == 0xFF when not used  
+    stateChangeWaitTime = convertTime(rampTime);
+    rampStepCounter = (level - onMinLevel) *10;  // do not create overflow by subtraction (level > onMinLevel)
+    
+    if (stateChangeWaitTime > rampStepCounter * (RAMP_MIN_STEP_WIDTH/10)) {
+      rampStep = 10;      // factor 10 (1 step = 0.5%)
+      stateChangeWaitTime = stateChangeWaitTime / (rampStepCounter /10);
     }
     else {
-      rampStep = rampStepCounter / (stateCangeWaitTime / RAMP_MIN_STEP_WIDTH);  // factor 10
-      stateCangeWaitTime = RAMP_MIN_STEP_WIDTH;
+      rampStep = rampStepCounter / (stateChangeWaitTime / RAMP_MIN_STEP_WIDTH);  // factor 10
+      stateChangeWaitTime = RAMP_MIN_STEP_WIDTH;
     }
   }
   else {
     rampStepCounter = 0;
     rampStep = 0;
+    stateChangeWaitTime = 0;
   }
   
   lastStateChangeTime = millis();
   stateTimerRunning = true;
 
-#ifndef NO_DEBUG_OUTPUT
-hbwdebug(F("stCangeWaitTime: "));
-hbwdebug(stateCangeWaitTime);
-hbwdebug(F(" RmpSt: "));
-hbwdebug(rampStep);
-hbwdebug(F("\n"));
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("stChgWaitTime: "));
+  hbwdebug(stateChangeWaitTime);
+  hbwdebug(F(" RmpStCt: "));
+  hbwdebug(rampStepCounter);
+  hbwdebug(F(" RmpSt: "));
+  hbwdebug(rampStep);
+  hbwdebug(F("\n"));
 #endif
 };
 
 
-/* standard public function - is called by main loop for every channel in sequential order */
+/* standard public function - called by main loop for every channel in sequential order */
 void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
  //*** state machine begin ***//
   
-  bool setNewLevel = false;
   unsigned long now = millis();
 
-  if (((now - lastStateChangeTime > stateCangeWaitTime) && stateTimerRunning) || currentState != nextState) {
-
-    if (rampStepCounter && (currentState == JT_RAMP_ON || currentState == JT_RAMP_OFF) && nextState != FORCE_STATE_CHANGE) { // TODO no need to check for currentState?? keep for robustness?
+  if (((now - lastStateChangeTime > stateChangeWaitTime) && stateTimerRunning) || currentState != nextState) {
+    
+    if (nextState == FORCE_STATE_CHANGE) {
+      rampStepCounter = 0;  // clear counter, when state change was forced
+    }
+    
+    // on / off ramp
+    if (rampStepCounter && (currentState == JT_RAMP_ON || currentState == JT_RAMP_OFF)) {
+      
       uint8_t rampNewValue;
       lastStateChangeTime = now;
       
@@ -366,23 +386,47 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
       
       setOutputNoLogging(&rampNewValue);  // never send i-message here. State change to on or off will do it
   
-      if (rampStep > rampStepCounter)
-        rampStepCounter = 0;
-      else
-        rampStepCounter -= rampStep;
+      if (rampStep > rampStepCounter) rampStepCounter = 0;
+      else  rampStepCounter -= rampStep;
+
+//#ifdef DEBUG_OUTPUT
+//  hbwdebug(F("RAMP-ct: "));
+//  hbwdebug(rampStepCounter);
+//  hbwdebug(F("\n"));
+//#endif
+    }
+    // off delay blink
+    else if (rampStepCounter && currentState == JT_OFFDELAY) {
+      uint8_t newValue;
       
-//  #ifndef NO_DEBUG_OUTPUT
-//    hbwdebug(F("RmpStC:"));
-//    hbwdebug(rampStepCounter);
-//    hbwdebug(F("\n"));
-//  #endif
+      if (offDelayNewTimeActive) {
+        newValue = currentValue - (peerConfigStep.element.offDelayStep *4);
+        stateChangeWaitTime = peerConfigOffDtime.element.offDelayOldTime *1000;
+        offDelayNewTimeActive = false;
+      }
+      else {
+        newValue = currentValue + (peerConfigStep.element.offDelayStep *4);
+        stateChangeWaitTime = peerConfigOffDtime.element.offDelayNewTime *1000;
+        offDelayNewTimeActive = true;
+        rampStepCounter--;
+      }
+      setOutputNoLogging(&newValue);
+      
+      if (offDelaySingleStep) {   // no blink, reduce level only once, reset counter and set wait time
+        offDelaySingleStep = false;
+        rampStepCounter = 0;
+        stateChangeWaitTime = convertTime(offDelayTime);
+      }
+      else
+        lastStateChangeTime = now;    // only update in blink mode
     }
     else {
+      bool setNewLevel = false;
       
       if (currentState == nextState)  // no change to state, so must be time triggered
         stateTimerRunning = false;
 
-  #ifndef NO_DEBUG_OUTPUT
+  #ifdef DEBUG_OUTPUT
     hbwdebug(F("chan:"));
     hbwdebughex(channel);
     hbwdebug(F(" cs:"));
@@ -398,6 +442,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
           nextState = getNextState(12);
           break;
         case JT_ON:       // jump from on state
+          oldValue = currentValue;  // save current on value before off ramp or switching off
           nextState = getNextState(3);
           break;
         case JT_OFFDELAY:    // jump from off delay state
@@ -410,7 +455,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
           nextState = getNextState(9);
           break;
       }
-  #ifndef NO_DEBUG_OUTPUT
+  #ifdef DEBUG_OUTPUT
     hbwdebug(F(" ns:"));
     hbwdebughex(nextState);
     hbwdebug(F("\n"));
@@ -420,69 +465,114 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
 //      uint8_t currentLevel;
 //      get(&currentLevel);
    
-      if (nextState != JT_NO_JUMP_IGNORE_COMMAND) {
+      if (nextState < JT_NO_JUMP_IGNORE_COMMAND) {
         
         switch (nextState) {
+          
           case JT_ONDELAY:
-            if (peerConfigParam.element.onDelayMode == 0)  setNewLevel = true;
-            stateCangeWaitTime = convertTime(onDelayTime);
+            if (peerConfigParam.element.onDelayMode == 0)  setNewLevel = true;  //0=SET_TO_OFF, 1=NO_CHANGE
+            stateChangeWaitTime = convertTime(onDelayTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
             currentState = JT_ONDELAY;
             break;
   
           case JT_RAMP_ON:
-            if (onLevel == 201)  onLevel = oldValue;
-            rampStepCounter = (onLevel - onMinLevel) *10;
-            prepareOnOffRamp(rampOnTime);
-            rampStepCounter -= rampStep; // reduce by one step, as we go to min. on level immediatly
+  #ifdef DEBUG_OUTPUT
+    hbwdebug(F("onLvl: "));
+    hbwdebug(onLevel);
+  #endif
+            if (onLevel >= ON_LEVEL_USE_OLD_VALUE) {  // use OLD_LEVEL for ON_LEVEL
+              if (oldValue > onMinLevel) {
+                onLevel = oldValue;
+              }
+              else {
+                onLevel = onMinLevel; // TODO: what to use? onMinLevel or offLevel?
+                rampOnTime = 0;   // no ramp to set onMinLevel
+              }
+            }
+  #ifdef DEBUG_OUTPUT
+    hbwdebug(F(" oldVal: "));
+    hbwdebug(oldValue);
+    hbwdebug(F(" new onLvl: "));
+    hbwdebug(onLevel);
+    hbwdebug(F("\n"));
+  #endif
+            prepareOnOffRamp(rampOnTime, onLevel);
+            rampStepCounter -= rampStep; // reduce by one step, as we go to min. on level immediately
             newLevel = onMinLevel;
             setNewLevel = true;
             currentState = JT_RAMP_ON;
             break;
           
           case JT_ON:
-            newLevel = onLevel;
+            //newLevel = onLevel;
             setNewLevel = true;
+  #ifdef DEBUG_OUTPUT
+    hbwdebug(F("onLvlPrio:"));
+    hbwdebug(currentOnLevelPrio);
+  #endif
+            if (currentOnLevelPrio == peerConfigParam.element.onLevelPrio || peerConfigParam.element.onLevelPrio == ON_LEVEL_PRIO_HIGH) {
+              newLevel = onLevel;
+              currentOnLevelPrio = peerConfigParam.element.onLevelPrio;
+            }
+            else {
+              setNewLevel = false;
+            }
+  #ifdef DEBUG_OUTPUT
+    hbwdebug(F(" newPrio:"));
+    hbwdebug(currentOnLevelPrio);
+    hbwdebug(F("\n"));
+  #endif
             stateTimerRunning = false;
             currentState = JT_ON;
             break;
             
           case JT_OFFDELAY:
-            stateCangeWaitTime = convertTime(offDelayTime);
+            stateChangeWaitTime = convertTime(offDelayTime);
+            // only reduce level, if not going below min. on level
+        // TODO: check if should be forced to blink, by: onMinLevel + offDelayStep ??
+            if (peerConfigStep.element.offDelayStep && (currentValue - onMinLevel) > (peerConfigStep.element.offDelayStep *4)) {
+              offDelayNewTimeActive = true;
+              stateChangeWaitTime = 0; // start immediately
+              
+              if (peerConfigParam.element.offDelayBlink) {  // calculate total level changes for off delay blink duration
+                rampStepCounter = ((convertTime(offDelayTime) /1000) / (peerConfigOffDtime.element.offDelayNewTime + peerConfigOffDtime.element.offDelayOldTime));
+              }
+              else {  // only reduce level, no blink
+                rampStepCounter = 1;
+                offDelaySingleStep = true;
+              }
+            }
             lastStateChangeTime = now;
             stateTimerRunning = true;
             currentState = JT_OFFDELAY;
             break;
             
           case JT_RAMP_OFF:
-            if (currentValue > onMinLevel)  rampStepCounter = (currentValue - onMinLevel) *10;
-            else  rampStepCounter = 0;
-            prepareOnOffRamp(rampOffTime);
+            prepareOnOffRamp(rampOffTime, currentValue);
             currentState = JT_RAMP_OFF;
             break;
             
           case JT_OFF:
-            oldValue = currentValue;
-            //newLevel = 0; // offLevel is default
-            setNewLevel = true;
+            setNewLevel = true; // offLevel is default, no need to set newLevel
             stateTimerRunning = false;
             currentState = JT_OFF;
             break;
             
           case ON_TIME_ABSOLUTE:
+          //TODO: add peerConfigParam.element.onLevelPrio. Keep onLevel and onTime if onLevelPrio high?
             newLevel = onLevel;
             setNewLevel = true;
-            stateCangeWaitTime = convertTime(onTime);
+            stateChangeWaitTime = convertTime(onTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
             nextState = JT_ON;
             break;
             
           case OFF_TIME_ABSOLUTE:
-            //newLevel = 0; // offLevel is default
-            setNewLevel = true;
-            stateCangeWaitTime = convertTime(offTime);
+            setNewLevel = true; // offLevel is default, no need to set newLevel
+            stateChangeWaitTime = convertTime(offTime);
             lastStateChangeTime = now;
             stateTimerRunning = true;
             nextState = JT_OFF;
@@ -492,7 +582,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             newLevel = onLevel;
             setNewLevel = true;
             if (now - lastStateChangeTime < convertTime(onTime)) {
-              stateCangeWaitTime = convertTime(onTime);
+              stateChangeWaitTime = convertTime(onTime);
               lastStateChangeTime = now;
               stateTimerRunning = true;
             }
@@ -500,10 +590,9 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             break;
             
           case OFF_TIME_MINIMAL:
-            //newLevel = 0; // offLevel is default
-            setNewLevel = true;
+            setNewLevel = true; // offLevel is default, no need to set newLevel
             if (now - lastStateChangeTime < convertTime(offTime)) {
-              stateCangeWaitTime = convertTime(offTime);
+              stateChangeWaitTime = convertTime(offTime);
               lastStateChangeTime = now;
               stateTimerRunning = true;
             }
@@ -512,11 +601,9 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         }
       }
       else {  // NO_JUMP_IGNORE_COMMAND
-  //      currentState = (currentLevel ? JT_ON : JT_OFF );    // get current level and update state // TODO: actually needed? or keep for robustness?
         nextState = currentState;   // avoid to run into a loop
       }
       //if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
-      //if (currentValue != newLevel && setNewLevel) {   // check for current level. don't set same level again
       if (setNewLevel) {
         setOutput(device, &newLevel);   // checks for current level. don't set same level again
         setNewLevel = false;
@@ -527,20 +614,19 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
   
 	// feedback trigger set?
-    if(!nextFeedbackDelay) return;
-    now = millis();
-    if(now - lastFeedbackTime < nextFeedbackDelay) return;
-    lastFeedbackTime = now;  // at least last time of trying
-    // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
+  if(!nextFeedbackDelay) return;
+  now = millis();
+  if(now - lastFeedbackTime < nextFeedbackDelay) return;
+  lastFeedbackTime = now;  // at least last time of trying
+  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
 	// we know that the level has only 1 byte here
 	uint8_t level;
-    get(&level);	
-    uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
-    if(errcode == 1) {  // bus busy
-    // try again later, but insert a small delay
-    	nextFeedbackDelay = 250;
-    }else{
-    	nextFeedbackDelay = 0;
-    }
+  get(&level);
+  uint8_t errcode = device->sendInfoMessage(channel, 1, &level);
+  if(errcode == 1) {  // bus busy
+  	nextFeedbackDelay = 250;  // try again later, but insert a small delay
+  }
+  else {
+  	nextFeedbackDelay = 0;
+  }
 }
-

@@ -1,7 +1,7 @@
 /* 
 * HBWDimmerAdvanced
 *
-* Mit HBWDimmerAdvanced & HBWLinkSwitchAdvanced sind folgende Funktionen möglich:
+* Mit HBWDimmerAdvanced & HBWLinkDimmerAdvanced sind folgende Funktionen möglich:
 * Peering mit TOGGLE_TO_COUNTER, TOGGLE_INVERSE_TO_COUNTER, UPDIM, DOWNDIM,
 * TOGGLEDIM, TOGGLEDIM_TO_COUNTER, TOGGLEDIM_INVERSE_TO_COUNTER, onTime,
 * offTime (Ein-/Ausschaltdauer), onDelayTime, offDelayTime (Ein-/Ausschaltverzögerung)
@@ -18,9 +18,9 @@
 #include "HBWired.h"
 
 
-//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
+#define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
 
-#define RAMP_MIN_STEP_WIDTH 100 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 450ms
+#define RAMP_MIN_STEP_WIDTH 250//160 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 250ms
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY  0x00
@@ -60,9 +60,14 @@
 #define D_POS_dimMaxLevel    15
 #define D_POS_peerConfigStep 16
 #define D_POS_peerConfigOffDtime 17
+#define D_POS_peerKeyPressNum    18 // last array element always used for keyPressNum
+
+#define ON_LEVEL_USE_OLD_VALUE  202
 
 #define DIM_UP true
 #define DIM_DOWN false
+#define ON_LEVEL_PRIO_HIGH  0
+#define ON_LEVEL_PRIO_LOW   1
 
 
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
@@ -84,6 +89,7 @@ class HBWDimmerAdvanced : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
+    
   private:
     uint8_t pin;
     hbw_config_dim* config; // logging
@@ -91,16 +97,14 @@ class HBWDimmerAdvanced : public HBWChannel {
     uint8_t oldValue;
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
-
-    // set from links/peering (implements state machine)
+    
     void setOutputNoLogging(uint8_t const * const data);
     void setOutput(HBWDevice* device, uint8_t const * const data);
     uint8_t dimUpDown(uint8_t const * const data, boolean dimUp);
+    void prepareOnOffRamp(uint8_t rampTime, uint8_t level);
     uint8_t getNextState(uint8_t bitshift);
     inline uint32_t convertTime(uint8_t timeValue);
-    void prepareOnOffRamp(uint8_t rampTime);
     
-//    uint8_t peerParamActionType;
     union tag_actiontype {
       struct tag_actiontype_elements {
         uint8_t actionType:4;
@@ -112,16 +116,17 @@ class HBWDimmerAdvanced : public HBWChannel {
       uint8_t byte:8;
     } peerParamActionType;
 //#define BITMASK_ActionType        B00001111
-//#define BITMASK_LongMultiexecute  B00010000
-    
+//#define BITMASK_LongMultiexecute  B00100000
+//#define BITMASK_OffTimeMode       B01000000
+//#define BITMASK_OnTimeMode        B10000000
     uint8_t onDelayTime;
     uint8_t onTime;
     uint8_t offDelayTime;
     uint8_t offTime;
-    union { uint32_t DWORD;
+    union {
+      uint32_t DWORD;
       uint8_t jt_hi_low[4];
     } jumpTargets;
-    
     uint8_t onLevel;
     uint8_t onMinLevel;
     uint8_t offLevel;
@@ -153,17 +158,18 @@ class HBWDimmerAdvanced : public HBWChannel {
       } element;
       uint8_t byte:8;
     } peerConfigOffDtime;
-    
     boolean stateTimerRunning;
     boolean currentOnLevelPrio;
     uint8_t currentState;
     uint8_t nextState;
-    unsigned long stateCangeWaitTime;
-    volatile unsigned long lastStateChangeTime;
+    uint32_t stateChangeWaitTime;
+    volatile uint32_t lastStateChangeTime;
     uint8_t lastKeyNum;
 
-    volatile uint16_t rampStepCounter;
-    uint8_t rampStep;
+    uint16_t rampStepCounter;
+    uint16_t rampStep;
+    boolean offDelayNewTimeActive;
+    boolean offDelaySingleStep;
 };
 
 
