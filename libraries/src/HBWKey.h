@@ -40,7 +40,7 @@ class HBWKey : public HBWChannel {
     uint32_t lastSentLong;      // Zeit, zu der das letzte Mal longPress gesendet wurde
     uint8_t keyPressNum;
     hbw_config_key* config;
-	boolean oldButtonState;
+    boolean oldButtonState;
 };
 
 #endif

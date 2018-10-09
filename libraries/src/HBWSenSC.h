@@ -1,3 +1,14 @@
+/*
+ * HBWSenSC.cpp
+ * 
+ * sensor/shutter contact
+ * Query to this type channel will return "contact_closed" or "contact_open" (boolean)
+ * No peering. I-Message/notify on status change can be enabled by NOTIFY: on/off
+ * 
+ * www.loetmeister.de
+ * 
+ */
+
 #ifndef HBWSenSC_h
 #define HBWSenSC_h
 
@@ -13,7 +24,7 @@
 struct hbw_config_senSC {
   uint8_t n_input_locked:1;   // 0x07:0    0=LOCKED, 1=UNLOCKED (default)
   uint8_t n_inverted:1;       // 0x07:1    0=inverted, 1=not inverted (default)
-  uint8_t notify_disabled:1;         // 0x07:2    0=ENABLED, 1=DISABLED (default)
+  uint8_t notify_disabled:1;  // 0x07:2    0=ENABLED, 1=DISABLED (default)
   uint8_t       :5;           // 0x07:3-7
 };
 

@@ -1,7 +1,9 @@
 /*
  * HBWSenSC.cpp
  * 
- * sensor/shutter contact 
+ * sensor/shutter contact
+ * Query to this type channel will return "contact_closed" or "contact_open" (boolean)
+ * No peering. I-Message/notify on status change can be enabled by NOTIFY: on/off
  * 
  * Updated: 29.09.2018
  * www.loetmeister.de
