@@ -395,12 +395,14 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
       };
 
       if (pendingActions.zeroCommunicationActive) {				// block any messages in this state, except:
-         /*switch(frameData[0]){
+      #if defined(_HAS_BOOTLOADER_) && defined(BOOTSTART)
+         switch(frameData[0]){
             case 'u':                                                              // Update (Bootloader starten)
                goto *bootloader_start;			// Adresse des Bootloaders
                // TODO: Bootloader?
                break;
-         }*/
+         }
+      #endif
          return;
       };
 
