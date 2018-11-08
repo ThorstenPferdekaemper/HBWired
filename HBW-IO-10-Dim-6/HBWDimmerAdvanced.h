@@ -15,12 +15,13 @@
 #define HBWDimmerAdvanced_h
 
 #include <inttypes.h>
+#include "HBWlibStateMachine.h"
 #include "HBWired.h"
-
 
 #define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
 
 #define RAMP_MIN_STEP_WIDTH 250//160 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 250ms
+
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY  0x00
@@ -30,14 +31,6 @@
 #define JT_RAMP_OFF 0x04
 #define JT_OFF      0x05
 #define JT_NO_JUMP_IGNORE_COMMAND 0x06
-
-#define ON_TIME_ABSOLUTE    0x0A
-#define OFF_TIME_ABSOLUTE   0x0B
-#define ON_TIME_MINIMAL     0x0C
-#define OFF_TIME_MINIMAL    0x0D
-#define UNKNOWN_STATE       0xFF
-#define FORCE_STATE_CHANGE  0xFE
-
 
 // from HBWLinkDimmerAdvanced:
 #define NUM_PEER_PARAMS 18
@@ -62,12 +55,16 @@
 #define D_POS_peerConfigOffDtime 17
 #define D_POS_peerKeyPressNum    18 // last array element always used for keyPressNum
 
+#define BITMASK_DimStep       B00001111
+#define BITMASK_OffDelayStep  B11110000
+
+#define BITMASK_OffDelayNewTime B00001111
+#define BITMASK_OffDelayOldTime B11110000
+
 #define ON_LEVEL_USE_OLD_VALUE  202
 
 #define DIM_UP true
 #define DIM_DOWN false
-#define ON_LEVEL_PRIO_HIGH  0
-#define ON_LEVEL_PRIO_LOW   1
 
 
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
@@ -97,79 +94,46 @@ class HBWDimmerAdvanced : public HBWChannel {
     uint8_t oldValue;
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
+    HBWlibStateMachine StateMachine;
     
     void setOutputNoLogging(uint8_t const * const data);
     void setOutput(HBWDevice* device, uint8_t const * const data);
     uint8_t dimUpDown(uint8_t const * const data, boolean dimUp);
     void prepareOnOffRamp(uint8_t rampTime, uint8_t level);
-    uint8_t getNextState(uint8_t bitshift);
-    inline uint32_t convertTime(uint8_t timeValue);
     
-    union tag_actiontype {
-      struct tag_actiontype_elements {
-        uint8_t actionType:4;
-        uint8_t dummy:1;
-        uint8_t longMultiexecute:1;
-        uint8_t offTimeMode:1;
-        uint8_t onTimeMode:1;
-      } element;
-      uint8_t byte:8;
-    } peerParamActionType;
-//#define BITMASK_ActionType        B00001111
-//#define BITMASK_LongMultiexecute  B00100000
-//#define BITMASK_OffTimeMode       B01000000
-//#define BITMASK_OnTimeMode        B10000000
-    uint8_t onDelayTime;
-    uint8_t onTime;
-    uint8_t offDelayTime;
-    uint8_t offTime;
-    union {
-      uint32_t DWORD;
-      uint8_t jt_hi_low[4];
-    } jumpTargets;
-    uint8_t onLevel;
-    uint8_t onMinLevel;
-    uint8_t offLevel;
-    union tag_peerConfigParam {
-      struct tag_peerConfigParam_elements {
-        uint8_t onDelayMode:1;
-        uint8_t onLevelPrio:1;
-        uint8_t offDelayBlink:1;
-        uint8_t dummy:1;
-        uint8_t rampStartStep:4;
-      } element;
-      uint8_t byte:8;
-    } peerConfigParam;
     uint8_t rampOnTime;
     uint8_t rampOffTime;
     uint8_t dimMinLevel;
     uint8_t dimMaxLevel;
-    union tag_peerConfigStep {
-      struct tag_peerConfigStep_elements {
-        uint8_t dimStep:4;
-        uint8_t offDelayStep:4;
-      } element;
-      uint8_t byte:8;
-    } peerConfigStep;
-    union tag_peerConfigOffDtime {
-      struct tag_peerConfigOffDtime_elements {
-        uint8_t offDelayNewTime:4;
-        uint8_t offDelayOldTime:4;
-      } element;
-      uint8_t byte:8;
-    } peerConfigOffDtime;
-    boolean stateTimerRunning;
     boolean currentOnLevelPrio;
-    uint8_t currentState;
-    uint8_t nextState;
-    uint32_t stateChangeWaitTime;
-    volatile uint32_t lastStateChangeTime;
-    uint8_t lastKeyNum;
-
     uint16_t rampStepCounter;
     uint16_t rampStep;
     boolean offDelayNewTimeActive;
     boolean offDelaySingleStep;
+    uint8_t peerConfigStep;
+    uint8_t peerConfigOffDtime;
+    
+    inline void writePeerConfigStep(uint8_t value) {
+      peerConfigStep = value;
+    }
+    inline uint8_t peerParam_getDimStep() {
+      return peerConfigStep & BITMASK_DimStep;
+    }
+    inline uint8_t peerParam_getOffDelayStep() {
+      return peerConfigStep & BITMASK_OffDelayStep;
+    }
+    inline void writePeerConfigOffDtime(uint8_t value) {
+      peerConfigOffDtime = value;
+    }
+    inline uint8_t peerParam_getOffDelayNewTime() {
+      return peerConfigOffDtime & BITMASK_OffDelayNewTime;
+    }
+    inline uint8_t peerParam_getOffDelayOldTime() {
+      return peerConfigOffDtime & BITMASK_OffDelayOldTime;
+    }
+    
+  protected:
+  
 };
 
 
