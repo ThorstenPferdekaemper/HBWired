@@ -4,7 +4,7 @@
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
-// PWM/0-10V/1-10V Master Dimmer + 10 digitale Eingänge (Sensor)
+// PWM/0-10V/1-10V Master Dimmer + 10 digitale Eingänge (Key/Taster & Sensor)
 // - Direktes Peering für Dimmer möglich. (HBWLinkDimmerAdvanced)
 // - Direktes Peering für Taster möglich. (HBWLinkKey)
 //
@@ -51,8 +51,8 @@
 #include "HBWDimmerAdvanced.h"
 #include <HBWLinkKey.h>
 #include <HBWKey.h>
-#include "HBWSenSC.h"
-#include "HBWAnalogIn.h"
+#include <HBWSenSC.h>
+#include <HBWAnalogIn.h>
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
