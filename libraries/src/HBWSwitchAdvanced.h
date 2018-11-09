@@ -14,10 +14,12 @@
 #define HBWSwitchAdvanced_h
 
 #include <inttypes.h>
+#include "HBWlibStateMachine.h"
 #include "HBWired.h"
 
 
 //#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
+
 
 // peering/link values must match the XML/EEPROM values!
 #define JT_ONDELAY 0x00
@@ -25,13 +27,6 @@
 #define JT_OFFDELAY 0x02
 #define JT_OFF 0x03
 #define JT_NO_JUMP_IGNORE_COMMAND 0x04
-#define ON_TIME_ABSOLUTE 0x0A
-#define OFF_TIME_ABSOLUTE 0x0B
-#define ON_TIME_MINIMAL 0x0C
-#define OFF_TIME_MINIMAL 0x0D
-#define UNKNOWN_STATE 0xFF
-#define FORCE_STATE_CHANGE 0xFE
-
 
 
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
@@ -53,30 +48,15 @@ class HBWSwitchAdvanced : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
+    
   private:
     uint8_t pin;
     hbw_config_switch* config; // logging
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
+    HBWlibStateMachine StateMachine;
 
-    // set from links/peering (implements state machine)
     void setOutput(HBWDevice* device, uint8_t const * const data);
-    uint8_t getNextState(uint8_t bitshift);
-    inline uint32_t convertTime(uint8_t timeValue);
-    uint8_t actiontype;
-    uint8_t onDelayTime;
-    uint8_t onTime;
-    uint8_t offDelayTime;
-    uint8_t offTime;
-    union { uint16_t WORD;
-      uint8_t jt_hi_low[2];
-    } jumpTargets;
-    boolean stateTimerRunning;
-    uint8_t currentState;
-    uint8_t nextState;
-    unsigned long stateChangeWaitTime;
-    unsigned long lastStateChangeTime;
-    uint8_t lastKeyNum;
 };
 
 #endif

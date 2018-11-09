@@ -3,14 +3,14 @@
 <supported_types>
 	<type priority="2" id="HBW-LC-Sw-12" name="RS485 Homebrew switch actuator 12-channel (6+6)">
 		<parameter const_value="0x93" size="1" index="0"/>
-		<parameter const_value="0" size="1" index="1"/>
+		<parameter const_value="1" size="1" index="1"/>
 		<parameter const_value="0x0004" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
 <paramset id="HBW_LC_Sw_12_dev_master" type="MASTER">
 	<parameter id="LOGGING_TIME">
-		<logical type="float" unit="s" default="2.0" max="25.5" min="0.1"/>
+		<logical type="float" unit="s" default="5.0" max="25.5" min="0.1"/>
 		<physical size="1.0" type="integer" interface="eeprom">
 			<address index="0x0001"/>
 		</physical>

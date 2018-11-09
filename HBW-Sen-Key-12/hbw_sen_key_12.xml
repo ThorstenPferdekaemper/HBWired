@@ -3,7 +3,7 @@
 <supported_types>
 	<type priority="2" id="HBW-Sen-Key-12" name="RS485 Homebrew Tastermodul (12fach)">
 		<parameter const_value="0x95" size="1" index="0"/>
-		<parameter const_value="0" size="1" index="1"/>
+		<parameter const_value="1" size="1" index="1"/>
 	</type>
 </supported_types>
 

@@ -9,6 +9,7 @@
 #define HBWired_h
 
 #include "Arduino.h"
+#include "hardware.h"
 
 class HBWDevice;
 
@@ -200,6 +201,8 @@ class HBWDevice {
 		uint8_t zeroCommunicationActive : 1;
 	};
 	static s_PendingActions pendingActions;
+	
+	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
 };
 
 

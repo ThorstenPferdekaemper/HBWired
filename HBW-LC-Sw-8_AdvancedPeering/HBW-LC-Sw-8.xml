@@ -3,7 +3,7 @@
 <supported_types>
 	<type priority="2" id="HBW-LC-Sw-8" name="RS485 Homebrew switch actuator 8-channel">
 		<parameter const_value="0x83" size="1" index="0"/>
-		<parameter const_value="0" size="1" index="1"/>
+		<parameter const_value="1" size="1" index="1"/>
 	</type>
 </supported_types>
 

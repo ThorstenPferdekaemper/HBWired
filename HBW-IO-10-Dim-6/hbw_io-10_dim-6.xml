@@ -3,7 +3,7 @@
 <supported_types>
 	<type priority="2" id="HBW-IO-10-Dim-6" name="RS485 6-channel master dimming actuator and 10 Digital inputs">
 		<parameter const_value="0x96" size="1" index="0"/><!--HMW_DEVICETYPE-->
-		<parameter const_value="0" size="1" index="1"/>
+		<parameter const_value="1" size="1" index="1"/><!--HARDWARE_VERSION-->
 		<parameter const_value="0x0004" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
 	</type>
 </supported_types>
