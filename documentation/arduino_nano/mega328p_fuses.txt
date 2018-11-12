@@ -1,0 +1,27 @@
+##NANO specific default fuses (AtMega328p, 16Mhz crystal + bootloader)
+
+Device signature = 0x1e950f (probably m328p)
+safemode: hfuse reads as DA
+safemode: efuse reads as FD
+safemode: Fuses OK (E:FD, H:DA, L:FF)
+
+
+##Quick command reference
+
+AVRDUDE arguments,
+to set fuses...
+  To set default fuses:
+  avrdude -c AVRISPmkII -p m328p -U lfuse:w:0xff:m -U hfuse:w:0xda:m -U efuse:w:0xfd:m
+  
+  To preserve EEPROM memory through the Chip Erase cycle; [EESAVE] - use hfuse = 0xD2:
+  avrdude.exe -c AVRISPmkII -p m328p -U lfuse:w:0xff:m -U hfuse:w:0xd2:m -U efuse:w:0xfd:m
+
+  -->> this used on https://loetmeister.de/Elektronik/homematic/index.htm#modules <<--
+  To disable bootloader & preserve EEPROM memory:
+  avrdude -c AVRISPmkII -p m328p -U lfuse:w:0xff:m -U hfuse:w:0xd3:m -U efuse:w:0xfd:m
+  
+
+to flash...
+  (no boot loader version):
+  avrdude -c AVRISPmkII -p m328p -U flash:w:HBW-device.ino.eightanaloginputs.hex:i -v
+  
