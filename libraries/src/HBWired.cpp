@@ -7,7 +7,7 @@
  *
  *  HomeBrew-Wired RS485-Protokoll 
  *
- * Last updated: 21.05.2018
+ * Last updated: 21.11.2018
  */
 
 #include "HBWired.h"
@@ -56,6 +56,8 @@ boolean HBWDevice::parseFrame () { // returns true, if event needs to be process
 
   byte seqNumReceived;
   byte seqNumSent;
+  
+  rxLEDStatus = true;
 
 //### START ACK verarbeiten ###
   if(frameStatus & FRAME_SENTACKWAIT) {   // wir warten auf ACK?
@@ -105,6 +107,8 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle){
 	 // set new idle time
 	 minIdleTime = random(DIFS_CONSTANT, DIFS_CONSTANT+DIFS_RANDOM);
    }
+   
+   txLEDStatus = true;
 
 // simple send for ACKs and Broadcasts
   if(txTargetAddress == 0xFFFFFFFF || ((txFrameControlByte & 0x03) == 1)) {
@@ -764,7 +768,10 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    readAddressFromEEPROM();
    hbwdebugstream = _debugstream;    // debug stream, might be NULL
    configPin = 0xFF;  //inactive by default
+   configButtonStatus = 0;
    ledPin = 0xFF;     // inactive by default
+   rxLedPin = 0xFF;     // inactive by default
+   txLedPin = 0xFF;     // inactive by default
    readConfig();	// read config
    pendingActions.announced = false;	// was initial broadcast announce message send?
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
@@ -783,6 +790,14 @@ void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	}
 	ledPin = _ledPin;	
 	if(ledPin != 0xFF) pinMode(ledPin,OUTPUT);
+};
+
+
+void HBWDevice::setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin) {
+	txLedPin = _txLedPin;
+	rxLedPin = _rxLedPin;
+	if(txLedPin != 0xFF) pinMode(txLedPin, OUTPUT);
+	if(rxLedPin != 0xFF) pinMode(rxLedPin, OUTPUT);
 };
 
 
@@ -842,6 +857,8 @@ void HBWDevice::loop()
    if (loopCurrentChannel >= numChannels) loopCurrentChannel = 0;
 // config Button
    handleConfigButton();
+// Rx & Tx LEDs
+   handleStatusLEDs();
 };
 
 
@@ -872,10 +889,6 @@ void HBWDevice::handleConfigButton() {
   if(configPin == 0xFF) return;
   
   static long lastTime = 0;
-  static uint8_t status = 0;  // 0: normal, 1: Taste erstes mal gedrueckt, 2: erster langer Druck erkannt
-                           // 3: Warte auf zweiten Tastendruck, 4: Taste zweites Mal gedrueckt
-                           // 5: zweiter langer Druck erkannt
-
   long now = millis();
   boolean buttonState;
 
@@ -888,24 +901,28 @@ void HBWDevice::handleConfigButton() {
   else
 #endif
     buttonState = !digitalRead(configPin);
-
-  switch(status) {
+	
+  // configButtonStatus
+  // 0: normal, 1: Taste erstes mal gedrueckt, 2: erster langer Druck erkannt
+  // 3: Warte auf zweiten Tastendruck, 4: Taste zweites Mal gedrueckt
+  // 5: zweiter langer Druck erkannt
+  switch(configButtonStatus) {
     case 0:
-      if(buttonState) status = 1;
+      if(buttonState) configButtonStatus = 1;
       lastTime = now;
       break;
     case 1:
       if(buttonState) {   // immer noch gedrueckt
-          if(now - lastTime > 5000) status = 2;
+          if(now - lastTime > 5000) configButtonStatus = 2;
       }else{              // nicht mehr gedrueckt
           if(now - lastTime > 100)   // announce on short press
               broadcastAnnounce(0);
-        status = 0;
+        configButtonStatus = 0;
       };
       break;
     case 2:
       if(!buttonState) {  // losgelassen
-          status = 3;
+          configButtonStatus = 3;
           lastTime = now;
       };
       break;
@@ -914,54 +931,85 @@ void HBWDevice::handleConfigButton() {
       if(now - lastTime < 100)
           break;
       if(buttonState) {   // zweiter Tastendruck
-          status = 4;
+          configButtonStatus = 4;
           lastTime = now;
       }else{              // noch nicht gedrueckt
-          if(now - lastTime > 10000) status = 0;   // give up
+          if(now - lastTime > 10000) configButtonStatus = 0;   // give up
       };
       break;
     case 4:
       if(now - lastTime < 100) // entprellen
             break;
       if(buttonState) {   // immer noch gedrueckt
-          if(now - lastTime > 3000) status = 5;
+          if(now - lastTime > 3000) configButtonStatus = 5;
       }else{              // nicht mehr gedrueckt
-          status = 0;
+          configButtonStatus = 0;
       };
       break;
     case 5:   // zweiter Druck erkannt
       if(!buttonState) {    //erst wenn losgelassen
           // Factory-Reset          
           factoryReset();
-          status = 0;
-      }
+          configButtonStatus = 0;
+      };
       break;
   }
 
   // control LED, if set  
   if(ledPin == 0xFF) return;
   static long lastLEDtime = 0;
-  switch(status) {
-    case 0:
-      digitalWrite(ledPin, LOW);
-      break;
-    case 1:
-      digitalWrite(ledPin, HIGH);
-      break;
-    case 2:
-    case 3:
-    case 4:
-      if(now - lastLEDtime > 100) {  // schnelles Blinken
-          digitalWrite(ledPin,!digitalRead(ledPin));
-          lastLEDtime = now;
-      };
-      break;
-    case 5:
-      if(now - lastLEDtime > 750) {  // langsames Blinken
-          digitalWrite(ledPin,!digitalRead(ledPin));
-          lastLEDtime = now;
-      };
+  if(now - lastLEDtime > 100) {  // update intervall & schnelles Blinken
+	  switch(configButtonStatus) {
+		case 0:
+		  digitalWrite(ledPin, LOW);
+		  lastLEDtime = now;
+		  break;
+		case 1:
+		  digitalWrite(ledPin, HIGH);
+		  lastLEDtime = now;
+		  break;
+		case 2:
+		case 3:
+		case 4:
+		  digitalWrite(ledPin,!digitalRead(ledPin));
+		  lastLEDtime = now;
+		  break;
+		case 5:
+		  if(now - lastLEDtime > 750) {  // langsames Blinken
+			  digitalWrite(ledPin,!digitalRead(ledPin));
+			  lastLEDtime = now;
+		  };
+	  }
   }
+};
+
+
+void HBWDevice::handleStatusLEDs() {
+	// turn on or off Tx, Rx LEDs - allow use of "config LED" for Tx, Rx combined
+	// don't operate LED when configButton was pressed and "config LED" is used for Tx or Rx
+	
+	static long lastStatusLEDsTime = 0;
+	
+	if (millis() - lastStatusLEDsTime > 60) {	// check every 60 ms only (allow LED to light up)
+		if (txLedPin != 0xFF) {
+			if (txLedPin == rxLedPin && rxLEDStatus) {	// combined Rx/Tx LED
+				txLEDStatus = true;
+				rxLEDStatus = false;
+			}
+			if ((configButtonStatus == 0 && txLedPin == ledPin) || txLedPin != ledPin) {	// configButton has priority for "config LED"
+				digitalWrite(txLedPin, txLEDStatus);
+				txLEDStatus = false;
+			}
+		}
+		
+		if (rxLedPin != 0xFF && txLedPin != rxLedPin) {		// combined Rx/Tx LED already handled above
+			if ((configButtonStatus == 0 && rxLedPin == ledPin) || rxLedPin != ledPin) {
+				digitalWrite(rxLedPin, rxLEDStatus);
+				rxLEDStatus = false;
+			}
+		}
+		lastStatusLEDsTime = millis();
+	}
 };
 
 

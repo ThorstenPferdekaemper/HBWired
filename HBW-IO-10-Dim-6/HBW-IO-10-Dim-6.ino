@@ -71,12 +71,12 @@
   #define IO2 7
   #define IO3 8
   #define IO4 12
-  #define ADC1 A0
-  #define ADC2 A1
-  #define ADC3 A2
-  #define ADC4 A3
-  #define ADC5 A4
-  #define ADC6 A5
+  #define IO5 A0
+  #define IO6 A1
+  #define IO7 A2
+  #define IO8 A3
+  #define IO9 A4
+  #define IO10 A5
 #else
   #define RS485_RXD 4
   #define RS485_TXD 2
@@ -95,12 +95,12 @@
   #define IO2 7
   #define IO3 A5
   #define IO4 12
-  #define ADC1 A0
-  #define ADC2 A1
-  #define ADC3 A2
-  #define ADC4 A3
-  #define ADC5 A4
-  #define ADC6 NOT_A_PIN  // dummy pin to fill the array elements
+  #define IO5 A0
+  #define IO6 A1
+  #define IO7 A2
+  #define IO8 A3
+  #define IO9 A4
+  #define IO10 NOT_A_PIN  // dummy pin to fill the array elements
   
   #include "HBWSoftwareSerial.h"
   // HBWSoftwareSerial can only do 19200 baud
@@ -118,6 +118,7 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
+  // TODO: Add to disable Rx, Tx LED
   hbw_config_dim dimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x12 (address step 2)
   hbw_config_senSC senCfg[NUMBER_OF_SEN_INPUT_CHAN]; // 0x13 - 0x1C (address step 1)
   hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
@@ -176,7 +177,7 @@ void setup()
 
 #if NUMBER_OF_INPUT_CHAN == 10 && NUMBER_OF_SEN_INPUT_CHAN == 10
 
-  byte digitalInput[10] = {IO1, IO2, IO3, IO4, ADC1, ADC2, ADC3, ADC4, ADC5, ADC6};  // assing pins
+  byte digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
   
   for(uint8_t i = 0; i < NUMBER_OF_INPUT_CHAN; i++) {
     channels[i + NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]));
@@ -200,6 +201,7 @@ void setup()
                              new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
+  device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
   
 #else
   Serial.begin(19200);
@@ -212,6 +214,7 @@ void setup()
                              new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
+  device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
 
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());

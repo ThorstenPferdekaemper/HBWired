@@ -24,6 +24,7 @@ sendKeyEvent	KEYWORD2
 receiveKeyEvent	KEYWORD2
 processEvent	KEYWORD2
 afterReadConfig	KEYWORD2
+setStatusLEDPins	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
