@@ -9,6 +9,12 @@
 
 ClickButton	KEYWORD1
 
+#HBWired
+HBWDevice	KEYWORD1
+HBWChannel	KEYWORD1
+HBWLinkSender	KEYWORD1
+HBWLinkReceiver	KEYWORD1
+
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
@@ -16,6 +22,8 @@ ClickButton	KEYWORD1
 Update	KEYWORD2
 
 #HBWired
+hbwdebughex	KEYWORD2
+hbwdebug	KEYWORD2
 set	KEYWORD2
 get	KEYWORD2
 setConfigPins	KEYWORD2
@@ -25,6 +33,7 @@ receiveKeyEvent	KEYWORD2
 processEvent	KEYWORD2
 afterReadConfig	KEYWORD2
 setStatusLEDPins	KEYWORD2
+getLoggingTime	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
@@ -59,7 +68,16 @@ multiclickTime	LITERAL2
 longClickTime	LITERAL2
 
 #HBWired
-HBWDevice	LITERAL2
-HBWChannel	LITERAL2
-HBWLinkSender	LITERAL2
-HBWLinkReceiver	LITERAL2
+HBWSoftwareSerial	LITERAL2
+HBWAnalogIn	LITERAL2
+HBWBlind	LITERAL2
+HBWDimmerAdvanced	LITERAL2
+HBWKey	LITERAL2
+HBWSenSC	LITERAL2
+HBWSwitch	LITERAL2
+HBWSwitchAdvanced	LITERAL2
+HBWLinkBlindSimple	LITERAL2
+HBWLinkDimmerAdvanced	LITERAL2
+HBWLinkKey	LITERAL2
+HBWLinkSwitchAdvanced	LITERAL2
+HBWLinkSwitchSimple	LITERAL2

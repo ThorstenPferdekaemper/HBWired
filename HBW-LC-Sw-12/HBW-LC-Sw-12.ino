@@ -27,6 +27,7 @@
 #define HMW_DEVICETYPE 0x93
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0004
+
 #define USE_HARDWARE_SERIAL   // use hardware serial (USART), this disables debug output
 
 #define NUM_SW_CHANNELS 12  // switch/relay
@@ -35,14 +36,14 @@
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x40
 
-#include "FreeRam.h"
 
+#include <FreeRam.h>
 
 // HB Wired protocol and module
-#include "HBWired.h"
-#include "HBWLinkSwitchAdvanced.h"
+#include <HBWired.h>
+#include <HBWLinkSwitchAdvanced.h>
 //#include "HBWSwitchSerialAdvanced.h"  //TODO : move to seperate files
-#include "HBWAnalogIn.h"
+#include <HBWAnalogIn.h>
 #include <HBWlibStateMachine.h>
 
 // shift register library
@@ -51,6 +52,7 @@
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
+  #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define RS485_TXEN 2  // Transmit-Enable
   #define shiftReg_OutputEnable 8   // OE output enable, connect to all shift register
   // 6 realys and LED attached to 3 shiftregisters
@@ -63,6 +65,7 @@
   #define shiftRegTwo_Latch 9
   
 #else
+  #define BUTTON 8  // Button fuer Factory-Reset etc.
   #define RS485_RXD 4
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
@@ -76,15 +79,9 @@
   #define shiftRegTwo_Clock 7
   #define shiftRegTwo_Latch 6
   
-  #include "HBWSoftwareSerial.h"
+  #include <HBWSoftwareSerial.h>
   // HBWSoftwareSerial can only do 19200 baud
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif
-
-#ifdef USE_HARDWARE_SERIAL
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-#else
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
 #endif
 
 #define LED LED_BUILTIN        // Signal-LED
@@ -121,8 +118,8 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_switch switchcfg[NUM_SW_CHANNELS]; // 0x07-0x1F (2 bytes each)
-  hbw_config_analog_in ctcfg[NUM_AD_CHANNELS];    // 0x20-0x2C (2 bytes each)
+  hbw_config_switch switchCfg[NUM_SW_CHANNELS]; // 0x07-0x1F (2 bytes each)
+  hbw_config_analog_in ctCfg[NUM_AD_CHANNELS];    // 0x20-0x2C (2 bytes each)
 } hbwconfig;
 
 
@@ -517,11 +514,11 @@ void setup()
   // create channels
   for(uint8_t i = 0; i < NUM_SW_CHANNELS; i++) {
     if (i < 6) {
-      channels[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &myShReg_one, &(hbwconfig.switchcfg[i]));
-      channels[i+NUM_SW_CHANNELS] = new HBWAnalogIn(currentTransformerPins[i], &(hbwconfig.ctcfg[i]));
+      channels[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &myShReg_one, &(hbwconfig.switchCfg[i]));
+      channels[i+NUM_SW_CHANNELS] = new HBWAnalogIn(currentTransformerPins[i], &(hbwconfig.ctCfg[i]));
     }
     else
-      channels[i] = new HBWChanSw(RelayBitPos[i %6], LEDBitPos[i %6], &myShReg_two, &(hbwconfig.switchcfg[i]));
+      channels[i] = new HBWChanSw(RelayBitPos[i %6], LEDBitPos[i %6], &myShReg_two, &(hbwconfig.switchCfg[i]));
   };
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)

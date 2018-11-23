@@ -30,14 +30,14 @@
 
 //#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
 
-#include "HBWSoftwareSerial.h"
-#include "FreeRam.h"    
+#include <HBWSoftwareSerial.h>
+#include <FreeRam.h>
 
 
 // HB Wired protocol and module
-#include "HBWired.h"
-#include "HBWLinkSwitchAdvanced.h"
-#include "HBWSwitchAdvanced.h"
+#include <HBWired.h>
+#include <HBWLinkSwitchAdvanced.h>
+#include <HBWSwitchAdvanced.h>
 
 #define RS485_RXD 4
 #define RS485_TXD 2
@@ -65,7 +65,7 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_switch switchcfg[NUM_CHANNELS]; // 0x07-0x... ?
+  hbw_config_switch switchCfg[NUM_CHANNELS]; // 0x07-0x... ? (address step 2)
 } hbwconfig;
 
 
@@ -108,9 +108,9 @@ void setup()
   uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN, SWITCH3_PIN, SWITCH4_PIN, SWITCH5_PIN, SWITCH6_PIN, SWITCH7_PIN, SWITCH8_PIN};
   
   // assing switches (relay) pins to channels
-  for(uint8_t i = 0; i < NUM_CHANNELS; i++){
-     switches[i] = new HBWSwitchAdvanced(pins[i], &(hbwconfig.switchcfg[i]));
-  };
+  for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
+    switches[i] = new HBWSwitchAdvanced(pins[i], &(hbwconfig.switchCfg[i]));
+  }
 
   device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,

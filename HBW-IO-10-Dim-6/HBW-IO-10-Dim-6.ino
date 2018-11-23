@@ -201,7 +201,7 @@ void setup()
                              new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
-  device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
+  //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
   
 #else
   Serial.begin(19200);

@@ -767,11 +767,11 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    deviceType = _devicetype;
    readAddressFromEEPROM();
    hbwdebugstream = _debugstream;    // debug stream, might be NULL
-   configPin = 0xFF;  //inactive by default
+   configPin = NOT_A_PIN;  //inactive by default
    configButtonStatus = 0;
-   ledPin = 0xFF;     // inactive by default
-   rxLedPin = 0xFF;     // inactive by default
-   txLedPin = 0xFF;     // inactive by default
+   ledPin = NOT_A_PIN;     // inactive by default
+   rxLedPin = NOT_A_PIN;     // inactive by default
+   txLedPin = NOT_A_PIN;     // inactive by default
    readConfig();	// read config
    pendingActions.announced = false;	// was initial broadcast announce message send?
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
@@ -780,7 +780,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 
 void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	configPin = _configPin;
-	if(configPin != 0xFF) {
+	if(configPin != NOT_A_PIN) {
 	#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 		if (configPin == A6 || configPin == A7)
 			pinMode(configPin,INPUT);	// no pullup for analog input
@@ -789,15 +789,15 @@ void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 		pinMode(configPin,INPUT_PULLUP);
 	}
 	ledPin = _ledPin;	
-	if(ledPin != 0xFF) pinMode(ledPin,OUTPUT);
+	if(ledPin != NOT_A_PIN) pinMode(ledPin,OUTPUT);
 };
 
 
 void HBWDevice::setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin) {
 	txLedPin = _txLedPin;
 	rxLedPin = _rxLedPin;
-	if(txLedPin != 0xFF) pinMode(txLedPin, OUTPUT);
-	if(rxLedPin != 0xFF) pinMode(rxLedPin, OUTPUT);
+	if(txLedPin != NOT_A_PIN) pinMode(txLedPin, OUTPUT);
+	if(rxLedPin != NOT_A_PIN) pinMode(rxLedPin, OUTPUT);
 };
 
 
@@ -886,7 +886,7 @@ void HBWDevice::handleConfigButton() {
   // dann innerhalb 10s langer Tastendruck (3s) -> LED geht aus, EEPROM-Reset
 
   // do we have a config-pin?
-  if(configPin == 0xFF) return;
+  if(configPin == NOT_A_PIN) return;
   
   static long lastTime = 0;
   long now = millis();
@@ -956,7 +956,7 @@ void HBWDevice::handleConfigButton() {
   }
 
   // control LED, if set  
-  if(ledPin == 0xFF) return;
+  if(ledPin == NOT_A_PIN) return;
   static long lastLEDtime = 0;
   if(now - lastLEDtime > 100) {  // update intervall & schnelles Blinken
 	  switch(configButtonStatus) {
@@ -990,8 +990,8 @@ void HBWDevice::handleStatusLEDs() {
 	
 	static long lastStatusLEDsTime = 0;
 	
-	if (millis() - lastStatusLEDsTime > 60) {	// check every 60 ms only (allow LED to light up)
-		if (txLedPin != 0xFF) {
+	if (millis() - lastStatusLEDsTime > 60) {	// check every 60 ms only (allow LED to light up approx 120 ms min.)
+		if (txLedPin != NOT_A_PIN) {
 			if (txLedPin == rxLedPin && rxLEDStatus) {	// combined Rx/Tx LED
 				txLEDStatus = true;
 				rxLEDStatus = false;
@@ -1002,7 +1002,7 @@ void HBWDevice::handleStatusLEDs() {
 			}
 		}
 		
-		if (rxLedPin != 0xFF && txLedPin != rxLedPin) {		// combined Rx/Tx LED already handled above
+		if (rxLedPin != NOT_A_PIN && txLedPin != rxLedPin) {		// combined Rx/Tx LED already handled above
 			if ((configButtonStatus == 0 && rxLedPin == ledPin) || rxLedPin != ledPin) {
 				digitalWrite(rxLedPin, rxLEDStatus);
 				rxLEDStatus = false;

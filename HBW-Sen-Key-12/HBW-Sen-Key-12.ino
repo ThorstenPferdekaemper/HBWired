@@ -21,15 +21,14 @@
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x40
 
-#include "HBWSoftwareSerial.h"
-#include "FreeRam.h"    
+#include <HBWSoftwareSerial.h>
+#include <FreeRam.h>
 
-#include "ClickButton.h"
+#include <ClickButton.h>
 
 // HB Wired protocol and module
-#include "HBWired.h"
-// Links Key ->
-#include "HBWLinkKey.h"
+#include <HBWired.h>
+#include <HBWLinkKey.h>
 
 #define RS485_RXD 4
 #define RS485_TXD 2
@@ -55,7 +54,7 @@ struct hbw_config_key {
   uint8_t inverted:1;          // 0x07:1
   uint8_t pullup:1;            // 0x07:2
   uint8_t       :5;            // 0x07:3-7
-  byte long_press_time;       // 0x08
+  uint8_t long_press_time;     // 0x08
 };
 
 struct hbw_config {
@@ -63,7 +62,7 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_key keys[NUM_CHANNELS]; // 0x07-0x1E
+  hbw_config_key keysCfg[NUM_CHANNELS]; // 0x07-0x1E
 } hbwconfig;
 
 
@@ -147,18 +146,15 @@ void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
 
 void setup()
 {
-  pinMode(BUTTON, INPUT_PULLUP);
-  pinMode(LED, OUTPUT);
-
   Serial.begin(19200);
   rs485.begin();    // RS485 via SoftwareSerial
 
-   // create channels
-   PIN_ARRAY
+  // create channels
+  PIN_ARRAY
   // Keys
-   for(uint8_t i = 0; i < NUM_CHANNELS; i++){
-      keys[i] = new HBSenKey(pins[i], &(hbwconfig.keys[i]));
-   };
+  for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
+    keys[i] = new HBSenKey(pins[i], &(hbwconfig.keysCfg[i]));
+  }
 
   device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,

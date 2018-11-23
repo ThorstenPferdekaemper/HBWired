@@ -33,9 +33,9 @@
 
 
 // HB Wired protocol and module
-#include "HBWired.h"
-#include "HBWBlind.h"
-#include "HBWLinkBlindSimple.h"
+#include <HBWired.h>
+#include <HBWBlind.h>
+#include <HBWLinkBlindSimple.h>
 
 // Pins
 #define RS485_TXEN 2  // Transmit-Enable
@@ -69,7 +69,7 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_blind blindscfg[NUMBER_OF_BLINDS]; // 0x07-0x... ? (step 7)
+  hbw_config_blind blindCfg[NUMBER_OF_BLINDS]; // 0x07-0x... ? (step 7)
 } hbwconfig;
 
 
@@ -107,10 +107,11 @@ void setup()
   // assing relay pins
   byte blindDir[8] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR, BLIND5_DIR, BLIND6_DIR, BLIND7_DIR, BLIND8_DIR};
   byte blindAct[8] = {BLIND1_ACT, BLIND2_ACT, BLIND3_ACT, BLIND4_ACT, BLIND5_ACT, BLIND6_ACT, BLIND7_ACT, BLIND8_ACT};
+  
   // create channels
-  for(uint8_t i = 0; i < NUMBER_OF_BLINDS; i++){
-    blinds[i] = new HBWChanBl(blindDir[i], blindAct[i], &(hbwconfig.blindscfg[i]));
-   };
+  for(uint8_t i = 0; i < NUMBER_OF_BLINDS; i++) {
+    blinds[i] = new HBWChanBl(blindDir[i], blindAct[i], &(hbwconfig.blindCfg[i]));
+  }
 
   device = new HBBlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &Serial, RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
@@ -119,6 +120,7 @@ void setup()
                          NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
    
   device->setConfigPins(BUTTON, LED);
+  device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs using config LED
   
 }
 
