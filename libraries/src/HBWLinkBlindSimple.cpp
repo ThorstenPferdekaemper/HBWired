@@ -9,7 +9,7 @@
 
 #include "HBWLinkBlindSimple.h"
 
-#define EEPROM_SIZE 7
+#define EEPROM_SIZE 9
 
 
 HBWLinkBlindSimple::HBWLinkBlindSimple(uint8_t _numLinks, uint16_t _eepromStart) {
