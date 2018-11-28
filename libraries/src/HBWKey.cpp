@@ -10,17 +10,19 @@
 #include "HBWKey.h"
 
 // Class HBWKey
-HBWKey::HBWKey(uint8_t _pin, hbw_config_key* _config) {
+HBWKey::HBWKey(uint8_t _pin, hbw_config_key* _config, boolean _activeHigh) {
   keyPressedMillis = 0;
   keyPressNum = 0;
   pin = _pin;
   config = _config;
+  activeHigh = _activeHigh;
 }
 
 
 void HBWKey::afterReadConfig(){
-    if(config->long_press_time == 0xFF) config->long_press_time = 10;
-    pinMode(pin, config->pullup ? INPUT_PULLUP : INPUT);
+  if(config->long_press_time == 0xFF) config->long_press_time = 10;
+  if (config->pullup && !activeHigh)  pinMode(pin, INPUT_PULLUP);
+  else  pinMode(pin, INPUT);
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("cfg KeyPin:"));
@@ -39,6 +41,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   if (config->n_input_locked) {   // skip locked channels
     
     bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
+    buttonState = activeHigh ^ buttonState;
     
     switch (config->input_type) {
       case IN_SWITCH:

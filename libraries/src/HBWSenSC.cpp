@@ -13,13 +13,13 @@
 #include "HBWSenSC.h"
 
 // Class HBWSenSC
-HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config) {
+HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config, boolean _activeHigh) {
   pin = _pin;
   config = _config;
+  activeHigh = _activeHigh;
   keyPressedMillis = 0;
   nextFeedbackDelay = 0;
-  currentState = false; // use as init flag
-  
+  currentState = false; // init flag
   pinMode(pin, INPUT);
 };
 
@@ -29,7 +29,7 @@ void HBWSenSC::afterReadConfig() {
 
   //avoid notify messages on device start
   if (currentState == false) {
-    currentValue = (digitalRead(pin) ^ !config->n_inverted);
+    currentValue = readScInput();
     currentState = true;
   }
   
@@ -58,7 +58,7 @@ uint8_t HBWSenSC::get(uint8_t* data) {
 void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
   
   if (config->n_input_locked) {   // not locked?
-    bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
+    boolean buttonState = readScInput();
     
     if (buttonState != currentValue) {
       uint32_t now = millis();

@@ -32,7 +32,7 @@ struct hbw_config_senSC {
 // Class HBWSenSC
 class HBWSenSC : public HBWChannel {
   public:
-    HBWSenSC(uint8_t _pin, hbw_config_senSC* _config);
+    HBWSenSC(uint8_t _pin, hbw_config_senSC* _config, boolean _activeHigh = false);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void afterReadConfig();
@@ -43,9 +43,15 @@ class HBWSenSC : public HBWChannel {
     uint32_t keyPressedMillis;  // Zeit, zu der die Taste gedrueckt wurde (fuer's Entprellen)
     boolean currentValue;
     boolean currentState;
+    boolean activeHigh;    // activeHigh=true -> input active high, else active low
 
     uint16_t nextFeedbackDelay;
     uint32_t lastFeedbackTime;
+    
+    inline boolean readScInput() {
+      boolean reading  = (digitalRead(pin) ^ config->n_inverted);
+      return (activeHigh ^ reading);
+    }
 };
 
 #endif
