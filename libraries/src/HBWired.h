@@ -66,6 +66,7 @@ class HBWDevice {
 			  Stream* _debugstream, HBWLinkSender* = NULL, HBWLinkReceiver* = NULL);
   
     void setConfigPins(uint8_t _configPin = 8, uint8_t _ledPin = 13);
+    void setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin);
   
     virtual void loop(); // needs to be called as often as possible
 
@@ -108,6 +109,8 @@ class HBWDevice {
 	// pins of config button and config LED
 	uint8_t configPin;
 	uint8_t ledPin;
+	uint8_t txLedPin;
+	uint8_t rxLedPin;
 	
 	// sendFrame macht ggf. Wiederholungen
 	// onlyIfIdle: If this is set, then the bus must have been idle since 210+rand(0..100) ms
@@ -188,9 +191,14 @@ class HBWDevice {
 	void processEventGetLevel(uint8_t channel, uint8_t command);
 	void processEventSetLock();
 	void processEmessage(uint8_t const * const frameData);
-
+	
     void factoryReset();
 	void handleConfigButton();
+	uint8_t configButtonStatus;
+	void handleStatusLEDs();
+	boolean txLEDStatus;
+	boolean rxLEDStatus;
+	
 	struct s_PendingActions
 	{
 		uint8_t afterReadConfig : 1;

@@ -8,6 +8,8 @@
 #ifndef hardware_h
 #define hardware_h
 
+//#define _HAS_BOOTLOADER_    // enable bootlader support of the device. BOOTSTART must be defined as well
+
 /* Start Boot Program section and RAM address start */
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 // Boot Size 2048 words

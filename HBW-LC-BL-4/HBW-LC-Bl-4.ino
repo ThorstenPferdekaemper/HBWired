@@ -38,14 +38,13 @@
 
 //#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
 
-#include "HBWSoftwareSerial.h"
-#include "FreeRam.h"    
-
+#include <HBWSoftwareSerial.h>
+#include <FreeRam.h>
 
 // HB Wired protocol and module
-#include "HBWired.h"
-#include "HBWLinkBlindSimple.h"
-#include "HBWBlind.h"
+#include <HBWired.h>
+#include <HBWLinkBlindSimple.h>
+#include <HBWBlind.h>
 
 #define RS485_RXD 4
 #define RS485_TXD 2
@@ -76,7 +75,7 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_blind blindscfg[NUMBER_OF_BLINDS]; // 0x07-0x... ? (step 7)
+  hbw_config_blind blindCfg[NUMBER_OF_BLINDS]; // 0x07-0x... ? (step 7)
 } hbwconfig;
 
 
@@ -116,10 +115,11 @@ void setup()
   // create channels
   byte blindDir[4] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR};
   byte blindAct[4] = {BLIND1_ACT, BLIND2_ACT, BLIND3_ACT, BLIND4_ACT};
+  
   // assing relay pins
-  for(uint8_t i = 0; i < NUMBER_OF_BLINDS; i++){
-    blinds[i] = new HBWChanBl(blindDir[i], blindAct[i], &(hbwconfig.blindscfg[i]));
-   };
+  for(uint8_t i = 0; i < NUMBER_OF_BLINDS; i++) {
+    blinds[i] = new HBWChanBl(blindDir[i], blindAct[i], &(hbwconfig.blindCfg[i]));
+  }
 
   device = new HBBlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,

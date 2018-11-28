@@ -363,7 +363,7 @@
 					<address index="+17.2"/>
 				</physical>
 			</parameter>
-		<!-- index="+16.3 unused -->
+		<!-- index="+17.3 unused -->
 			<parameter id="SHORT_RAMP_START_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
@@ -652,7 +652,7 @@
 					<address index="+35.2"/>
 				</physical>
 			</parameter>
-		<!-- index="+30.3 unused -->
+		<!-- index="+35.3 unused -->
 			<parameter id="LONG_RAMP_START_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="100%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
