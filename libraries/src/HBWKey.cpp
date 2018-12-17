@@ -52,20 +52,16 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
            keyPressedMillis = now ? now : 1;
           }
           else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
-            // if bus is not idle, retry next time
-            if (device->sendKeyEvent(channel, keyPressNum, false) == 0) {
-             keyPressNum++;
-             lastSentLong = now ? now : 1;
-            }
+            keyPressNum++;
+            lastSentLong = now ? now : 1;
+            device->sendKeyEvent(channel, keyPressNum, false);
           }
         }
         else {
           if (lastSentLong) {
-            // if bus is not idle, retry next time
-            if (device->sendKeyEvent(channel, keyPressNum, false) == 0) {
-              keyPressNum++;
-              lastSentLong = 0;
-            }
+            keyPressNum++;
+            lastSentLong = 0;
+            device->sendKeyEvent(channel, keyPressNum, false);
           }
           keyPressedMillis = 0;
         }
@@ -122,11 +118,9 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
            keyPressedMillis = now ? now : 1;
           }
           else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
-            // if bus is not idle, retry next time
-            if (device->sendKeyEvent(channel, keyPressNum, false) == 0) {
-             keyPressNum++;
-             lastSentLong = now ? now : 1;
-            }
+            keyPressNum++;
+            lastSentLong = now ? now : 1;
+            device->sendKeyEvent(channel, keyPressNum, false);
           }
         }
         else {
@@ -145,10 +139,10 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
             keyPressedMillis = now ? now : 1;
           }
           else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
-            if (device->sendKeyEvent(channel, keyPressNum, !buttonState) == 0) {
-              keyPressNum++;
-              oldButtonState = buttonState;
-            }
+            keyPressNum++;
+            oldButtonState = buttonState;
+			// TODO: if bus is not idle, retry next time (sendKeyEvent must retun correct state before this is possible to implement!!)
+            device->sendKeyEvent(channel, keyPressNum, !buttonState);
           }
         }
         else {
