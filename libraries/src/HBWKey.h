@@ -30,10 +30,10 @@ struct hbw_config_key {
 // Class HBWKey
 class HBWKey : public HBWChannel {
   public:
-    HBWKey(uint8_t _pin, hbw_config_key* _config);
+    HBWKey(uint8_t _pin, hbw_config_key* _config, boolean _activeHigh = false);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void afterReadConfig();
-	
+
   private:
     uint8_t pin;   // Pin
     uint32_t keyPressedMillis;  // Zeit, zu der die Taste gedrueckt wurde (fuer's Entprellen)
@@ -41,6 +41,7 @@ class HBWKey : public HBWChannel {
     uint8_t keyPressNum;
     hbw_config_key* config;
     boolean oldButtonState;
+    boolean activeHigh;    // activeHigh=true -> input active high, else active low
 };
 
 #endif
