@@ -9,6 +9,7 @@
 *
 * http://loetmeister.de/Elektronik/homematic/
 *
+* Last updated: 21.11.2018
 */
 
 #include "HBWDimmerAdvanced.h"
@@ -123,7 +124,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     }
     else {  // action type: JUMP_TO_TARGET
       
-      // Assign values from peering
+      // Assign values from peering (receiveKeyEvent)
       StateMachine.onDelayTime = data[D_POS_onDelayTime];
       StateMachine.onTime = data[D_POS_onTime];
       StateMachine.offDelayTime = data[D_POS_offDelayTime];
@@ -237,7 +238,7 @@ void HBWDimmerAdvanced::setOutputNoLogging(uint8_t const * const data) {
   
   if (config->pwm_range != 0) {   // 0=disabled
     //                        scale to 40%   50%   60%   70%   80%   90%  100%
-    static uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2300, 2550};  // to avoid float, must devide by 10 when calling analogWrite()!
+    static uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2300, 2550};  // avoid float, devide by 10 when calling analogWrite()!
     uint8_t newValueMin = 0;
     uint8_t newValue;
     
@@ -498,7 +499,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
             break;
             
           case ON_TIME_ABSOLUTE:
-          //TODO: add peerConfigParam.element.onLevelPrio. Keep onLevel and onTime if onLevelPrio high?
+          //TODO: check peerConfigParam.element.onLevelPrio? Keep onLevel and onTime if onLevelPrio is high??
             newLevel = StateMachine.onLevel;
             setNewLevel = true;
             StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);

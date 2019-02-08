@@ -18,7 +18,7 @@
 #include "HBWlibStateMachine.h"
 #include "HBWired.h"
 
-#define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
+//#define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
 
 #define RAMP_MIN_STEP_WIDTH 250//160 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 250ms
 
