@@ -7,7 +7,7 @@
  *
  *  HomeBrew-Wired RS485-Protokoll 
  *
- * Last updated: 21.11.2018
+ * Last updated: 21.01.2019
  */
 
 #include "HBWired.h"
@@ -18,6 +18,8 @@
 // bus must be idle 210 + rand(0..100) ms
 #define DIFS_CONSTANT 210
 #define DIFS_RANDOM 100
+// zeit zwischen jedem Frame / ist blockierend / code wird nur eingefügt, wenn SIFS_TIME definiert ist.
+#define SIFS_TIME 3 // laut protokoll 7 ms
 // we wait max 200ms for an ACK
 #define ACKWAITTIME 200
 // while waiting for an ACK, bus might not be idle
@@ -99,7 +101,12 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle){
 // TODO: Wenn als Antwort kein reines ACK kommt, dann geht die Antwort verloren
 //       D.h. sie wird nicht interpretiert. Die Gegenstelle sollte es dann nochmal
 //       senden, aber das ist haesslich (andererseits scheint das nicht zu passieren)
-
+//Short Interframe Space
+#ifdef SIFS_TIME
+	while (lastReceivedTime + SIFS_TIME >= millis()) {
+		receive();
+	};
+#endif
 // carrier sense
    if(onlyIfIdle) {
 	 if(millis() - lastReceivedTime < minIdleTime)
@@ -493,11 +500,6 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
         	break;
          /* case 'q':                                                               // Zieladresse hinzufügen?
             // TODO: ???
-        	break; */
-         /* case 'u':                                                              // Update (Bootloader starten)
-            // Bootloader neu starten
-            // Goto $7c00                                                          ' Adresse des Bootloaders
-        	// TODO: Bootloader?
         	break; */
          case 'v':                                                               // get firmware version
             hbwdebug(F("T: FWVer\n"));
