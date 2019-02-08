@@ -3,9 +3,10 @@
 **
 ** Rolladenaktor mit Richtungs und Aktiv Relais pro Kanal
 ** 
+** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
-** http://loetmeister.de/Elektronik/homematic/index.htm#modules
 **
+** Last updated: 08.02.2019
 */
 
 #include "HBWBlind.h"
@@ -43,84 +44,84 @@ void HBWChanBl::afterReadConfig() {
 void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
   // blind control
-	if((*data) == 0xFF) { // toggle
-		hbwdebug("Toggle\n");
-		if (blindCurrentState == TURN_AROUND)
-			blindNextState = STOP;
+  if((*data) == 0xFF) { // toggle
+    hbwdebug("Toggle\n");
+    if (blindCurrentState == TURN_AROUND)
+      blindNextState = STOP;
 
-		blindForceNextState = true;
+    blindForceNextState = true;
 
-		if ((blindCurrentState == STOP) || (blindCurrentState == RELAIS_OFF)) {
-			if (blindDirection == UP) blindPositionRequested = 100;
-			else blindPositionRequested = 0;
+    if ((blindCurrentState == STOP) || (blindCurrentState == RELAIS_OFF)) {
+      if (blindDirection == UP) blindPositionRequested = 100;
+      else blindPositionRequested = 0;
 
-			blindNextState = WAIT;
+      blindNextState = WAIT;
 
-			// if current blind position is not known (e.g. due to a reset), actual position is set to the limit, to ensure that the moving time is long enough to reach the end position
-			if (!blindPositionKnown) {
-				hbwdebug("Position unknown\n");
-				if (blindDirection == UP)
-					blindPositionActual = 0;
-				else
-					blindPositionActual = 100;
-			}
-		}
-	}
-	else if ((*data) == 0xC9) { // stop
-		hbwdebug("Stop\n");
-		blindNextState = STOP;
-		blindForceNextState = true;
-	}
-	else { // set level
-	
-		blindPositionRequested = (*data) / 2;
+      // if current blind position is not known (e.g. due to a reset), actual position is set to the limit, to ensure that the moving time is long enough to reach the end position
+      if (!blindPositionKnown) {
+        hbwdebug("Position unknown\n");
+        if (blindDirection == UP)
+          blindPositionActual = 0;
+        else
+          blindPositionActual = 100;
+      }
+    }
+  }
+  else if ((*data) == 0xC9) { // stop
+    hbwdebug("Stop\n");
+    blindNextState = STOP;
+    blindForceNextState = true;
+  }
+  else { // set level
+  
+    blindPositionRequested = (*data) / 2;
 
-		if (blindPositionRequested > 100)
-		  blindPositionRequested = 100;
-		hbwdebug("Requested Position: "); hbwdebug(blindPositionRequested); hbwdebug("\n");
+    if (blindPositionRequested > 100)
+      blindPositionRequested = 100;
+    hbwdebug("Requested Position: "); hbwdebug(blindPositionRequested); hbwdebug("\n");
 
-		if (!blindPositionKnown) {
-		  hbwdebug("Position unknown. Moving to reference position.\n");
+    if (!blindPositionKnown) {
+      hbwdebug("Position unknown. Moving to reference position.\n");
 
-		  if (blindPositionRequested == 0) {
-			blindPositionActual = 100;
-		  }
-		  else if (blindPositionRequested == 100) {
-			blindPositionActual = 0;
-		  }
-		  else {  // Target position >0 and <100
-			blindPositionActual = 100;
-			blindPositionRequestedSave = blindPositionRequested;
-			blindPositionRequested = 0;
-			blindSearchingForRefPosition = true;
-		  }
-		}
+      if (blindPositionRequested == 0) {
+      blindPositionActual = 100;
+      }
+      else if (blindPositionRequested == 100) {
+      blindPositionActual = 0;
+      }
+      else {  // Target position >0 and <100
+      blindPositionActual = 100;
+      blindPositionRequestedSave = blindPositionRequested;
+      blindPositionRequested = 0;
+      blindSearchingForRefPosition = true;
+      }
+    }
 
-		if ((blindCurrentState == TURN_AROUND) || (blindCurrentState == MOVE)) { // aktuelle Position ist nicht bekannt
+    if ((blindCurrentState == TURN_AROUND) || (blindCurrentState == MOVE)) { // aktuelle Position ist nicht bekannt
 
-			getCurrentPosition();
+      getCurrentPosition();
 
-			if (((blindDirection == UP) && (blindPositionRequested > blindPositionActual)) || ((blindDirection == DOWN) && (blindPositionRequested < blindPositionActual))) {
-				// Rollo muss die Richtung umkehren:
-				blindNextState = SWITCH_DIRECTION;
-				blindForceNextState = true;
-			}
-			else {
-				// Rollo fährt schon in die richtige Richtung
-				if (blindCurrentState == MOVE) { // Zeit muss neu berechnet werden // current state == TURN_AROUND, nicht zu tun, Zeit wird ohnehin beim ersten Aufruf von MOVE berechnet
-					blindNextState = MOVE; // Im Zustand MOVE wird die neue Zeit berechnet
-					blindForceNextState = true;
-				}
-			}
-		}
-		else { // aktueller State != MOVE und != TURN_AROUND, d.h. Rollo steht gerade
-			// set next state only if a new target value is requested
-			if (blindPositionRequested != blindPositionActual) {
-				blindNextState = WAIT;
-				blindForceNextState = true;
-			}
-		}
-	}
+      if (((blindDirection == UP) && (blindPositionRequested > blindPositionActual)) || ((blindDirection == DOWN) && (blindPositionRequested < blindPositionActual))) {
+        // Rollo muss die Richtung umkehren:
+        blindNextState = SWITCH_DIRECTION;
+        blindForceNextState = true;
+      }
+      else {
+        // Rollo fährt schon in die richtige Richtung
+        if (blindCurrentState == MOVE) { // Zeit muss neu berechnet werden // current state == TURN_AROUND, nicht zu tun, Zeit wird ohnehin beim ersten Aufruf von MOVE berechnet
+          blindNextState = MOVE; // Im Zustand MOVE wird die neue Zeit berechnet
+          blindForceNextState = true;
+        }
+      }
+    }
+    else { // aktueller State != MOVE und != TURN_AROUND, d.h. Rollo steht gerade
+      // set next state only if a new target value is requested
+      if (blindPositionRequested != blindPositionActual) {
+        blindNextState = WAIT;
+        blindForceNextState = true;
+      }
+    }
+  }
   
   // Logging
 //  if(!nextFeedbackDelay && config->logging) {
@@ -134,19 +135,29 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 uint8_t HBWChanBl::get(uint8_t* data) {
 
   uint8_t newData;
+  uint8_t stateFlag = 0;  // working "off", direction "none"
   
   if (blindNextState == STOP) {     // wenn Rollo gestopppt wird und keine Referenzfahrt läuft,
     getCurrentPosition();
     newData = blindPositionActual;  // dann aktuelle Position ausgeben,
-   }
-   else {                           // ansonsten die angeforderte Zielposition
+  }
+  else {                           // ansonsten die angeforderte Zielposition
     if (blindSearchingForRefPosition)
       newData = blindPositionRequestedSave;
     else
       newData = blindPositionRequested;
-   }
-  (*data) = newData *2;
-  return 1;
+  }
+  
+  if (blindCurrentState > RELAIS_OFF || blindNextState > RELAIS_OFF) {  // set "direction" flag (turns "working" to "on")
+    if (blindPositionActual < blindPositionRequested)
+      stateFlag |= B00010000;
+    else
+      stateFlag |= B00100000;
+  }
+  
+  (*data++) = newData *2;
+  *data = stateFlag;
+  return 2;
 };
 
 
@@ -266,7 +277,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
         blindTimeLastAction = now;
         blindCurrentState = TURN_AROUND;
         blindNextState = MOVE;
-        if (blindDirection == UP)	// Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
+        if (blindDirection == UP)  // Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
           blindNextStateDelayTime = blindAngleActual * config->blindTimeChangeOver;
         else
           blindNextStateDelayTime = (100 - blindAngleActual) * config->blindTimeChangeOver;
@@ -296,8 +307,8 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
     // we know that the level has only 1 byte here
     uint8_t level;
-    get(&level);  
-    uint8_t errcode = device->sendInfoMessage(channel, 1, &level);
+    get(&level);
+    uint8_t errcode = device->sendInfoMessage(channel, 2, &level);
     if (errcode == 1) {  // bus busy
     // try again later, but insert a small delay
       nextFeedbackDelay = 250;
@@ -325,7 +336,7 @@ void HBWChanBl::getCurrentPosition() {
       blindAngleActual = 100;
     }
   }
-  else {	// => current state == TURN_AROUND
+  else {  // => current state == TURN_AROUND
     // blindPosition unchanged
     if (blindDirection == UP) {
       blindAngleActual -= (now - blindTimeStart) / config->blindTimeChangeOver;

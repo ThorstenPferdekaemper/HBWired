@@ -3,8 +3,8 @@
 **
 ** Rolladenaktor mit Richtungs und Aktiv Relais pro Kanal
 ** 
+** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
-** http://loetmeister.de/Elektronik/homematic/index.htm#modules
 **
 */
 
@@ -29,20 +29,20 @@
 
 /* here comes the code... */
 #define STOP 0
-#define WAIT 1
-#define TURN_AROUND 2
-#define MOVE 3
-#define RELAIS_OFF 4
+#define RELAIS_OFF 1
+#define WAIT 2
+#define TURN_AROUND 3
+#define MOVE 4
 #define SWITCH_DIRECTION 5
 
 
 struct hbw_config_blind {
-	byte logging:1;    			  		    // 0x07:0   0x0E	0x15	0x1C
-	byte        :7;   			            // 0x07:1-7	0x0E
-	unsigned char blindTimeChangeOver;      // 0x08		0x0F	0x16	0x1D - Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
-	unsigned char blindReferenceRunCounter; // 0x09		0x10	0x17	0x1E
-	unsigned int blindTimeBottomTop;   		// 0x0A 	0x11	0x18	0x1F
-	unsigned int blindTimeTopBottom;  		// 0x0C   0x13  0x1A  0x21
+  byte logging:1;                         // 0x07:0    0x0E  0x15  0x1C
+  byte        :7;                         // 0x07:1-7  0x0E
+  unsigned char blindTimeChangeOver;      // 0x08  0x0F  0x16  0x1D - Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
+  unsigned char blindReferenceRunCounter; // 0x09  0x10  0x17  0x1E
+  unsigned int blindTimeBottomTop;        // 0x0A  0x11  0x18  0x1F
+  unsigned int blindTimeTopBottom;        // 0x0C  0x13  0x1A  0x21
 };
 
 
