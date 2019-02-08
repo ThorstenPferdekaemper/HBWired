@@ -4,13 +4,13 @@
 	<type priority="2" id="HBW-LC-Bl-4" name="RS485 blind actuator 4-channel">
 		<parameter const_value="0x82" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="1" size="1" index="1"/>
-		<parameter const_value="0x0028" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
+		<parameter const_value="0x0032" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
 <paramset id="HBW-LC-Bl4_dev_master" type="MASTER">
 	<parameter id="LOGGING_TIME">
-		<logical type="float" unit="s" default="2.0" max="25.5" min="0.1"/>
+		<logical type="float" unit="s" default="5.0" max="25.5" min="0.1"/>
 		<physical size="1.0" type="integer" interface="eeprom">
 			<address index="0x0001"/>
 		</physical>
@@ -65,6 +65,9 @@
 	</frame>
 	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
 		<parameter param="toggle_flag" size="1.0" index="11.0" type="integer"/>
+	</frame>
+	<frame id="ANALOG_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
 	</frame>
 </frames>
 
@@ -129,7 +132,7 @@
 			</parameter>
 		</paramset>
 		
-		<paramset type="LINK" id="hmw_blind_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="32" address_start="0x26" address_step="9">
+		<paramset type="LINK" id="hmw_blind_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="32" address_start="0x48" address_step="9">
 			<parameter id="UI_HINT">
 				<logical type="string" default="" use_default_on_failure="true"/>
 				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -257,6 +260,42 @@
 					<set request="TOGGLE_INSTALL_TEST"/>
 				</physical>
 				<conversion type="blind_test" value="201"/>
+			</parameter>
+		</paramset>
+	</channel>
+	<channel index="5" physical_index_offset="-1" count="1" type="MODULE BUS VOLTAGE">	<!-- module voltage chan (special variant of analog input channel) -->
+		<paramset type="MASTER" id="hmw_analog_ch_master" address_start="0x23" address_step="2">
+		    <parameter id="INPUT_ENABLED">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="NOTIFY">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF" default="true"/>
+				</logical>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+			</parameter>
+			<parameter id="UPDATE_INTERVAL">	<!--TODO: implement-->
+				<logical type="integer" default="180" min="1" max="255" unit="s"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+1.0"/>
+				</physical>
+			</parameter>
+		</paramset>
+		<paramset type="VALUES" id="hmw_busvoltage_input_values">
+			<parameter id="VALUE" operations="read,event">
+				<logical type="float" min="0.0" max="1023.0"/>
+				<physical type="float" interface="command" value_id="ANALOGVALUE">
+					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
+					<event frame="ANALOG_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="34.91"/>
 			</parameter>
 		</paramset>
 	</channel>
