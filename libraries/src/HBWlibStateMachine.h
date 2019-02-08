@@ -198,7 +198,7 @@ class HBWlibStateMachine {
     }
 
     inline uint32_t setLastStateChangeTime_now() {
-      lastStateChangeTime = millis();
+      return lastStateChangeTime = millis();
     }
 
   private:
