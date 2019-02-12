@@ -126,6 +126,7 @@ class HBWlibStateMachine {
     uint8_t onMinLevel;
     uint8_t offLevel;
     boolean stateTimerRunning;
+    boolean absoluteTimeRunning;
     uint32_t stateChangeWaitTime;
     uint32_t lastStateChangeTime;
     uint8_t lastKeyNum;
@@ -146,7 +147,7 @@ class HBWlibStateMachine {
     inline void setNextState(uint8_t value) {
       nextState = value;
     }
-    inline void avoidStateChange() {
+    inline void keepCurrentState() {
       nextState = currentState;
     }
     inline void forceStateChange() {
@@ -171,6 +172,12 @@ class HBWlibStateMachine {
     inline uint8_t getOnTimeMode() {
       return (peerParamActionType & BITMASK_OnTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
     }
+    inline uint8_t peerParam_offTimeMinimal() {
+      return (peerParamActionType & BITMASK_OffTimeMode) ? false : true;  // off time MINIMAL?
+    }
+    inline uint8_t peerParam_onTimeMinimal() {
+      return (peerParamActionType & BITMASK_OnTimeMode) ? false : true;  // on time MINIMAL?
+    }
     
     inline void writePeerConfigParam(uint8_t value) {
       peerConfigParam = value;
@@ -194,11 +201,11 @@ class HBWlibStateMachine {
       return peerConfigParam & BITMASK_OffDelayBlink;
     }
     inline uint8_t peerParam_getRampStartStep() {
-      return peerConfigParam & BITMASK_RampStartStep;
+      return (peerConfigParam & BITMASK_RampStartStep) >> 4;
     }
 
-    inline uint32_t setLastStateChangeTime_now() {
-      return lastStateChangeTime = millis();
+    inline void setLastStateChangeTime_now() {
+      lastStateChangeTime = millis();
     }
 
   private:

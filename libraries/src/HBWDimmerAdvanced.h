@@ -120,7 +120,7 @@ class HBWDimmerAdvanced : public HBWChannel {
       return peerConfigStep & BITMASK_DimStep;
     }
     inline uint8_t peerParam_getOffDelayStep() {
-      return peerConfigStep & BITMASK_OffDelayStep;
+      return ((peerConfigStep & BITMASK_OffDelayStep) >> 4) *4;
     }
     inline void writePeerConfigOffDtime(uint8_t value) {
       peerConfigOffDtime = value;
@@ -129,7 +129,7 @@ class HBWDimmerAdvanced : public HBWChannel {
       return peerConfigOffDtime & BITMASK_OffDelayNewTime;
     }
     inline uint8_t peerParam_getOffDelayOldTime() {
-      return peerConfigOffDtime & BITMASK_OffDelayOldTime;
+      return (peerConfigOffDtime & BITMASK_OffDelayOldTime) >> 4;
     }
     
   protected:

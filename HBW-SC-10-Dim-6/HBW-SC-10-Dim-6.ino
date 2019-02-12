@@ -22,7 +22,7 @@
 // v0.04
 // - added virtual key channels, allow external peering with Dim channels (e.g. switch 1-10V dimmer on/off)
 //
-// TODO: Implement dim peering params: RAMP_START_STEP
+// TODO: Implement dim peering params: RAMP_START_STEP. Validate behaviour of OnLevelPrio and on/off time 'absolute'.
 
 
 #define HARDWARE_VERSION 0x01

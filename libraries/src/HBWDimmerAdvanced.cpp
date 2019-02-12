@@ -9,7 +9,7 @@
 *
 * http://loetmeister.de/Elektronik/homematic/
 *
-* Last updated: 21.11.2018
+* Last updated: 09.02.2019
 */
 
 #include "HBWDimmerAdvanced.h"
@@ -49,7 +49,7 @@ void HBWDimmerAdvanced::afterReadConfig() {
   // Do not reset outputs on config change, but update its state (to apply new settings from EEPROM)
     setOutputNoLogging(&currentValue);
   }
-  StateMachine.avoidStateChange(); // no action for state machine needed
+  StateMachine.keepCurrentState(); // no action for state machine needed
 };
 
 
@@ -66,6 +66,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
       if ((StateMachine.currentStateIs(JT_ON)) && (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && StateMachine.peerParam_onLevelPrioIsLow())) { 
             //do nothing in this case
             //TODO: optimize condition - reduce code size
+hbwdebug(F("nop1\n"));
       }
       else {
         // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
@@ -106,7 +107,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
             StateMachine.setCurrentState(JT_OFF);
   
           currentOnLevelPrio = StateMachine.peerParam_getOnLevelPrio();
-          StateMachine.avoidStateChange(); // avoid state machine to run
+          StateMachine.keepCurrentState(); // avoid state machine to run
           
   #ifdef DEBUG_OUTPUT
     hbwdebug(F("Tgl_lvl: "));
@@ -121,6 +122,11 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     else if (StateMachine.lastKeyNum == currentKeyNum && !StateMachine.peerParam_getLongMultiexecute()) {
       // repeated key event for ACTION_TYPE == 1 (ACTION_TYPE == 0 already filtered by receiveKeyEvent, HBWLinkReceiver)
       // must be long press, but LONG_MULTIEXECUTE not enabled
+    }
+    else if (StateMachine.absoluteTimeRunning && ((StateMachine.currentStateIs(JT_ON) && StateMachine.peerParam_onTimeMinimal()) || (StateMachine.currentStateIs(JT_OFF) && StateMachine.peerParam_offTimeMinimal()))) {
+        //if (StateMachine.absoluteTimeRunning && (StateMachine.peerParam_offTimeMinimal() || StateMachine.peerParam_onTimeMinimal()))
+        //do nothing in this case
+hbwdebug(F("nop2\n"));
     }
     else {  // action type: JUMP_TO_TARGET
       
@@ -156,7 +162,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     else
       StateMachine.setCurrentState(JT_OFF);
     
-    StateMachine.avoidStateChange(); // avoid state machine to run
+    StateMachine.keepCurrentState(); // avoid state machine to run
   }
 };
 
@@ -201,7 +207,7 @@ uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp) 
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDimmerAdvanced::get(uint8_t* data) {
   (*data) = currentValue;
-	return 1;
+  return 1;
 };
 
 
@@ -230,6 +236,12 @@ void HBWDimmerAdvanced::setOutput(HBWDevice* device, uint8_t const * const data)
       nextFeedbackDelay = device->getLoggingTime() * 100;
     }
   }
+#ifdef DEBUG_OUTPUT
+  else {
+  hbwdebug(F("no change"));
+  hbwdebug(F("\n"));
+  }
+#endif
 };
 
 
@@ -338,12 +350,12 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
       uint8_t newValue;
       
       if (offDelayNewTimeActive) {
-        newValue = currentValue - (peerParam_getOffDelayStep() *4);
+        newValue = currentValue - (peerParam_getOffDelayStep());
         StateMachine.stateChangeWaitTime = peerParam_getOffDelayOldTime() *1000;
         offDelayNewTimeActive = false;
       }
       else {
-        newValue = currentValue + (peerParam_getOffDelayStep() *4);
+        newValue = currentValue + (peerParam_getOffDelayStep());
         StateMachine.stateChangeWaitTime = peerParam_getOffDelayNewTime() *1000;
         offDelayNewTimeActive = true;
         rampStepCounter--;
@@ -358,9 +370,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
       else
         StateMachine.lastStateChangeTime = now;    // only update in blink mode
     }
-    else {
-      bool setNewLevel = false;
-      
+    else {      
       if (StateMachine.getCurrentState() == StateMachine.getNextState())  // no change to state, so must be time triggered
         StateMachine.stateTimerRunning = false;
 
@@ -399,172 +409,183 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
     hbwdebug(F("\n"));
   #endif
   
+      StateMachine.absoluteTimeRunning = false;
+      bool setNewLevel = false;
       uint8_t newLevel = StateMachine.offLevel;   // default value. Will only be set if setNewLevel was also set 'true'
 //      uint8_t currentLevel;
 //      get(&currentLevel);
-   
-      if (StateMachine.getNextState() < JT_NO_JUMP_IGNORE_COMMAND) {
-        
-        switch (StateMachine.getNextState()) {
-          
-          case JT_ONDELAY:
-            if (StateMachine.peerParam_onDelayModeSetToOff())  setNewLevel = true;  //0=SET_TO_OFF, 1=NO_CHANGE
-            StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
-            StateMachine.lastStateChangeTime = now;
-            StateMachine.stateTimerRunning = true;
-            StateMachine.setCurrentState(JT_ONDELAY);
-            break;
-  
-          case JT_RAMP_ON:
-  #ifdef DEBUG_OUTPUT
-    hbwdebug(F("onLvl: "));
-    hbwdebug(StateMachine.onLevel);
-  #endif
-            if (StateMachine.onLevel >= ON_LEVEL_USE_OLD_VALUE) {  // use OLD_LEVEL for ON_LEVEL
-              if (oldValue > StateMachine.onMinLevel) {
-                StateMachine.onLevel = oldValue;
-              }
-              else {
-                StateMachine.onLevel = StateMachine.onMinLevel; // TODO: what to use? onMinLevel or offLevel?
-                rampOnTime = 0;   // no ramp to set onMinLevel
-              }
-            }
-  #ifdef DEBUG_OUTPUT
-    hbwdebug(F(" oldVal: "));
-    hbwdebug(oldValue);
-    hbwdebug(F(" new onLvl: "));
-    hbwdebug(StateMachine.onLevel);
-    hbwdebug(F("\n"));
-  #endif
-            prepareOnOffRamp(rampOnTime, StateMachine.onLevel);
-            rampStepCounter -= rampStep; // reduce by one step, as we go to min. on level immediately
-            newLevel = StateMachine.onMinLevel;
-            setNewLevel = true;
-            StateMachine.setCurrentState(JT_RAMP_ON);
-            break;
-          
-          case JT_ON:
-            //newLevel = onLevel;
-            setNewLevel = true;
-  #ifdef DEBUG_OUTPUT
-    hbwdebug(F("onLvlPrio:"));
-    hbwdebug(currentOnLevelPrio);
-  #endif
-            if (currentOnLevelPrio == StateMachine.peerParam_getOnLevelPrio() || StateMachine.peerParam_onLevelPrioIsHigh()) {
-              newLevel = StateMachine.onLevel;
-              currentOnLevelPrio = StateMachine.peerParam_getOnLevelPrio();
+      
+      switch (StateMachine.getNextState()) {
+        case JT_ONDELAY:
+          if (StateMachine.peerParam_onDelayModeSetToOff())  setNewLevel = true;  //0=SET_TO_OFF, 1=NO_CHANGE
+          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
+          StateMachine.lastStateChangeTime = now;
+          StateMachine.stateTimerRunning = true;
+          break;
+
+        case JT_RAMP_ON:
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("onLvl: "));
+  hbwdebug(StateMachine.onLevel);
+#endif
+          if (StateMachine.onLevel >= ON_LEVEL_USE_OLD_VALUE) {  // use OLD_LEVEL for ON_LEVEL
+            if (oldValue > StateMachine.onMinLevel) {
+              StateMachine.onLevel = oldValue;
             }
             else {
-              setNewLevel = false;
+              StateMachine.onLevel = StateMachine.onMinLevel; // TODO: what to use? onMinLevel or offLevel?
+              rampOnTime = 0;   // no ramp to set onMinLevel
             }
-  #ifdef DEBUG_OUTPUT
-    hbwdebug(F(" newPrio:"));
-    hbwdebug(currentOnLevelPrio);
-    hbwdebug(F("\n"));
-  #endif
-            StateMachine.stateTimerRunning = false;
-            StateMachine.setCurrentState(JT_ON);
-            break;
-            
-          case JT_OFFDELAY:
-            StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
-            // only reduce level, if not going below min. on level
-        // TODO: check if should be forced to blink, by: onMinLevel + offDelayStep ??
-            if (peerParam_getOffDelayStep() && (currentValue - StateMachine.onMinLevel) > (peerParam_getOffDelayStep() *4)) {
-              offDelayNewTimeActive = true;
-              StateMachine.stateChangeWaitTime = 0; // start immediately
-              
-              if (StateMachine.peerParam_offDelayBlinkEnabled()) {  // calculate total level changes for off delay blink duration
-                rampStepCounter = ((StateMachine.convertTime(StateMachine.offDelayTime) /1000) / (peerParam_getOffDelayNewTime() + peerParam_getOffDelayOldTime()));
-              }
-              else {  // only reduce level, no blink
-                rampStepCounter = 1;
-                offDelaySingleStep = true;
-              }
-            }
-            StateMachine.lastStateChangeTime = now;
-            StateMachine.stateTimerRunning = true;
-            StateMachine.setCurrentState(JT_OFFDELAY);
-            break;
-            
-          case JT_RAMP_OFF:
-            prepareOnOffRamp(rampOffTime, currentValue);
-            StateMachine.setCurrentState(JT_RAMP_OFF);
-            break;
-            
-          case JT_OFF:
-            setNewLevel = true; // offLevel is default, no need to set newLevel
-            StateMachine.stateTimerRunning = false;
-            StateMachine.setCurrentState(JT_OFF);
-            break;
-            
-          case ON_TIME_ABSOLUTE:
-          //TODO: check peerConfigParam.element.onLevelPrio? Keep onLevel and onTime if onLevelPrio is high??
+          }
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F(" oldVal: "));
+  hbwdebug(oldValue);
+  hbwdebug(F(" new onLvl: "));
+  hbwdebug(StateMachine.onLevel);
+  hbwdebug(F("\n"));
+#endif
+          prepareOnOffRamp(rampOnTime, StateMachine.onLevel);
+          rampStepCounter -= rampStep; // reduce by one step, as we go to min. on level immediately
+          newLevel = StateMachine.onMinLevel;
+          setNewLevel = true;
+          break;
+        
+        case JT_ON:
+          //newLevel = onLevel;
+          setNewLevel = true;
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("onLvlPrio:"));
+  hbwdebug(currentOnLevelPrio);
+#endif
+          if (currentOnLevelPrio == StateMachine.peerParam_getOnLevelPrio() || StateMachine.peerParam_onLevelPrioIsHigh()) {
             newLevel = StateMachine.onLevel;
-            setNewLevel = true;
+            currentOnLevelPrio = StateMachine.peerParam_getOnLevelPrio();
+          }
+          else {
+            setNewLevel = false;
+          }
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F(" newPrio:"));
+  hbwdebug(currentOnLevelPrio);
+  hbwdebug(F("\n"));
+#endif
+          StateMachine.stateTimerRunning = false;
+          break;
+          
+        case JT_OFFDELAY:
+          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
+          // only reduce level, if not going below min. on level
+      // TODO: check if should be forced to blink, by: onMinLevel + offDelayStep ??
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("OffDlySt:"));
+  hbwdebug(peerParam_getOffDelayStep());
+#endif
+          if (peerParam_getOffDelayStep() && (currentValue - StateMachine.onMinLevel) > (peerParam_getOffDelayStep())) {
+            offDelayNewTimeActive = true;
+            StateMachine.stateChangeWaitTime = 0; // start immediately
+            
+            if (StateMachine.peerParam_offDelayBlinkEnabled()) {  // calculate total level changes for off delay blink duration
+              rampStepCounter = ((StateMachine.convertTime(StateMachine.offDelayTime) /1000) / (peerParam_getOffDelayNewTime() + peerParam_getOffDelayOldTime()));
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F(" blink:"));
+#endif
+            }
+            else {  // only reduce level, no blink
+              rampStepCounter = 1;
+              offDelaySingleStep = true;
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F(" nBlink:"));
+#endif
+            }
+          }
+          StateMachine.lastStateChangeTime = now;
+          StateMachine.stateTimerRunning = true;
+#ifdef DEBUG_OUTPUT
+  hbwdebug(rampStepCounter);
+  hbwdebug(F("\n"));
+#endif
+          break;
+          
+        case JT_RAMP_OFF:
+          prepareOnOffRamp(rampOffTime, currentValue);
+          break;
+          
+        case JT_OFF:
+          setNewLevel = true; // offLevel is default, no need to set newLevel
+          StateMachine.stateTimerRunning = false;
+          break;
+          
+        case ON_TIME_ABSOLUTE:
+        //TODO: check peerConfigParam.element.onLevelPrio? Keep onLevel and onTime if onLevelPrio is high??
+          newLevel = StateMachine.onLevel;
+          setNewLevel = true;
+          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
+          StateMachine.lastStateChangeTime = now;
+          StateMachine.stateTimerRunning = true;
+          StateMachine.absoluteTimeRunning = true;
+          StateMachine.setNextState(JT_ON);
+          break;
+          
+        case OFF_TIME_ABSOLUTE:
+          setNewLevel = true; // offLevel is default, no need to set newLevel
+          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
+          StateMachine.lastStateChangeTime = now;
+          StateMachine.stateTimerRunning = true;
+          StateMachine.absoluteTimeRunning = true;
+          StateMachine.setNextState(JT_OFF);
+          break;
+          
+        case ON_TIME_MINIMAL:
+          newLevel = StateMachine.onLevel;
+          setNewLevel = true;
+          if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
             StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
             StateMachine.lastStateChangeTime = now;
             StateMachine.stateTimerRunning = true;
-            StateMachine.setNextState(JT_ON);
-            break;
-            
-          case OFF_TIME_ABSOLUTE:
-            setNewLevel = true; // offLevel is default, no need to set newLevel
+          }
+          StateMachine.setNextState(JT_ON);
+          break;
+          
+        case OFF_TIME_MINIMAL:
+          setNewLevel = true; // offLevel is default, no need to set newLevel
+          if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
             StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
             StateMachine.lastStateChangeTime = now;
             StateMachine.stateTimerRunning = true;
-            StateMachine.setNextState(JT_OFF);
-            break;
-            
-          case ON_TIME_MINIMAL:
-            newLevel = StateMachine.onLevel;
-            setNewLevel = true;
-            if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
-              StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
-              StateMachine.lastStateChangeTime = now;
-              StateMachine.stateTimerRunning = true;
-            }
-            StateMachine.setNextState(JT_ON);
-            break;
-            
-          case OFF_TIME_MINIMAL:
-            setNewLevel = true; // offLevel is default, no need to set newLevel
-            if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
-              StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
-              StateMachine.lastStateChangeTime = now;
-              StateMachine.stateTimerRunning = true;
-            }
-            StateMachine.setNextState(JT_OFF);
-            break;
-        }
+          }
+          StateMachine.setNextState(JT_OFF);
+          break;
+          
+        default:
+          StateMachine.keepCurrentState();   // avoid to run into a loop
+          break;
       }
-      else {  // NO_JUMP_IGNORE_COMMAND
-        StateMachine.avoidStateChange();   // avoid to run into a loop
-      }
+      StateMachine.setCurrentState(StateMachine.getNextState());  // save new state (currentState = nextState)
+        
       //if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
       if (setNewLevel) {
         setOutput(device, &newLevel);   // checks for current level. don't set same level again
-        setNewLevel = false;
+        // setNewLevel = false;
       }
     }
   }
   //*** state machine end ***//
 
   
-	// feedback trigger set?
+  // feedback trigger set?
   if(!nextFeedbackDelay) return;
   now = millis();
   if(now - lastFeedbackTime < nextFeedbackDelay) return;
   lastFeedbackTime = now;  // at least last time of trying
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-	// we know that the level has only 1 byte here
-	uint8_t level;
+  // we know that the level has only 1 byte here
+  uint8_t level;
   get(&level);
   uint8_t errcode = device->sendInfoMessage(channel, 1, &level);
   if(errcode == 1) {  // bus busy
   	nextFeedbackDelay = 250;  // try again later, but insert a small delay
   }
   else {
-  	nextFeedbackDelay = 0;
+    nextFeedbackDelay = 0;
   }
 }

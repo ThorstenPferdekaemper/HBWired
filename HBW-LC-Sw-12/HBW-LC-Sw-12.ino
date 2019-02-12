@@ -223,7 +223,7 @@ void HBWChanSw::afterReadConfig() {
     shiftRegister->set(relayPos +1, HIGH);  // reset coil
   }
 
-  StateMachine.avoidStateChange(); // no action for state machine needed
+  StateMachine.keepCurrentState(); // no action for state machine needed
 
   relayOperationTimeStart = millis();  // Relay coils must be set two low after some ms (bistable relays!)
   operateRelay = true;
@@ -253,7 +253,7 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
           level = 255;
         
         setOutput(&level);
-        StateMachine.avoidStateChange(); // avoid state machine to run
+        StateMachine.keepCurrentState(); // avoid state machine to run
         
 #ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("Tg to: "));
@@ -290,7 +290,7 @@ void HBWChanSw::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     //if (!stateTimerRunning)??
     setOutput(data);
     StateMachine.stateTimerRunning = false;
-    StateMachine.avoidStateChange(); // avoid state machine to run
+    StateMachine.keepCurrentState(); // avoid state machine to run
   }
 };
 
@@ -401,83 +401,83 @@ void HBWChanSw::loop(HBWDevice* device, uint8_t channel) {
     uint8_t currentLevel;
     get(&currentLevel);
  
-    if (StateMachine.getNextState() < JT_NO_JUMP_IGNORE_COMMAND) {
-      
-      switch (StateMachine.getNextState()) {
-        case JT_ONDELAY:
-          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
-          StateMachine.setCurrentState(JT_ONDELAY);
-          break;
-          
-        case JT_ON:
-          newLevel = 200;
-          setNewLevel = true;
-          StateMachine.stateTimerRunning = false;
-          break;
-          
-        case JT_OFFDELAY:
-          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
-          StateMachine.setCurrentState(JT_OFFDELAY);
-          break;
-          
-        case JT_OFF:
-          //newLevel = 0; // 0 is default
-          setNewLevel = true;
-          StateMachine.stateTimerRunning = false;
-          break;
-          
-        case ON_TIME_ABSOLUTE:
-          newLevel = 200;
-          setNewLevel = true;
+    switch (StateMachine.getNextState()) {
+      case JT_ONDELAY:
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.stateTimerRunning = true;
+//        StateMachine.setCurrentState(JT_ONDELAY);
+        break;
+        
+      case JT_ON:
+        newLevel = 200;
+        setNewLevel = true;
+        StateMachine.stateTimerRunning = false;
+        break;
+        
+      case JT_OFFDELAY:
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.stateTimerRunning = true;
+//        StateMachine.setCurrentState(JT_OFFDELAY);
+        break;
+        
+      case JT_OFF:
+        //newLevel = 0; // 0 is default
+        setNewLevel = true;
+        StateMachine.stateTimerRunning = false;
+        break;
+        
+      case ON_TIME_ABSOLUTE:
+        newLevel = 200;
+        setNewLevel = true;
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.stateTimerRunning = true;
+        StateMachine.setNextState(JT_ON);
+        break;
+        
+      case OFF_TIME_ABSOLUTE:
+        //newLevel = 0; // 0 is default
+        setNewLevel = true;
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.stateTimerRunning = true;
+        StateMachine.setNextState(JT_OFF);
+        break;
+        
+      case ON_TIME_MINIMAL:
+        newLevel = 200;
+        setNewLevel = true;
+        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
           StateMachine.lastStateChangeTime = now;
           StateMachine.stateTimerRunning = true;
-          StateMachine.setNextState(JT_ON);
-          break;
-          
-        case OFF_TIME_ABSOLUTE:
-          //newLevel = 0; // 0 is default
-          setNewLevel = true;
+        }
+        StateMachine.setNextState(JT_ON);
+        break;
+        
+      case OFF_TIME_MINIMAL:
+        //newLevel = 0; // 0 is default
+        setNewLevel = true;
+        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
           StateMachine.lastStateChangeTime = now;
           StateMachine.stateTimerRunning = true;
-          StateMachine.setNextState(JT_OFF);
-          break;
-          
-        case ON_TIME_MINIMAL:
-          newLevel = 200;
-          setNewLevel = true;
-          if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
-            StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
-            StateMachine.lastStateChangeTime = now;
-            StateMachine.stateTimerRunning = true;
-          }
-          StateMachine.setNextState(JT_ON);
-          break;
-          
-        case OFF_TIME_MINIMAL:
-          //newLevel = 0; // 0 is default
-          setNewLevel = true;
-          if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
-            StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
-            StateMachine.lastStateChangeTime = now;
-            StateMachine.stateTimerRunning = true;
-          }
-          StateMachine.setNextState(JT_OFF);
-          break;
+        }
+        StateMachine.setNextState(JT_OFF);
+        break;
+        
+      default:
+        StateMachine.setCurrentState(currentLevel ? JT_ON : JT_OFF );    // get current level and update state, TODO: actually needed? or keep for robustness?
+        StateMachine.keepCurrentState();   // avoid to run into a loop
+        break;
       }
-    }
-    else {  // NO_JUMP_IGNORE_COMMAND
-      StateMachine.setCurrentState(currentLevel ? JT_ON : JT_OFF );    // get current level and update state, TODO: actually needed? or keep for robustness?
-      StateMachine.avoidStateChange();   // avoid to run into a loop
-    }
+      StateMachine.setCurrentState(StateMachine.getNextState());  // save new state (currentState = nextState)
+    
     if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
       setOutput(&newLevel);
-      setNewLevel = false;
+      // setNewLevel = false;
     }
   }
   //*** state machine end ***//
@@ -559,4 +559,3 @@ void loop()
 {
   device->loop();
 };
-

@@ -47,7 +47,7 @@ void HBWSwitchAdvanced::afterReadConfig() {
       digitalWrite(pin, HIGH ^ config->n_inverted);
   }
   
-  StateMachine.avoidStateChange(); // no action for state machine needed
+  StateMachine.keepCurrentState(); // no action for state machine needed
 }
 
 
@@ -69,12 +69,15 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
           level = 255;
         
         setOutput(device, &level);
-        StateMachine.avoidStateChange(); // avoid state machine to run
+        StateMachine.keepCurrentState(); // avoid state machine to run
       }
     }
     else if (StateMachine.lastKeyNum == currentKeyNum && !StateMachine.peerParam_getLongMultiexecute()) {
       // repeated key event for ACTION_TYPE == 1 (ACTION_TYPE == 0 already filtered by receiveKeyEvent, HBWLinkReceiver)
       // must be long press, but LONG_MULTIEXECUTE not enabled
+    }
+    else if (StateMachine.absoluteTimeRunning && ((StateMachine.currentStateIs(JT_ON) && StateMachine.peerParam_onTimeMinimal()) || (StateMachine.currentStateIs(JT_OFF) && StateMachine.peerParam_offTimeMinimal()))) {
+        //do nothing in this case
     }
     else {
       // assign values based on EEPROM layout
@@ -93,7 +96,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     //if (!stateTimerRunning)??
     setOutput(device, data);
     StateMachine.stateTimerRunning = false;
-    StateMachine.avoidStateChange(); // avoid state machine to run
+    StateMachine.keepCurrentState(); // avoid state machine to run
   }
 };
 
@@ -135,9 +138,9 @@ void HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t const * const data)
 
 void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
-  unsigned long now = millis();
-
  //*** state machine begin ***//
+
+  unsigned long now = millis();
 
   if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || StateMachine.getCurrentState() != StateMachine.getNextState()) {
 
@@ -172,85 +175,88 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
   hbwdebug(F("\n"));
 #endif
 
+    StateMachine.absoluteTimeRunning = false;
     bool setNewLevel = false;
     uint8_t newLevel = 0;   // default value. Will only be set if setNewLevel was also set 'true'
     uint8_t currentLevel;
     get(&currentLevel);
  
-    if (StateMachine.getNextState() < JT_NO_JUMP_IGNORE_COMMAND) {
-      
-      switch (StateMachine.getNextState()) {
-        case JT_ONDELAY:
-          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
-          StateMachine.setCurrentState(JT_ONDELAY);
-          break;
-          
-        case JT_ON:
-          newLevel = 200;
-          setNewLevel = true;
-          StateMachine.stateTimerRunning = false;
-          break;
-          
-        case JT_OFFDELAY:
-          StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
-          StateMachine.setCurrentState(JT_OFFDELAY);
-          break;
-          
-        case JT_OFF:
-          //newLevel = 0; // 0 is default
-          setNewLevel = true;
-          StateMachine.stateTimerRunning = false;
-          break;
-          
-        case ON_TIME_ABSOLUTE:
-          newLevel = 200;
-          setNewLevel = true;
+    switch (StateMachine.getNextState()) {
+      case JT_ONDELAY:
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.stateTimerRunning = true;
+        // StateMachine.setCurrentState(JT_ONDELAY);
+        break;
+        
+      case JT_ON:
+        newLevel = 200;
+        setNewLevel = true;
+        StateMachine.stateTimerRunning = false;
+        break;
+        
+      case JT_OFFDELAY:
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.stateTimerRunning = true;
+        // StateMachine.setCurrentState(JT_OFFDELAY);
+        break;
+        
+      case JT_OFF:
+        //newLevel = 0; // 0 is default
+        setNewLevel = true;
+        StateMachine.stateTimerRunning = false;
+        break;
+        
+      case ON_TIME_ABSOLUTE:
+        newLevel = 200;
+        setNewLevel = true;
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.absoluteTimeRunning = true;
+        StateMachine.stateTimerRunning = true;
+        StateMachine.setNextState(JT_ON);
+        break;
+        
+      case OFF_TIME_ABSOLUTE:
+        //newLevel = 0; // 0 is default
+        setNewLevel = true;
+        StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
+        StateMachine.lastStateChangeTime = now;
+        StateMachine.absoluteTimeRunning = true;
+        StateMachine.stateTimerRunning = true;
+        StateMachine.setNextState(JT_OFF);
+        break;
+        
+      case ON_TIME_MINIMAL:
+        newLevel = 200;
+        setNewLevel = true;
+        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
           StateMachine.lastStateChangeTime = now;
           StateMachine.stateTimerRunning = true;
-          StateMachine.setNextState(JT_ON);
-          break;
-          
-        case OFF_TIME_ABSOLUTE:
-          //newLevel = 0; // 0 is default
-          setNewLevel = true;
+        }
+        StateMachine.setNextState(JT_ON);
+        break;
+        
+      case OFF_TIME_MINIMAL:
+        //newLevel = 0; // 0 is default
+        setNewLevel = true;
+        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
           StateMachine.lastStateChangeTime = now;
           StateMachine.stateTimerRunning = true;
-          StateMachine.setNextState(JT_OFF);
-          break;
-          
-        case ON_TIME_MINIMAL:
-          newLevel = 200;
-          setNewLevel = true;
-          if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
-            StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
-            StateMachine.lastStateChangeTime = now;
-            StateMachine.stateTimerRunning = true;
-          }
-          StateMachine.setNextState(JT_ON);
-          break;
-          
-        case OFF_TIME_MINIMAL:
-          //newLevel = 0; // 0 is default
-          setNewLevel = true;
-          if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
-            StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
-            StateMachine.lastStateChangeTime = now;
-            StateMachine.stateTimerRunning = true;
-          }
-          StateMachine.setNextState(JT_OFF);
-          break;
+        }
+        StateMachine.setNextState(JT_OFF);
+        break;
+      
+      default:
+        StateMachine.setCurrentState(currentLevel ? JT_ON : JT_OFF );    // get current level and update state, TODO: actually needed? or keep for robustness?
+        StateMachine.keepCurrentState();   // avoid to run into a loop
+        break;
       }
-    }
-    else {  // NO_JUMP_IGNORE_COMMAND
-      StateMachine.setCurrentState(currentLevel ? JT_ON : JT_OFF);    // get current level and update state // TODO: actually needed? or keep for robustness?
-      StateMachine.avoidStateChange();   // avoid to run into a loop
-    }
+      StateMachine.setCurrentState(StateMachine.getNextState());  // save new state (currentState = nextState)
+    
     if (currentLevel != newLevel && setNewLevel) {   // check for current level. don't set same level again
       setOutput(device, &newLevel);
     }
