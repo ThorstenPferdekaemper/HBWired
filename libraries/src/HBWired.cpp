@@ -18,6 +18,7 @@
 // bus must be idle 210 + rand(0..100) ms
 #define DIFS_CONSTANT 210
 #define DIFS_RANDOM 100
+// we wait max 200ms for an ACK
 #define ACKWAITTIME 200
 // while waiting for an ACK, bus might not be idle
 // bus has to be idle at least this time for a retry
