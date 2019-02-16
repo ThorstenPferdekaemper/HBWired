@@ -17,7 +17,6 @@
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
 #define SAMPLE_INTERVAL 2  // seconds
-#define MAX_SAMPLES 3    // update "buffer" array definition, when changing this
 #define UPDATE_INTERVAL 133  // seconds
 
 

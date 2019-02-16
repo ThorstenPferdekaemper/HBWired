@@ -186,8 +186,6 @@ class HBWDevice {
 	void readAddressFromEEPROM();
 	void determineSerial(uint8_t*);
 
-	void processEventKey(uint32_t senderAddress, uint8_t const * const frameData);
-    void processEventSetLevel(uint8_t channel, uint8_t dataLength, uint8_t const * const data);  //TODO: rename?
 	void processEventGetLevel(uint8_t channel, uint8_t command);
 	void processEventSetLock();
 	void processEmessage(uint8_t const * const frameData);

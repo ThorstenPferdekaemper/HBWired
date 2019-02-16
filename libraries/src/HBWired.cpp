@@ -7,7 +7,7 @@
  *
  *  HomeBrew-Wired RS485-Protokoll 
  *
- * Last updated: 21.11.2018
+ * Last updated: 21.01.2019
  */
 
 #include "HBWired.h"
@@ -493,11 +493,6 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
         	break;
          /* case 'q':                                                               // Zieladresse hinzufügen?
             // TODO: ???
-        	break; */
-         /* case 'u':                                                              // Update (Bootloader starten)
-            // Bootloader neu starten
-            // Goto $7c00                                                          ' Adresse des Bootloaders
-        	// TODO: Bootloader?
         	break; */
          case 'v':                                                               // get firmware version
             hbwdebug(F("T: FWVer\n"));

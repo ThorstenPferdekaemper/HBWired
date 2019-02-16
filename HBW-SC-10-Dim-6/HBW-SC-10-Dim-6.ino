@@ -1,6 +1,6 @@
 //*******************************************************************
 //
-// HBW-IO-10-Dim-6
+// HBW-SC-10-Dim-6
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
@@ -20,18 +20,18 @@
 // v0.03
 // - added input channels: Key & Sensor
 // v0.04
-// - added input channel: Bus voltage
+// - added virtual key channels, allow external peering with Dim channels (e.g. switch 1-10V dimmer on/off)
 //
-// TODO: Implement dim peering params: ON_LEVEL_PRIO for onTime, RAMP_START_STEP
+// TODO: Implement dim peering params: RAMP_START_STEP. Validate behaviour of OnLevelPrio and on/off time 'absolute'.
 
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0004
 
-#define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
+#define NUMBER_OF_INPUT_CHAN 0 //10   // input channel - pushbutton, key, other digital in
 #define NUMBER_OF_SEN_INPUT_CHAN 10  // equal number of sensor channels, using same ports/IOs as INPUT_CHAN
 #define NUMBER_OF_DIM_CHAN 6  // PWM & analog output channels
-#define NUMBER_OF_ANALOG_CHAN 1  // analog input channels
+#define NUMBER_OF_VIRTUAL_INPUT_CHAN 6
 
 #define NUM_LINKS_DIM 20    // address step 42
 #define LINKADDRESSSTART_DIM 0x038   // ends @0x37F
@@ -50,9 +50,9 @@
 #include "HBWLinkDimmerAdvanced.h"
 #include "HBWDimmerAdvanced.h"
 #include <HBWLinkKey.h>
-#include <HBWKey.h>
+//#include <HBWKey.h>
 #include <HBWSenSC.h>
-#include <HBWAnalogIn.h>
+#include "HBWKeyVirtual.h"
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
@@ -60,10 +60,10 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
-  #define PWM1 3  // PWM out (controlled by timer2)
+  #define PWM1 9  // PWM out (controlled by timer1)
   #define PWM2_DAC 5  // PWM out (controlled by timer0)
   #define PWM3_DAC 6  // PWM out (controlled by timer0)
-  #define PWM4 9  // PWM out (controlled by timer1)
+  #define PWM4   3// PWM out (controlled by timer2)
   #define PWM5 10  // PWM out (controlled by timer1)
   #define PWM6 11  // PWM out (controlled by timer2)
 
@@ -109,8 +109,7 @@
 
 #define LED LED_BUILTIN        // Signal-LED
 
-#define NUMBER_OF_DIM NUMBER_OF_DIM_DAC + NUMBER_OF_DIM_PWM
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_ANALOG_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_INPUT_CHAN
 
 
 struct hbw_config {
@@ -121,8 +120,8 @@ struct hbw_config {
   // TODO: Add to disable Rx, Tx LED
   hbw_config_dim dimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x12 (address step 2)
   hbw_config_senSC senCfg[NUMBER_OF_SEN_INPUT_CHAN]; // 0x13 - 0x1C (address step 1)
-  hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
-  hbw_config_analog_in adcInCfg[NUMBER_OF_ANALOG_CHAN]; // 0x31 - 0x32 (address step 2)
+  hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_INPUT_CHAN]; // (address step 2)  
+  // hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
 } hbwconfig;
 
 
@@ -170,25 +169,22 @@ void setup()
   
   for(uint8_t i = 0; i < NUMBER_OF_DIM_CHAN; i++) {
     channels[i] = new HBWDimmerAdvanced(PWMOut[i], &(hbwconfig.dimCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKeyVirtual(i, &(hbwconfig.keyVirtCfg[i]));
   };
 #else
   #error Dimming channel count and pin missmatch!
 #endif
 
-#if NUMBER_OF_INPUT_CHAN == 10 && NUMBER_OF_SEN_INPUT_CHAN == 10
+#if NUMBER_OF_INPUT_CHAN == 0 && NUMBER_OF_SEN_INPUT_CHAN == 10
 
   byte digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
   
-  for(uint8_t i = 0; i < NUMBER_OF_INPUT_CHAN; i++) {
+  for(uint8_t i = 0; i < NUMBER_OF_SEN_INPUT_CHAN; i++) {
     channels[i + NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]));
-    channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
+    // channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
   };
 #else
   #error Input channel count and pin missmatch!
-#endif
-
-#if NUMBER_OF_ANALOG_CHAN == 1
-  channels[NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWAnalogIn(ADC_BUS_VOLTAGE, &(hbwconfig.adcInCfg[0]));
 #endif
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
@@ -196,7 +192,7 @@ void setup()
   
   device = new HBDimIODevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
-                             NUMBER_OF_CHAN,(HBWChannel**)channels,
+                             NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
                              new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   

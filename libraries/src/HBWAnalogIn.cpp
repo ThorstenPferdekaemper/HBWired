@@ -48,6 +48,7 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   if (millis() - lastActionTime < ((uint32_t)nextActionDelay *1000)) return; // quit if wait time not yet passed
     
   nextActionDelay = SAMPLE_INTERVAL;
+  #define MAX_SAMPLES 3    // update "buffer" array definition, when changing this
   static uint16_t buffer[MAX_SAMPLES] = {0, 0, 0};
   static uint8_t nextIndex = 0;
   

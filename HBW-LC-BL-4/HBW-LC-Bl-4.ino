@@ -24,14 +24,17 @@
 // - fixed peering for long press
 // v0.4
 // - added level option in peering to set target value
+// v0.5
+// - added one analog channel for bus voltage measurement
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0028
+#define FIRMWARE_VERSION 0x0032
 
 #define NUMBER_OF_BLINDS 4
 #define NUM_LINKS 32
-#define LINKADDRESSSTART 0x26
+#define LINKADDRESSSTART 0x48   // address step 9
+#define NUMBER_OF_ANALOG_CHAN 1  // analog input channel (bus voltage)
 
 #define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
@@ -45,6 +48,7 @@
 #include <HBWired.h>
 #include <HBWLinkBlindSimple.h>
 #include <HBWBlind.h>
+#include <HBWAnalogIn.h>
 
 #define RS485_RXD 4
 #define RS485_TXD 2
@@ -67,7 +71,11 @@ HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #define BLIND4_ACT A4
 #define BLIND4_DIR A5
 
+#define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (using internal 1.1 volt reference)
+
 /*>>> more config in HBWBlind.h <<<*/
+
+#define NUMBER_OF_CHAN NUMBER_OF_BLINDS + NUMBER_OF_ANALOG_CHAN
 
 
 struct hbw_config {
@@ -75,11 +83,12 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_blind blindCfg[NUMBER_OF_BLINDS]; // 0x07-0x... ? (step 7)
+  hbw_config_blind blindCfg[NUMBER_OF_BLINDS]; // 0x07-0x22 (address step 7)
+  hbw_config_analog_in adcInCfg[NUMBER_OF_ANALOG_CHAN]; // 0x23 - 0x24 (address step 2)
 } hbwconfig;
 
 
-HBWChanBl* blinds[NUMBER_OF_BLINDS];
+HBWChannel* channels[NUMBER_OF_CHAN];
 
 
 class HBBlDevice : public HBWDevice {
@@ -98,7 +107,7 @@ class HBBlDevice : public HBWDevice {
 
 // device specific defaults
 void HBBlDevice::afterReadConfig() {
-  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
+  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
 };
 
 HBBlDevice* device = NULL;
@@ -107,6 +116,7 @@ HBBlDevice* device = NULL;
 
 void setup()
 {
+  analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
 #ifndef NO_DEBUG_OUTPUT
   Serial.begin(19200);
 #endif
@@ -118,12 +128,15 @@ void setup()
   
   // assing relay pins
   for(uint8_t i = 0; i < NUMBER_OF_BLINDS; i++) {
-    blinds[i] = new HBWChanBl(blindDir[i], blindAct[i], &(hbwconfig.blindCfg[i]));
+    channels[i] = new HBWChanBl(blindDir[i], blindAct[i], &(hbwconfig.blindCfg[i]));
   }
+#if NUMBER_OF_ANALOG_CHAN == 1
+  channels[NUMBER_OF_CHAN -1] = new HBWAnalogIn(ADC_BUS_VOLTAGE, &(hbwconfig.adcInCfg[0]));
+#endif
 
   device = new HBBlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
-                         NUMBER_OF_BLINDS,(HBWChannel**)blinds,
+                         NUMBER_OF_CHAN,(HBWChannel**)channels,
   #ifdef NO_DEBUG_OUTPUT
                          NULL,
   #else
@@ -145,4 +158,3 @@ void loop()
 {
   device->loop();
 };
-

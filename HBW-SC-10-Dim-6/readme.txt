@@ -5,7 +5,7 @@ Homematic Wired Homebrew PWM/0-10V Master Dimmer + 10 digital Eingänge
 // TODO: Implement dim peering params: ON_LEVEL_PRIO, RAMP_START_STEP
 
 
-Das Modul HBW-IO-10-Dim-6 bietet 6 analoge Ausgänge, davon 4 mit PWM Ausgang und 10 digitale Eingänge.
+Das Modul HBW-SC-10-Dim-6 bietet 6 analoge Ausgänge, davon 4 mit PWM Ausgang und 10 digitale Eingänge.
 Basis ist ein Arduino NANO mit RS485-Interface.
 (Hinweis Hex Dateien: Geeignet für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
 
@@ -19,7 +19,7 @@ Die Schalterkanäle können normal als Taster/Schalter inkl. Peering genutzt werde
 Die Sensor Kanäle müssen abgefragt werden (kein Peering), und liefern dann "sensor_open" oder "sensor_closed" zurück. (Möglichkeit der Invertierung über Kanalkonfiguration)
 [6 mit, 4 ohne galvanische Trennung? Anschluss von PIR-Modul direkt?]
 
-Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_io-10_dim-6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x96 aus).
+Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_sc-10_dim-6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x96 aus).
 
 Mögliche Dimmer-"Endstufen":
 0-10V: LED Dimmer, Finder Typ 15.11 - Slave Dimmer, etc.
