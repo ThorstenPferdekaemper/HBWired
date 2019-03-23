@@ -40,7 +40,7 @@ uint8_t HBWAnalogIn::get(uint8_t* data) {
 /* standard public function - called by main loop for every channel in sequential order */
 void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   
-  if (!config->input_enabled) {   // skip disabled channels
+  if (config->input_disabled) {   // skip disabled channels
     currentValue = 0;
     return;
   }
