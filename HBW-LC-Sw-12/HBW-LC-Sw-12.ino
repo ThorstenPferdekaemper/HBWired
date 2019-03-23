@@ -89,9 +89,9 @@
 #define CT_PIN1 A0  // analog input for current transformer, switch channel 1
 #define CT_PIN2 A1  // analog input for current transformer, switch channel 2
 #define CT_PIN3 A2
-#define CT_PIN4 A3
-#define CT_PIN5 A4
-#define CT_PIN6 A5
+#define CT_PIN4 A4
+#define CT_PIN5 A5
+#define CT_PIN6 A3
 
 
 #define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay
