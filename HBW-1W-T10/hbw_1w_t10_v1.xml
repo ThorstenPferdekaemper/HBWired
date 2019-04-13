@@ -4,6 +4,7 @@
 	<type name="RS485 One Wire 10 Channel Temperature Module" id="HBW-1W-T10" priority="2">
 		<parameter index="0" size="1" const_value="0x81"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
+		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -71,13 +72,13 @@
 				</conversion>
 			</parameter>
 			<parameter id="OFFSET">
-				<logical type="integer" min="-127" max="127" unit="m&#x2103;"/>
+				<logical type="integer" min="-127" max="127" unit="&#x2103;"/>
 				<physical type="integer" size="1" interface="eeprom">
 					<address index="+1.0"/>
 				</physical>
-				<conversion type="integer_integer_scale" offset="127"/>
+				<conversion type="integer_integer_scale" offset="127" factor="100"/>
 				<conversion type="integer_integer_map">
-					<value_map device_value="0xff" parameter_value="127" from_device="true" to_device="false"/>
+					<value_map to_device="false" from_device="true" parameter_value="127" device_value="0xff"/>
 				</conversion>
 			</parameter>
 			<parameter id="SEND_MIN_INTERVAL">
@@ -102,17 +103,44 @@
 					<value_map to_device="false" from_device="true" parameter_value="150" device_value="0xffff"/>
 				</conversion>
 			</parameter>
-			<parameter id="ONEWIRE_TYPE">
-				<logical type="integer" min="0" max="254">
+			<!--<parameter id="ONEWIRE_TYPE">
+				<logical type="integer" min="0" max="255">
 					<special_value id="NOT_USED" value="255"/>
 					<special_value id="DS18B20" value="40"/>
 					<special_value id="DS18S20" value="16"/>
 					<special_value id="DS1822" value="34"/>
 				</logical>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>-->
+			<parameter id="ONEWIRE_TYPE">
+				<logical type="option">
+					<option id="NOT_USED" default="true"/>
+					<option id="DS18B20"/>
+					<option id="DS18S20"/>
+					<option id="DS1822"/>
+					<option id="REMOVE_DEVICE"/>
+				</logical>
 				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+6.0"/>
 				</physical>
+				<conversion type="option_integer">
+					<value_map to_device="false" from_device="true" parameter_value="0" device_value="0xFF"/>
+					<value_map to_device="false" from_device="true" parameter_value="1" device_value="0x28"/>
+					<value_map to_device="false" from_device="true" parameter_value="2" device_value="0x10"/>
+					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0x22"/>
+					<value_map to_device="true" from_device="false" parameter_value="4" device_value="0xFF"/>
+				</conversion>
 			</parameter>
+			<!--<parameter id="ONEWIRE_ADDRESS">
+				<logical type="integer" default="0" min="0" max="72057594037927935">
+					<special_value id="NOT_USED" value="0xffffffffffffffff"/>
+				</logical>
+				<physical size="8.0" type="integer" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>-->
 		</paramset>
 		<paramset type="VALUES" id="hmw_analog_input_values">
 			<parameter id="TEMPERATURE" operations="read,event">

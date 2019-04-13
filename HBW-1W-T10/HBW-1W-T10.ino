@@ -4,7 +4,9 @@
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
-
+// 
+// nach einer Vorlage von
+// Thorsten Pferdekaemper (thorsten@pferdekaemper.com), Dirk Hoffmann (hoffmann@vmd-jena.de)
 //
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -12,17 +14,19 @@
 // Changes
 // v0.01
 // - initial version
+// v0.02
+// - improved startup and error handling (disconnected sensors)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0001
+#define FIRMWARE_VERSION 0x0002
 
 #define NUMBER_OF_TEMP_CHAN 10   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_TEMP_CHAN 0x7
-#define ADDRESS_STEP_TEMP_CHAN 14
+//#define ADDRESS_STEP_TEMP_CHAN 14
 
 
-#define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_ .xml into FHEM)
+#define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
 
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
 
@@ -66,8 +70,7 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  // TODO: Add to disable Rx, Tx LED
-  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x (address step 7)
+  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x.. (address step 14)
 } hbwconfig;
 
 
@@ -104,7 +107,7 @@ class HBTempOWDevice : public HBWDevice {
 void HBTempOWDevice::afterReadConfig() {
   if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
   
-  HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_TEMP_CHAN, (uint8_t) ADDRESS_STEP_TEMP_CHAN);
+  HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_TEMP_CHAN);
 };
 
 HBTempOWDevice* device = NULL;
@@ -118,7 +121,7 @@ void setup()
   for(uint8_t i = 0; i < NUMBER_OF_TEMP_CHAN; i++) {
     channels[i] = new HBWOneWireTemp(g_ow, &(hbwconfig.TempOWCfg[i]), &g_owLastReadTime, &g_owCurrentChannel, (uint8_t) NUMBER_OF_TEMP_CHAN);
     tempConfig[i] = &(hbwconfig.TempOWCfg[i]);
-  };
+  }
 
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)

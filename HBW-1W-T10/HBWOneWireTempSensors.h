@@ -8,26 +8,30 @@
 #ifndef HBWOneWireTempSensors_h
 #define HBWOneWireTempSensors_
 
-// #include <inttypes.h>
+//DS18S20 Gerätecode 0x10
+//DS18B20 Gerätecode 0x28
+//DS1822  Gerätecode 0x22
+
+
 #include "HBWired.h"
 #include <OneWire.h>
 
-
 #define DEBUG_OUTPUT   // extra debug output on serial/USB
-//#define EXTRA_DEBUG_OUTPUT
+//#define EXTRA_DEBUG_OUTPUT   // even more debug output
+
 
 #define DEFAULT_TEMP -27315   // for unused channels
 #define ERROR_TEMP -27314     // CRC error
-#define OW_ADDRESS_SIZE 8   // fixed length for temp sensors
-#define OW_POLL_FREQUENCY 1200  // read temperature every X milli seconds (not less than 1000 ms!)
+#define OW_DEVICE_ADDRESS_SIZE 8   // fixed length for temp sensors
+#define OW_POLL_FREQUENCY 1200  // read temperature every X milli seconds (not less than 900 ms! -> 750 ms conversion time @12 bit resolution)
 
 // config of each sensor
 struct hbw_config_onewire_temp {
-  byte send_delta_temp;         // 0x0D      0x1B // Temperaturdifferenz, ab der gesendet wird
-  byte offset;			// 0x0E      0x1C
-  uint16_t send_min_interval;   // 0x0F-0x10 0x1D-0x1E // Minimum-Sendeintervall
-  uint16_t send_max_interval;   // 0x11-0X12 0x1F-0x20 // Maximum-Sendeintervall
-  byte address[OW_ADDRESS_SIZE];              // 0x13-0x1A 0x21-0x28 // 1-Wire-Adresse // TODO: add option to delete -> FEHM cmd?, XML?
+  byte send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird
+  byte offset;			                     // offset in m°C (-1.27..+1.27 °C)
+  uint16_t send_min_interval;            // Minimum-Sendeintervall
+  uint16_t send_max_interval;            // Maximum-Sendeintervall
+  byte address[OW_DEVICE_ADDRESS_SIZE];  // 1-Wire-Adresse // TODO: add option to delete -> FEHM cmd?, XML?
 };
 
 
@@ -38,7 +42,7 @@ class HBWOneWireTemp : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void afterReadConfig();
-    static void sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config, uint8_t channels, uint8_t address_start, uint8_t address_step);
+    static void sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config, uint8_t channels, uint8_t address_start);
 	
   private:
 	  int16_t oneWireReadTemp();
@@ -46,15 +50,17 @@ class HBWOneWireTemp : public HBWChannel {
     OneWire* ow {NULL};
     hbw_config_onewire_temp* config;
     uint8_t channelsTotal;
-//    uint8_t state;
-    //uint16_t nextFeedbackDelay;
-    // uint32_t lastFeedbackTime;
     uint8_t* owCurrentChannel;
-    //uint32_t lastReadTime;		// when was the onewiresensor last prompted // (normaly every 5 Seconds)
-    uint32_t* owLastReadTime;
+    uint32_t* owLastReadTime;   // when was the onewiresensor (actually the bus) last prompted
     int16_t currentTemp;	// temperatures in m°C
     int16_t lastSentTemp;	// temperature measured on last send
     uint32_t lastSentTime;		// time of last send
+    struct s_errorState {
+      byte count:3;         // channel in error state if counted down to 0
+      byte wasSend:1;       // flag to indicate if ERROR_TEMP was send
+	    byte isAllZeros:1;    // indicate that current device read was blank (ususally happens when device gets disconnected)
+      byte dummy:3;
+    } errorState;
 };
 
 #endif
