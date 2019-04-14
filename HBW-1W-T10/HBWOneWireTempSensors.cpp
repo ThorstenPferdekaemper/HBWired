@@ -17,8 +17,8 @@ HBWOneWireTemp::HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, u
   owCurrentChannel = _owCurrentChannel;
   currentTemp = DEFAULT_TEMP;
   lastSentTemp = DEFAULT_TEMP;
-  errorState.count = 3;
-  errorState.wasSend = true;
+  state.errorCount = 3;
+  state.errorWasSend = true;
 }
 
 
@@ -29,12 +29,11 @@ void HBWOneWireTemp::afterReadConfig() {
       if (config->send_delta_temp == 0xFF) config->send_delta_temp = 5;
       if (config->send_max_interval == 0xFFFF) config->send_max_interval = 150;
       if (config->send_min_interval == 0xFFFF) config->send_min_interval = 10;
+      
+      state.action = ACTION_START_CONVERSION; // start with new conversion, maybe the previous sensor was removed...
+      
   #ifdef DEBUG_OUTPUT
-  hbwdebug(F("conf_OW addr: "));
-  for (uint8_t i = 0; i < OW_DEVICE_ADDRESS_SIZE; i++) {
-    hbwdebughex(config->address[i]);
-  }
-  hbwdebug("\n");
+  hbwdebug(F("conf_OW addr: "));  m_hbwdebug_ow_address(&config->address[0]);  hbwdebug("\n");
   #endif
 };
 
@@ -62,13 +61,10 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
     for (channel = 0; channel < channels; channel++) {
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));    hbwdebug(channel);
-  hbwdebug(F(" stored address: "));
-  for (uint8_t i = 0; i < OW_DEVICE_ADDRESS_SIZE; i++) {
-    hbwdebughex(_config[channel]->address[i]);
-  }
-  hbwdebug("\n");
+  hbwdebug(F(" stored address: "));  m_hbwdebug_ow_address(&_config[channel]->address[0]);  hbwdebug("\n");
   #endif
-      if (_config[channel]->address[0] == 0xFF) break;   // free slot found
+//      if (_config[channel]->address[0] == 0xFF) break;   // free slot found
+      if (deviceInvalidOrEmptyID(_config[channel]->address[0])) break;   // free slot found
     }
     if (channel == channels) break;   // no free slot found
   
@@ -76,10 +72,7 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
     if (!ow->search(addr))  break;     // no further sensor found
     
   #ifdef DEBUG_OUTPUT
-	hbwdebug(F("1-Wire Device found: "));
-	for (uint8_t i = 0; i < OW_DEVICE_ADDRESS_SIZE; i++) {
-	  hbwdebughex(addr[i]);
-	}
+	hbwdebug(F("1-Wire device found: "));  m_hbwdebug_ow_address(&addr[0]);
   #endif
 
     if (ow->crc8(addr, 7) != addr[7]) {
@@ -105,7 +98,7 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
     
   
 /**
- * write Sensor addresses from Memory into EEPROM - for new devices only
+ * write sensor addresses from memory into EEPROM - for new devices only
  */
     uint8_t startaddress = address_start + (sizeof(*_config[0]) - OW_DEVICE_ADDRESS_SIZE) + (sizeof(*_config[0]) * channel);
     
@@ -127,23 +120,28 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
  * send "start conversion" to device
  */
 void HBWOneWireTemp::oneWireStartConversion() {
-  if (config->address[0] == 0xFF)
-    return;  // ignore channels without sensor
+//  if (config->address[0] == 0xFF)
+  if (deviceInvalidOrEmptyID(config->address[0]))
+    return;  // ignore channels without valid sensor
   ow->reset();
   ow->select(config->address);
   ow->write(0x44, 1);        // start conversion, with parasite power on at the end
 };
 
+
 /**
- * read one wire temp from temp sensors
+ * read one wire temperature from sensor, returns temperature in milli °C
+ * return ERROR_TEMP for consecutive CRC errors or disconnected devices
+ * return DEFAULT_TEMP for emtpy channels (without valid address)
  */
 int16_t HBWOneWireTemp::oneWireReadTemp() {
   
-	if (config->address[0] == 0xFF)
-	  return DEFAULT_TEMP;  // ignore channels without sensor
+//	if (config->address[0] == 0xFF)
+  if (deviceInvalidOrEmptyID(config->address[0]))
+	  return DEFAULT_TEMP;  // ignore channels without valid sensor
 
 	uint8_t data[12];
-	errorState.isAllZeros = true;
+	state.isAllZeros = true;
 
 	ow->reset();
 	ow->select(config->address);
@@ -151,21 +149,21 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 
 	for (uint8_t i = 0; i < 9; i++) {      // we need 9 bytes
 		data[i] = ow->read();
-		if (data[i] != 0) errorState.isAllZeros = false;
+		if (data[i] != 0) state.isAllZeros = false;
 	}
-	// CRC check and if all bytes of scratchPad are zero (disconnected device)
-	if (ow->crc8(data, 8) != data[8] && !errorState.isAllZeros) {
-	  if (errorState.count == 0) {
+	// error for failed CRC check and if all bytes of scratchPad are zero (disconnected device)
+	if (ow->crc8(data, 8) != data[8] || state.isAllZeros) {
+	  if (state.errorCount == 0) {
 	    return ERROR_TEMP;  //return ERROR temp for CRC error and disconnected devices - after 3 retries
 	  }
     else {
-	    if (errorState.count == 1)
-	      errorState.wasSend = false;
-	    errorState.count--;
+	    if (state.errorCount == 1)
+	      state.errorWasSend = false;
+	    state.errorCount--;
 		  return currentTemp;
 	  }
 	}
-	errorState.count = 3;	// reset error counter
+	state.errorCount = 3;	// reset error counter
 	
 	/**
 	 * Convert the data to actual temperature
@@ -173,7 +171,6 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 	 * be stored to an "int16_t" type, which is always 16 bits
 	 * even when compiled on a 32 bit processor.
 	 */
-	//int16_t raw = (data[1] << 8) | data[0];
 	int16_t raw = (data[1] << 8) | data[0];
 	if (config->address[0] == 0x10) {	// DS18S20 or old DS1820
 		raw = raw << 3; // 9 bit resolution default
@@ -196,7 +193,7 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 
 /*
  * handle Temp Sensors in a loop. Read the OneWire Sensors every x Seconds
- * and send the actual Temperature when max_intervall reached, or the Temp.
+ * and send the actual Temperature when max_interval reached, or the Temp.
  * changed more then delta_temp but not faster than min_interval.
  */
 void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
@@ -206,28 +203,30 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   if (lastSentTime == 0)
     lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time (will vary over time anyway...)
   
-  // TODO: if (config->send_min_interval == 3601)  return; // use config->send_min_interval == 0xE11 to disable a channel
+  // TODO: if (config->send_min_interval == 3601)  return; // use config->send_min_interval == 0xE11 to disable a channel?
   
-// read onewire sensor every n seconds (OW_POLL_FREQUENCY/1000)
+  // read onewire sensor every n seconds (OW_POLL_FREQUENCY/1000)
   if (now - *owLastReadTime >= OW_POLL_FREQUENCY && *owCurrentChannel == channel) {
-    if (*owLastReadTime != 0) { // special for the first call
-	    currentTemp = oneWireReadTemp();   // read temperature
+    if (state.action == ACTION_START_CONVERSION) {
+      *owLastReadTime = now;
+      oneWireStartConversion();   // start next measurement
+      state.action = ACTION_READ_TEMP;  // next action
+    }
+    else if (state.action == ACTION_READ_TEMP) {
+      currentTemp = oneWireReadTemp();   // read temperature
+      state.action = ACTION_START_CONVERSION;  // next action
       (*owCurrentChannel)++;
+      
   #ifdef EXTRA_DEBUG_OUTPUT
-  hbwdebug(F("channel: "));
-  hbwdebug(channel);
-  hbwdebug(F(" read temp, m°C: "));
-  hbwdebug(currentTemp);
-  hbwdebug("\n");
+  hbwdebug(F("channel: "));  hbwdebug(channel);
+  hbwdebug(F(" read temp, m°C: "));  hbwdebug(currentTemp);  hbwdebug("\n");
   #endif
-	  }
-    *owLastReadTime = now;
-	  oneWireStartConversion();   // start next measurement
+    }
   }
   if (*owCurrentChannel >= channelsTotal)  *owCurrentChannel = 0;
   
   // check if we have a valid temp
-  if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && errorState.wasSend))  return; // send ERROR_TEMP in error state just once
+  if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && state.errorWasSend))  return; // send ERROR_TEMP in error state just once
 
   // check if some temperatures needed to be send
   // do not send before min interval
@@ -243,15 +242,12 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
     
     lastSentTemp = currentTemp;
     lastSentTime = now;
-	  errorState.wasSend = true;
+	  state.errorWasSend = true;
  
-#ifdef DEBUG_OUTPUT
-hbwdebug(F("channel: "));
-hbwdebug(channel);
-hbwdebug(F(" sent temp, m°C: "));
-hbwdebug(lastSentTemp);
-hbwdebug("\n");
-#endif
+  #ifdef DEBUG_OUTPUT
+  hbwdebug(F("channel: "));  hbwdebug(channel);
+  hbwdebug(F(" sent temp, m°C: "));  hbwdebug(lastSentTemp);  hbwdebug("\n");
+  #endif
   }
 };
 
@@ -263,4 +259,10 @@ uint8_t HBWOneWireTemp::get(uint8_t* data) {
   *data++ = (currentTemp >> 8);
   *data = currentTemp & 0xFF;
   return 2;
+};
+
+
+/* validate device ID (first byte of device address) */
+bool HBWOneWireTemp::deviceInvalidOrEmptyID(uint8_t deviceType) {
+  return !((deviceType == DS18B20_ID) || (deviceType == DS18S20_ID) || (deviceType == DS1822_ID));
 };

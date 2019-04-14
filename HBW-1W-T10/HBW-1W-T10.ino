@@ -16,14 +16,15 @@
 // - initial version
 // v0.02
 // - improved startup and error handling (disconnected sensors)
-
+// v0.03
+// - validate supported devices (see HBWOneWireTempSensors.h)
+// - optimized conversion and measurement sequence to avoid wrong readings
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0002
+#define FIRMWARE_VERSION 0x0003
 
 #define NUMBER_OF_TEMP_CHAN 10   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_TEMP_CHAN 0x7
-//#define ADDRESS_STEP_TEMP_CHAN 14
 
 
 #define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
@@ -31,11 +32,9 @@
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
 
 
-#include "FreeRam.h"
-
 // HB Wired protocol and module
 #include <HBWired.h>
-#include "HBWOneWireTempSensors.h"
+#include <HBWOneWireTempSensors.h>
 
 
 // Pins
@@ -54,7 +53,8 @@
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
   #define ONEWIRE_PIN	A3 // Onewire Bus
-  
+
+  #include "FreeRam.h"
   #include "HBWSoftwareSerial.h"
   // HBWSoftwareSerial can only do 19200 baud
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
@@ -105,7 +105,7 @@ class HBTempOWDevice : public HBWDevice {
 
 // device specific defaults
 void HBTempOWDevice::afterReadConfig() {
-  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
+  if (hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
   
   HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_TEMP_CHAN);
 };
