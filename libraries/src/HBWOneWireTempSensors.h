@@ -6,7 +6,7 @@
  */
 
 #ifndef HBWOneWireTempSensors_h
-#define HBWOneWireTempSensors_
+#define HBWOneWireTempSensors_h
 
 /* Supported sensors */
 //DS18S20 Gerätecode 0x10
@@ -33,7 +33,7 @@
 // config of each sensor
 struct hbw_config_onewire_temp {
   byte send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird
-  byte offset;			                     // offset in m°C (-1.27..+1.27 °C)
+  byte offset;                           // offset in m°C (-1.27..+1.27 °C)
   uint16_t send_min_interval;            // Minimum-Sendeintervall
   uint16_t send_max_interval;            // Maximum-Sendeintervall
   byte address[OW_DEVICE_ADDRESS_SIZE];  // 1-Wire-Adresse
@@ -43,19 +43,18 @@ struct hbw_config_onewire_temp {
 // Class HBWOneWireTempSensors
 class HBWOneWireTemp : public HBWChannel {
   public:
-    HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, uint32_t* _owLastReadTime, uint8_t* _owCurrentChannel, uint8_t _channels);
+    HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, uint32_t* _owLastReadTime, uint8_t* _owCurrentChannel);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void afterReadConfig();
     static void sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config, uint8_t channels, uint8_t address_start);
-	
+
   private:
-	  int16_t oneWireReadTemp();
-	  void oneWireStartConversion();
+    int16_t oneWireReadTemp();
+    void oneWireStartConversion();
     OneWire* ow {NULL};
     hbw_config_onewire_temp* config;
-    uint8_t channelsTotal;
-    uint8_t* owCurrentChannel;
+    uint8_t* owCurrentChannel;    // channel currently running conversion - can only be one at a time
     uint32_t* owLastReadTime;   // when was the onewire sensor (actually the bus) last prompted
     int16_t currentTemp;	// temperatures in m°C
     int16_t lastSentTemp;	// temperature measured on last send

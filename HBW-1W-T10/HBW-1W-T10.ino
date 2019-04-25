@@ -24,7 +24,7 @@
 #define FIRMWARE_VERSION 0x0003
 
 #define NUMBER_OF_TEMP_CHAN 10   // input channels - 1-wire temperature sensors
-#define ADDRESS_START_TEMP_CHAN 0x7
+#define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 
 
 #define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
@@ -43,7 +43,7 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
-  #define ONEWIRE_PIN	A3 // Onewire Bus
+  #define ONEWIRE_PIN	10 // Onewire Bus
   
 #else
   #define RS485_RXD 4
@@ -52,7 +52,7 @@
   #define BUTTON 8  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
-  #define ONEWIRE_PIN	A3 // Onewire Bus
+  #define ONEWIRE_PIN	10 // Onewire Bus
 
   #include "FreeRam.h"
   #include "HBWSoftwareSerial.h"
@@ -76,11 +76,9 @@ struct hbw_config {
 
 HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the device
 
-// global variables for OneWire channels
+// global pointer for OneWire channels
 hbw_config_onewire_temp* tempConfig[NUMBER_OF_TEMP_CHAN]; // pointer for config
-OneWire* g_ow = NULL;
-uint32_t g_owLastReadTime = 0;
-uint8_t g_owCurrentChannel = 0;
+
 
 class HBTempOWDevice : public HBWDevice {
     public:
@@ -107,7 +105,7 @@ class HBTempOWDevice : public HBWDevice {
 void HBTempOWDevice::afterReadConfig() {
   if (hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
   
-  HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_TEMP_CHAN);
+  HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_CONF_TEMP_CHAN);
 };
 
 HBTempOWDevice* device = NULL;
@@ -116,10 +114,15 @@ HBTempOWDevice* device = NULL;
 
 void setup()
 {
+  // variables for all OneWire channels
+  OneWire* g_ow = NULL;
+  uint32_t g_owLastReadTime = 0;
+  uint8_t g_owCurrentChannel = 255; // init with 255! used as trigger/reset in channel loop()
   g_ow = new OneWire(ONEWIRE_PIN);
-  
+
+  // create channels
   for(uint8_t i = 0; i < NUMBER_OF_TEMP_CHAN; i++) {
-    channels[i] = new HBWOneWireTemp(g_ow, &(hbwconfig.TempOWCfg[i]), &g_owLastReadTime, &g_owCurrentChannel, (uint8_t) NUMBER_OF_TEMP_CHAN);
+    channels[i] = new HBWOneWireTemp(g_ow, &(hbwconfig.TempOWCfg[i]), &g_owLastReadTime, &g_owCurrentChannel);
     tempConfig[i] = &(hbwconfig.TempOWCfg[i]);
   }
 

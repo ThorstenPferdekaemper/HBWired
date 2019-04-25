@@ -9,14 +9,14 @@
 #include <EEPROM.h>
 
 
-HBWOneWireTemp::HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, uint32_t* _owLastReadTime, uint8_t* _owCurrentChannel, uint8_t _channels) {
+HBWOneWireTemp::HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, uint32_t* _owLastReadTime, uint8_t* _owCurrentChannel) {
   ow = _ow;
   config = _config;
-  channelsTotal = _channels;
   owLastReadTime = _owLastReadTime;
   owCurrentChannel = _owCurrentChannel;
   currentTemp = DEFAULT_TEMP;
   lastSentTemp = DEFAULT_TEMP;
+  lastSentTime = 0;
   state.errorCount = 3;
   state.errorWasSend = true;
 }
@@ -204,7 +204,10 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   uint32_t now = millis();
 
   if (lastSentTime == 0)
-    lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time (will vary over time anyway...)
+    lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time, to not spam the bus (will vary over time anyway...)
+  
+  if (*owCurrentChannel == 255) {
+      *owCurrentChannel = channel;}
   
   // TODO: if (config->send_min_interval == 3601)  return; // use config->send_min_interval == 0xE11 to disable a channel?
   
@@ -218,7 +221,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
     else if (state.action == ACTION_READ_TEMP) {
       currentTemp = oneWireReadTemp();   // read temperature
       state.action = ACTION_START_CONVERSION;  // next action
-      (*owCurrentChannel)++;
+      *owCurrentChannel = 255;    // 'reset' current channel. Next call to loop will point to next channel
       
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
@@ -226,7 +229,6 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   #endif
     }
   }
-  if (*owCurrentChannel >= channelsTotal)  *owCurrentChannel = 0;
   
   // check if we have a valid temp
   if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && state.errorWasSend))  return; // send ERROR_TEMP in error state just once
@@ -236,12 +238,13 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   if (config->send_min_interval && now - lastSentTime < (long)config->send_min_interval * 1000)  return;
   if ((config->send_max_interval && now - lastSentTime >= (long)config->send_max_interval * 1000) ||
       (config->send_delta_temp && abs( currentTemp - lastSentTemp ) >= (unsigned int)(config->send_delta_temp) * 10)) {
-	// send temperature
-	  uint8_t level;
+    // send temperature
+    uint8_t level;
     get(&level);
     device->sendInfoMessage(channel, 2, &level);    // level has 2 byte here
 
-	  // TODO: Peering/Send key event???
+    // TODO: Peering via Info Message???
+    // device->sendIMEvent(channel, 2, &level);
     
     lastSentTemp = currentTemp;
     lastSentTime = now;
