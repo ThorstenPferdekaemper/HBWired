@@ -55,8 +55,8 @@ class HBWPids : public HBWChannel {
     virtual void afterReadConfig();
     
     // pubplic, to get called my PidValve channels
-    void setPidsValve(uint8_t const * const data);
-    uint8_t getPidsValve(uint8_t* data);
+    virtual void setPidsValve(uint8_t const * const data);
+    virtual uint8_t getPidsValve(uint8_t* data);
     bool getPidsValveStatus();
 
   private:
@@ -64,7 +64,6 @@ class HBWPids : public HBWChannel {
     hbw_config_pid_valve* configValve;
 
     struct pid_config {
-//      uint8_t counter  :6; // is only 6 bits long 0-63
       uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
       uint8_t oldInAuto :1; // auto or manual stored here, when in error pos.
       uint8_t upDown  :1; // Pid regelt hoch oder runter

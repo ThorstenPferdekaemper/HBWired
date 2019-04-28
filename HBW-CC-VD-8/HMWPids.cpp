@@ -87,8 +87,8 @@ void HBWPids::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const d
   {
     pidConf.Input = ((data[0] << 8) | data[1]);
 #ifdef DEBUG_OUTPUT
-  hbwdebug("setInfo: "); hbwdebug(pidConf.Input);
-  hbwdebug("\n");
+  hbwdebug(F("setInfo: ")); hbwdebug(pidConf.Input);
+  hbwdebug(F("\n"));
 #endif
   }
 }
@@ -104,7 +104,7 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
     //TODO, toggle with specific value? e.g. 255?
     
 #ifdef DEBUG_OUTPUT
-  hbwdebug(" setPidsTemp autotune ");
+  hbwdebug(F(" setPidsTemp autotune "));
 #endif
   }
   else //if (length > 1)
@@ -228,9 +228,9 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
       pidConf.lastPidTime = now - pidConf.sampleTime;
    
 #ifdef DEBUG_OUTPUT
-	hbwdebug("PID ch: "); hbwdebug(channel);
-	hbwdebug(" temp "); hbwdebug(pidConf.Input);
-	hbwdebug(" starting...\n");
+	hbwdebug(F("PID ch: ")); hbwdebug(channel);
+	hbwdebug(F(" temp ")); hbwdebug(pidConf.Input);
+	hbwdebug(F(" starting...\n"));
 #endif
 			return;
 		}
@@ -253,8 +253,8 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 		if (computePid(channel))
 		{
 #ifdef DEBUG_OUTPUT
-	hbwdebug("computePid ch: "); hbwdebug(channel);
-	hbwdebug(" returns new status: "); hbwdebug(getPidsValveStatus()); hbwdebug("\n");
+	hbwdebug(F("computePid ch: ")); hbwdebug(channel);
+	hbwdebug(F(" returns new status: ")); hbwdebug(getPidsValveStatus()); hbwdebug(F("\n"));
 #endif
 //			state[cnt].valveStatus = getPidsValve(cnt, 0x78);
 //			state[cnt].state = pidConf[cnt].status;
@@ -281,7 +281,7 @@ void HBWPidsValve::loop(HBWDevice* device, uint8_t channel)
     digitalWrite(pin, pidValveConf.status);  // turn ON or OFF
     
     // TODO: send key-event?
-    hbwdebug("TODO:key-event ch: "); hbwdebug(channel); pidValveConf.status ? hbwdebug(" long\n") : hbwdebug(" short\n");
+    hbwdebug(F("TODO:key-event ch: ")); hbwdebug(channel); pidValveConf.status ? hbwdebug(F(" long\n")) : hbwdebug(F(" short\n"));
   }
 
   if (pidValveConf.lastSentTime == 0 ) {
@@ -294,12 +294,11 @@ void HBWPidsValve::loop(HBWDevice* device, uint8_t channel)
 	{
     uint8_t level;
     get(&level);
+  #ifdef DEBUG_OUTPUT
+    hbwdebug(F("Valve ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(level/2); hbwdebug(F("%\n"));
+  #endif
     device->sendInfoMessage(channel, 2, &level);    // level has 2 byte here
     pidValveConf.lastSentTime = now;
-    
-#ifdef DEBUG_OUTPUT
-  hbwdebug("Valve ch: "); hbwdebug(channel); hbwdebug(" send: "); hbwdebug(level/2); hbwdebug("%\n");
-#endif
 	}
 }
 
@@ -313,7 +312,7 @@ void HBWPids::setErrorPosition()
 	pidConf.Output = mymap(configValve->error_pos, 200.0, (uint32_t) config->windowSize * 1000);
 	setMode(MANUAL);
 #ifdef DEBUG_OUTPUT
-  hbwdebug("setErrorPosition: "); hbwdebug(pidConf.Output); hbwdebug("\n");
+  hbwdebug(F("setErrorPosition: ")); hbwdebug(pidConf.Output); hbwdebug(F("\n"));
 #endif
 }
 
@@ -340,18 +339,18 @@ int8_t HBWPids::computePid(uint8_t channel)
 		pidConf.windowStartTime = now;
     ////pidConf.windowStartTime += config->windowSize * 1000;
 #ifdef DEBUG_OUTPUT
-  hbwdebug("computePid ch: "); hbwdebug(channel);
-  hbwdebug(" inAuto: "); hbwdebug(pidConf.inAuto);
-	hbwdebug(" windowSize: "); hbwdebug(config->windowSize);
-	hbwdebug(" output: "); hbwdebug(pidConf.Output);
-	hbwdebug(" outputMap: "); hbwdebug(pidConf.outputMap);
-	hbwdebug(" input: "); hbwdebug(pidConf.Input);
-	hbwdebug(" setpoint: "); hbwdebug(pidConf.setPoint);
-	hbwdebug(" outMax: ");hbwdebug(pidConf.outMax);
-	hbwdebug(" Kp: ");hbwdebug(pidConf.kp);
-	hbwdebug(" Ki: ");hbwdebug(pidConf.ki);
-	hbwdebug(" Kd: ");hbwdebug(pidConf.kd);
-	hbwdebug("\n");
+  hbwdebug(F("computePid ch: ")); hbwdebug(channel);
+  hbwdebug(F(" inAuto: ")); hbwdebug(pidConf.inAuto);
+	hbwdebug(F(" windowSize: ")); hbwdebug(config->windowSize);
+	hbwdebug(F(" output: ")); hbwdebug(pidConf.Output);
+	hbwdebug(F(" outputMap: ")); hbwdebug(pidConf.outputMap);
+	hbwdebug(F(" input: ")); hbwdebug(pidConf.Input);
+	hbwdebug(F(" setpoint: ")); hbwdebug(pidConf.setPoint);
+	hbwdebug(F(" outMax: "));hbwdebug(pidConf.outMax);
+	hbwdebug(F(" Kp: "));hbwdebug(pidConf.kp);
+	hbwdebug(F(" Ki: "));hbwdebug(pidConf.ki);
+	hbwdebug(F(" Kd: "));hbwdebug(pidConf.kd);
+	hbwdebug(F("\n"));
 #endif
 	}
 	// under 2 seconds or under 1% of windowsize we do nothing.
