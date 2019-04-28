@@ -19,16 +19,13 @@
 
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
+
 #define MANUAL 0
 #define AUTOMATIC 1
 #define MAPSIZE 65535.0
 
-//  /* send this to the main Programm */
-//  struct pidRetState {
-//    int8_t state;
-//    uint16_t valveStatus;
-//  };
 
+// config of one PID channel, address step 9
 struct hbw_config_pid {
   uint8_t logging:1;    // 0x32:0 1=on 0=off
   uint8_t startMode:1;  // 0x32:1 1=automatic 0=manual
@@ -40,7 +37,7 @@ struct hbw_config_pid {
 };
 
 
-// config of one valve
+// config of one valve channel, address step 3
 struct hbw_config_pid_valve {
   uint16_t send_max_interval;   // Maximum-Sendeintervall
   uint8_t error_pos;
@@ -65,7 +62,6 @@ class HBWPids : public HBWChannel {
   private:
     hbw_config_pid* config;
     hbw_config_pid_valve* configValve;
-    //HBWPidsValve* pidValve;
 
     struct pid_config {
 //      uint8_t counter  :6; // is only 6 bits long 0-63
@@ -75,6 +71,7 @@ class HBWPids : public HBWChannel {
       uint8_t autoTune  :1; // Todo 0 = off ; 1 = autotune running
       uint8_t status  :1; //bit ??
       uint8_t error :1;
+      uint8_t initDone :1;
       int16_t setPoint; // temperatures in m°C
       uint16_t outputMap; // pid output mapped to 0 - MAPSIZE (60000)
       uint32_t windowStartTime; // long needed ?? maybe *100
@@ -118,10 +115,10 @@ class HBWPidsValve : public HBWChannel {
     HBWPids* pid;
 
     //uint8_t Output;
-    struct pid_config {
+    struct pid_valve_config {
       uint8_t status  :1;
       uint32_t lastSentTime;   // time of last send
-    } pidConf;
+    } pidValveConf;
 };
 
 

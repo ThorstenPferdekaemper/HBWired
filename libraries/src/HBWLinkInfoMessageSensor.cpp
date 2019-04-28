@@ -1,7 +1,7 @@
 /* 
-** HBWLinkKey
+** HBWLinkInfoMessageSensor
 **
-** Einfache direkte Verknuepfung (Peering), vom Tastereingang ausgehend
+** Einfache direkte Verknuepfung (Peering), vom Sensor ausgehend
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
 ** des entsprechenden Typs.
 **
@@ -12,19 +12,15 @@
 
 #define EEPROM_SIZE 6
 
-
+#ifdef Support_HBWLink_InfoMessage
 HBWLinkInfoMessageSensor::HBWLinkInfoMessageSensor(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
 	eepromStart = _eepromStart;
 }
- 
 
-// keyPressed wird aufgerufen, wenn ein Tastendruck erkannt wurde
-// TODO: von wem? Direkt von der Tasten-Implementierung oder vom Device? 
-//       wahrscheinlich besser vom Device ueber sendKeyEvent
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
-void HBWLinkInfoMessageSensor::sendIMEvent(HBWDevice* device, uint8_t srcChan, 
+void HBWLinkInfoMessageSensor::sendInfoEvent(HBWDevice* device, uint8_t srcChan, 
                                     uint8_t length, uint8_t const * const data) {
 	uint8_t channelEEPROM;
 	uint32_t addrEEPROM;
@@ -42,16 +38,13 @@ void HBWLinkInfoMessageSensor::sendIMEvent(HBWDevice* device, uint8_t srcChan,
 		device->readEEPROM(&channelEEPROM, eepromStart + EEPROM_SIZE * i +5, 1);
 		// own address? -> internal peering
 		if(addrEEPROM == device->getOwnAddress()) {
-			device->receiveIMEvent(addrEEPROM, srcChan, channelEEPROM, length, data);
+			device->receiveInfoEvent(addrEEPROM, srcChan, channelEEPROM, length, data);
 		}else{
 			// external peering
 			// TODO: If bus busy, then try to repeat. ...aber zuerst feststellen, wie das die Original-Module machen (bzw. hier einfach so lassen)
 			/* byte result = */ 
-			device->sendIMEvent(srcChan, length, data, addrEEPROM, channelEEPROM);
+			device->sendInfoEvent(srcChan, length, data, addrEEPROM, channelEEPROM);
 		};
 	}; 
 }
-
-void HBWLinkInfoMessageSensor::sendKeyEvent(HBWDevice* device, uint8_t srcChan, 
-                                    uint8_t keyPressNum, boolean longPress) {
-};
+#endif

@@ -5,7 +5,7 @@
  * loetmeister.de
  * 
  * Author: Harald Glaser
- * some parts from the Arduino PID Library - Version 1.1.1
+ * some parts from the Arduino PID Library
  * by Brett Beauregard <br3ttb@gmail.com> brettbeauregard.com
  */
  
@@ -18,27 +18,17 @@ HBWPids::HBWPids(hbw_config_pid_valve* _configValve, hbw_config_pid* _config)
   configValve = _configValve;
   
   pidConf.windowStartTime = 0;
-//  pidConf.lastSentTime = 0;
-//  pidConf.setPoint = 2500; //TODO a default value ?
-  // outputMap is a maped Value of the computed Output in uint16_t
-  pidConf.outputMap = mymap(configValve->error_pos, 200.0, MAPSIZE);
   pidConf.upDown = 0; // 0 up; 1 down
-  pidConf.inAuto = config->startMode; // 1 automatic ; 0 manual
   pidConf.oldInAuto = 0; // we switch to MANUAL in error Position. Store the old value here
   pidConf.status = 0;
-  //pidConf.counter = 0;
+  pidConf.initDone = false;
   //pid lib
-  pidConf.Input = 0;  // TODO: init with ERROR or DEFAULT temp?
+  pidConf.Input = 0;
   pidConf.Output = 0;
   pidConf.ITerm = 0;
-  pidConf.lastInput = 0;
-  pidConf.kp = 0;
-  pidConf.ki = 0;
-  pidConf.kd = 0;
-  pidConf.sampleTime = 2000; // pid cumpute every 2 sec
+  pidConf.sampleTime = 2000; // pid compute every 2 sec
   pidConf.outMax = 0;
-//  pidConf.lastPidTime = millis() - pidConf.sampleTime;
-  pidConf.setPoint = 2200;
+  pidConf.setPoint = 2300; // default? 22.00°C?
 }
 
 
@@ -48,11 +38,8 @@ HBWPidsValve::HBWPidsValve(uint8_t _pin, HBWPids* _pid, hbw_config_pid_valve* _c
   pin = _pin;
   pid = _pid; // linked PID channel
 
-  pidConf.lastSentTime = 0;
-  //pidConf.counter = 0;  // key press counter?
-//  pidConf.Output = 0;
-//  pidConf.outputMap = mymap(config->error_pos, 200.0, MAPSIZE);
-  //pidConf.status = LOW;
+  pidValveConf.lastSentTime = 0;
+//pidValveConf.counter = 0;  // key press counter?
   digitalWrite(pin, LOW);
   pinMode(pin, OUTPUT);
 }
@@ -61,38 +48,37 @@ HBWPidsValve::HBWPidsValve(uint8_t _pin, HBWPids* _pid, hbw_config_pid_valve* _c
  * set Pids Parameter on Start and when changed in EEProm
  */
 // channel specific settings or defaults
-void HBWPids::afterReadConfig() {
-//todo look if we need such big sizes for parameters
+void HBWPids::afterReadConfig()
+{
   if (config->kp == 0xFFFF)  config->kp = 1000;
   if (config->ki == 0xFFFF)  config->ki = 50; //todo do i need size 2 for autotune 0,5
   if (config->kd == 0xFFFF)  config->kd = 10; //dito 0,1
   if (config->windowSize == 0xFFFF)  config->windowSize = 600; // 10min
-
+  
+  if (configValve->error_pos == 0xFF)  configValve->error_pos = 30;   // check PidsValve setting, as we use it now
+	
 	setOutputLimits(config->windowSize * 1000);
 	setTunings((float) config->kp, (float) config->ki / 100, (float) config->kd / 100);
-	
-	pidConf.inAuto = config->startMode; // 1 automatic ; 0 manual
-	pidConf.inAuto ? setMode(AUTOMATIC) : setMode(MANUAL);
-  
-	pidConf.Output = mymap(configValve->error_pos, 200.0, config->windowSize * 1000);
-	pidConf.outputMap = mymap(configValve->error_pos, 200.0, MAPSIZE);
+
+  if (!pidConf.initDone)  // avoid to overwrite current output or inAuto mode
+  {
+    pidConf.inAuto = config->startMode; // 1 automatic ; 0 manual
+    pidConf.Output = mymap(configValve->error_pos, 200.0, config->windowSize * 1000);
+    pidConf.outputMap = mymap(configValve->error_pos, 200.0, MAPSIZE);
+    pidConf.initDone = true;
+  }
+  setMode(pidConf.inAuto);
 }
 
 
 // channel specific settings or defaults
-void HBWPidsValve::afterReadConfig() {
+void HBWPidsValve::afterReadConfig()
+{
   if (config->send_max_interval == 0xFFFF)  config->send_max_interval = 150;
   if (config->error_pos == 0xFF)  config->error_pos = 30;
-  //TODO: Pids access PidsValve config, how to make sure PidsValve are initialized before Pids? -> move PidsValve afterReadConfig to Pids afterReadConfig?
 
-
-  pidConf.status = !pid->getPidsValveStatus();  // TODO: start with off or force update by negating?
+  pidValveConf.status = !pid->getPidsValveStatus();
 }
-
-//uint8_t HBWPids::getCounter()
-//{
-//	return (pidConf.counter);
-//}
 
 
 void HBWPids::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const data)
@@ -100,6 +86,10 @@ void HBWPids::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const d
   if (length == 2)
   {
     pidConf.Input = ((data[0] << 8) | data[1]);
+#ifdef DEBUG_OUTPUT
+  hbwdebug("setInfo: "); hbwdebug(pidConf.Input);
+  hbwdebug("\n");
+#endif
   }
 }
 
@@ -126,8 +116,6 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
       pidConf.setPoint = level;
     }
   }
-
-  //TODO: ?add state_flags to get()?
 }
 
 
@@ -139,10 +127,10 @@ uint8_t HBWPids::get(uint8_t* data)
 //		retVal = (pidConf[channel].setPoint << 8 | (pidConf[channel].autoTune << 4));
 //	case 0x78: //x -- level set
 //		retVal = pidConf[channel].setPoint;
-//	case 0x53: //S -- LEVEL_GET
-//		retVal = pidConf[channel].setPoint;
 
 
+  //TODO: add state_flags?
+  
   // MSB first
   *data++ = (pidConf.setPoint >> 8);
   *data = pidConf.setPoint & 0xFF;
@@ -166,7 +154,7 @@ void HBWPids::setPidsValve(uint8_t const * const data)
   if (*(data) == 0) {
     // toogle PID mode
     pidConf.inAuto = !pidConf.inAuto;
-    pidConf.inAuto ? setMode(AUTOMATIC) : setMode(MANUAL);
+    setMode(pidConf.inAuto);
     pidConf.inAuto ? pidConf.outputMap = mymap(configValve->error_pos, 200.0, MAPSIZE) : pidConf.outputMap;
     pidConf.status = 0;
   }
@@ -175,31 +163,6 @@ void HBWPids::setPidsValve(uint8_t const * const data)
     pidConf.outputMap = mymap(*(data), 200.0, MAPSIZE);
     pidConf.Output = mymap(*(data), 200.0, config->windowSize * 1000);
   }
-  
-//	case 0x73:
-//#if PIDDEBUG
-//		hmwdebug("   setPidsValve manual level: "); hmwdebugln(level);
-//#endif
-//		if (level == 0) {
-//			// toogle PID mode
-//			pidConf[channel].inAuto = !pidConf[channel].inAuto;
-//			pidConf[channel].inAuto ? setMode(channel, AUTOMATIC) : setMode(channel, MANUAL);
-//			pidConf[channel].inAuto ?
-//					pidConf[channel].outputMap = mymap(config->valves[channel].error_pos, 200.0, MAPSIZE) :
-//					pidConf[channel].outputMap;
-//			pidConf[channel].status = 0;
-//		}
-//	case 0x78:
-//		// right limits only if manual
-//		if ((level >= 0 && level <= 200) && (pidConf[channel].inAuto == MANUAL)) {
-//#if PIDDEBUG
-//			hmwdebug ("ok manualmode");
-//#endif
-//			// map to PID's WindowSize
-//			pidConf[channel].outputMap = mymap(level, 200.0, MAPSIZE);
-//			pidConf[channel].Output = mymap(level, 200.0, window_size * 1000);
-//			//pidConf[channel].Output = pidConf[channel].outputMap * 1000;
-//		}
 }
 
 
@@ -213,14 +176,16 @@ uint8_t HBWPidsValve::get(uint8_t* data)
 uint8_t HBWPids::getPidsValve(uint8_t* data)
 {
 	uint16_t retVal = 0;
+  // uint8_t retVal = 0;
 	uint8_t bits = 0;
 
 	// map the Valve level, so it fits
 	// into a standard FHEM slider (8bit)
 	// and send some status bits (8bit)
 	retVal = (uint16_t) mymap(pidConf.outputMap, MAPSIZE, 200.0);
-	if (retVal % 2)
-		retVal++;
+  // retVal = mymap(pidConf.outputMap, MAPSIZE, 200.0);
+	if (retVal % 2)	 retVal++;
+	// state_flags
 	bits = (pidConf.status << 2) | (pidConf.inAuto << 1) | pidConf.upDown;
 
 //TODO: simplify code (value & statusbits...)
@@ -231,6 +196,8 @@ uint8_t HBWPids::getPidsValve(uint8_t* data)
   // MSB first
   *data++ = (retVal >> 8);
   *data = retVal & 0xFF;
+  // *data++ = retVal;
+  // *data = (bits << 4);
 
   return 2;
 }
@@ -242,23 +209,15 @@ void HBWPids::autoTune()
 }
 
 
-//pidRetState* HBWPids::handlePids(int16_t *temperature)
+/* standard public function - called by device main loop for every channel in sequential order */
 void HBWPids::loop(HBWDevice* device, uint8_t channel)
 {
 	uint32_t now = millis();
-	//static pidRetState state[HMW_CONFIG_NUM_PIDS]; //NULL or -1 do nothing; 0=off 1=on 2=send status
 
-	if (now < 15000)
-		return NULL; // wait 15 sec on start
-	
-//	if (check_max_interval(state))
-//		return state; // send on interval
+	if (now < 15000)  return; // wait 15 sec on start
 
-//		state[cnt].valveStatus = 0;
-//		state[cnt].state = -1;
 //		pidConf[cnt].Input = temperature[cnt];
-    //int16_t temperature = 2000;
-    //pidConf.Input = temperature;
+//pidConf.Input = 2000;
     
 		// start the first time
 		// can't sending everything at once to the bus.
@@ -266,7 +225,6 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 		if (pidConf.windowStartTime == 0)
 		{
 			pidConf.windowStartTime = now - ((channel + 1) * 2000);
-			//pidConf.lastSentTime = now - ((channel + 1) * 3000);
       pidConf.lastPidTime = now - pidConf.sampleTime;
    
 #ifdef DEBUG_OUTPUT
@@ -274,7 +232,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 	hbwdebug(" temp "); hbwdebug(pidConf.Input);
 	hbwdebug(" starting...\n");
 #endif
-			return NULL;
+			return;
 		}
 
 		// error temp values comes back again
@@ -296,53 +254,51 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 		{
 #ifdef DEBUG_OUTPUT
 	hbwdebug("computePid ch: "); hbwdebug(channel);
-	hbwdebug(" returns new status: "); hbwdebug(pidConf.status); hbwdebug("\n");
+	hbwdebug(" returns new status: "); hbwdebug(getPidsValveStatus()); hbwdebug("\n");
 #endif
 //			state[cnt].valveStatus = getPidsValve(cnt, 0x78);
 //			state[cnt].state = pidConf[cnt].status;
 //			pidConf.counter >= 63 ? pidConf.counter = 0 : pidConf.counter++;  // TODO: needed where? key-press counter??
 //			pidConf.lastSentTime = now;
 		}
-
-	//return state;
 }
 
-bool HBWPids::getPidsValveStatus() {
+
+bool HBWPids::getPidsValveStatus()
+{
   return pidConf.status;
 }
 
-/*
- * check if we reach the send_max_interval time
- * and return the state values if so
- */
-//uint8_t HBWPidsValve::check_max_interval(pidRetState *state_a)
+
+/* standard public function - called by device main loop for every channel in sequential order */
 void HBWPidsValve::loop(HBWDevice* device, uint8_t channel)
 {
 	uint32_t now = millis();
 
-  if (pidConf.status != pid->getPidsValveStatus())  // check if pid status changed, turn ON or OFF
+  if (pidValveConf.status != pid->getPidsValveStatus())  // check if pid status changed, turn ON or OFF
   {
-    pidConf.status = pid->getPidsValveStatus();
-    digitalWrite(pin, pidConf.status);  // turn ON or OFF
+    pidValveConf.status = pid->getPidsValveStatus();
+    digitalWrite(pin, pidValveConf.status);  // turn ON or OFF
+    
     // TODO: send key-event?
-    hbwdebug("key-event ch: "); hbwdebug(channel); pidConf.status ? hbwdebug(" long\n") : hbwdebug(" short\n");
+    hbwdebug("TODO:key-event ch: "); hbwdebug(channel); pidValveConf.status ? hbwdebug(" long\n") : hbwdebug(" short\n");
   }
 
-  if (pidConf.lastSentTime == 0 ) {
-    pidConf.lastSentTime = now - ((channel + 1) * 3000);
+  if (pidValveConf.lastSentTime == 0 ) {
+    pidValveConf.lastSentTime = now - ((channel + 1) * 3000);
     return;
   }
   
 
-	if (config->send_max_interval && now - pidConf.lastSentTime >= (uint32_t) (config->send_max_interval) * 1000)
+	if (config->send_max_interval && now - pidValveConf.lastSentTime >= (uint32_t) (config->send_max_interval) * 1000)
 	{
     uint8_t level;
     get(&level);
     device->sendInfoMessage(channel, 2, &level);    // level has 2 byte here
-    pidConf.lastSentTime = now;
+    pidValveConf.lastSentTime = now;
     
 #ifdef DEBUG_OUTPUT
-  hbwdebug(" Valve ch: "); hbwdebug(channel); hbwdebug(" send "); hbwdebug(level); hbwdebug("\n");
+  hbwdebug("Valve ch: "); hbwdebug(channel); hbwdebug(" send: "); hbwdebug(level/2); hbwdebug("%\n");
 #endif
 	}
 }
@@ -356,12 +312,14 @@ void HBWPids::setErrorPosition()
 {
 	pidConf.Output = mymap(configValve->error_pos, 200.0, (uint32_t) config->windowSize * 1000);
 	setMode(MANUAL);
+#ifdef DEBUG_OUTPUT
+  hbwdebug("setErrorPosition: "); hbwdebug(pidConf.Output); hbwdebug("\n");
+#endif
 }
 
 
 int8_t HBWPids::computePid(uint8_t channel)
 {
-
 	uint32_t now = millis();
 	uint8_t retVal = 0;
   
@@ -372,7 +330,7 @@ int8_t HBWPids::computePid(uint8_t channel)
 	uint16_t valveStatus = (uint16_t) mymap(pidConf.Output, config->windowSize *1000, MAPSIZE);
 
 	// new window
-	if (now - pidConf.windowStartTime >= (uint32_t) config->windowSize * 1000) {
+	if (now - pidConf.windowStartTime > (uint32_t) config->windowSize * 1000) {
 		// goes the Output up or down ?
 		if (valveStatus != pidConf.outputMap) {
 			valveStatus > pidConf.outputMap ? pidConf.upDown = 1 : pidConf.upDown = 0;
@@ -380,14 +338,16 @@ int8_t HBWPids::computePid(uint8_t channel)
 		}
 		pidConf.outputMap = valveStatus;
 		pidConf.windowStartTime = now;
+    ////pidConf.windowStartTime += config->windowSize * 1000;
 #ifdef DEBUG_OUTPUT
   hbwdebug("computePid ch: "); hbwdebug(channel);
+  hbwdebug(" inAuto: "); hbwdebug(pidConf.inAuto);
 	hbwdebug(" windowSize: "); hbwdebug(config->windowSize);
-	hbwdebug(" outPut: "); hbwdebug(pidConf.Output);
+	hbwdebug(" output: "); hbwdebug(pidConf.Output);
 	hbwdebug(" outputMap: "); hbwdebug(pidConf.outputMap);
 	hbwdebug(" input: "); hbwdebug(pidConf.Input);
 	hbwdebug(" setpoint: "); hbwdebug(pidConf.setPoint);
-	hbwdebug("   outMax: ");hbwdebug(pidConf.outMax);
+	hbwdebug(" outMax: ");hbwdebug(pidConf.outMax);
 	hbwdebug(" Kp: ");hbwdebug(pidConf.kp);
 	hbwdebug(" Ki: ");hbwdebug(pidConf.ki);
 	hbwdebug(" Kd: ");hbwdebug(pidConf.kd);
@@ -397,8 +357,9 @@ int8_t HBWPids::computePid(uint8_t channel)
 	// under 2 seconds or under 1% of windowsize we do nothing.
 	// it makes no sense to send on's and off's over the bus in
 	// such a short time
+	// TODO: check for % calculation based on windowSize?
 	if ((unsigned long) pidConf.Output > now - pidConf.windowStartTime
-			&& ((unsigned long) pidConf.Output > 2000
+      && ((unsigned long) pidConf.Output > 2000
 			&& (unsigned long) pidConf.Output > (unsigned long) config->windowSize * 10)) {
 		// ON
 		if (pidConf.status == 0) {
@@ -416,13 +377,15 @@ int8_t HBWPids::computePid(uint8_t channel)
 	return retVal;
 }
 
-/*
- * compute the pid output
- */
+/* Compute() **********************************************************************
+ *     This, as they say, is where the magic happens.  this function should be called
+ *   every time "void loop()" executes.  the function will decide for itself whether
+ *   a new pid Output needs to be computed.
+ *   https://github.com/br3ttb/Arduino-PID-Library/
+ **********************************************************************************/
 void HBWPids::compute()
 {
-	if (!pidConf.inAuto)
-		return;
+	if (!pidConf.inAuto)  return;
    
 	unsigned long now = millis();
   
@@ -437,7 +400,7 @@ void HBWPids::compute()
 		int16_t dInput = pidConf.Input - pidConf.lastInput;
 
 		/*Compute PID Output*/
-		pidConf.Output = (pidConf.kp * error + pidConf.ITerm - pidConf.kd * dInput);
+		pidConf.Output = (pidConf.kp * error + (pidConf.ITerm - pidConf.kd * dInput));
 		if (pidConf.Output > pidConf.outMax)
 			pidConf.Output = pidConf.outMax;
 		else if (pidConf.Output < 0)

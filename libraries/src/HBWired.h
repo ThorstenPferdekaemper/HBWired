@@ -8,6 +8,8 @@
 #ifndef HBWired_h
 #define HBWired_h
 
+//#define Support_HBWLink_InfoMessage
+
 #include "Arduino.h"
 #include "hardware.h"
 
@@ -15,25 +17,32 @@ class HBWDevice;
 
 // Basisklasse fuer Channels
 class HBWChannel {
-  public:	
+  public:
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+    virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);  // called by receiveInfoEvent
     virtual uint8_t get(uint8_t* data);  // returns length, data must be big enough 
     virtual void loop(HBWDevice*, uint8_t channel);  // channel for feedbacks etc.
-	virtual void afterReadConfig();
+    virtual void afterReadConfig();
 };
 
 
 class HBWLinkSender {
   public:
-	  virtual void sendKeyEvent(HBWDevice* device, uint8_t srcChan, 
-	               uint8_t keyPressNum, boolean longPress) = 0;
-};	  
+    virtual void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress);
+    #ifdef Support_HBWLink_InfoMessage
+	virtual void sendInfoEvent(HBWDevice* device, uint8_t srcChan, uint8_t length, uint8_t const * const data);
+	#endif
+};
 
 
 class HBWLinkReceiver {
   public:
-	  virtual void receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
-                                   uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) = 0;
+    virtual void receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
+                                 uint8_t targetChannel, uint8_t keyPressNum, boolean longPress);
+	#ifdef Support_HBWLink_InfoMessage
+    virtual void receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel,
+                                uint8_t targetChannel, uint8_t length, uint8_t const * const data);
+	#endif
 };
 
 
@@ -73,6 +82,7 @@ class HBWDevice {
   	// get logging time	
     uint8_t getLoggingTime();	
 
+	virtual void setInfo(uint8_t, uint8_t, uint8_t const * const);    // channel, data length, data
 	virtual void set(uint8_t,uint8_t,uint8_t const * const);    // channel, data length, data
 	virtual uint8_t get(uint8_t channel, uint8_t* data);  // returns length
 	virtual void afterReadConfig();
@@ -82,7 +92,13 @@ class HBWDevice {
 	//  0 -> ok
 	//  1 -> bus not idle
 	//  2 -> missing ACK (three times)
-	virtual uint8_t sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address = 0); 			   
+	virtual uint8_t sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address = 0);
+	#ifdef Support_HBWLink_InfoMessage
+	// link/peer via i-message
+	virtual uint8_t sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data);
+	virtual uint8_t sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel);
+	virtual void receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan, uint8_t dstChan, uint8_t length, uint8_t const * const data);
+	#endif
 	// Allgemeiner "Key Event"
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress);
 	// Key Event Routine mit Target fuer LinkSender 

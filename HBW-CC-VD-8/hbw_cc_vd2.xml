@@ -32,12 +32,12 @@
 	</paramset>
   
 	<frames>
-		<frame id="TEMP_SET" direction="to_device" type="#x" channel_field="10">
-			<parameter type="integer" index="11.0" size="2.0" param="TEMP"/>
+		<frame id="TEMP_SET" direction="to_device" type="#s" channel_field="10">
+			<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMP"/>
 		</frame>
 		<frame id="TEMP_GET" direction="to_device" type="#S" channel_field="10"/>
 		<frame id="INFO_TEMP" direction="from_device" event="true" type="#i" channel_field="10">
-			<parameter type="integer" index="11.0" size="2.0" param="TEMP"/>
+			<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMP"/>
 		</frame>
 		<frame id="LEVEL_SET" direction="to_device" type="#x" channel_field="10">
 			<parameter type="integer" index="11.0" size="1.0" param="STATE"/>
@@ -147,7 +147,7 @@
 				</parameter>
 			</paramset>
 		
-			<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x140" address_step="28">
+			<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x140" address_step="7"><!--step 28-->
 				<parameter id="UI_HINT">
 				  <logical type="string" default="" use_default_on_failure="true"/>
 				  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -169,7 +169,29 @@
 					<address index="+5"/>
 				  </physical>
 				</parameter>
-				<parameter id="SHORT_ON_TIME_MODE">
+				<parameter id="SHORT_ACTION_TYPE">
+					<logical type="option">
+						<option id="ON"/>
+						<option id="OFF"/>
+						<option id="INACTIVE"/>
+						<option id="TOGGLE" default="true"/>
+					</logical>
+					<physical type="integer" size="0.2" interface="eeprom">
+						<address index="+6.0"/>
+					</physical>
+				</parameter>
+				<parameter id="LONG_ACTION_TYPE">
+					<logical type="option">
+						<option id="ON"/>
+						<option id="OFF"/>
+						<option id="INACTIVE"/>
+						<option id="TOGGLE" default="true"/>
+					</logical>
+					<physical type="integer" size="0.2" interface="eeprom">
+						<address index="+6.2"/>
+					</physical>
+				</parameter>
+				<!--<parameter id="SHORT_ON_TIME_MODE">
 				  <logical type="option">
 					<option id="MINIMAL"/>
 					<option id="ABSOLUTE" default="true"/>
@@ -306,12 +328,12 @@
 				  <physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
 					<address index="+26.6"/>
 				  </physical>
-				</parameter>
+				</parameter>-->
 			</paramset>
       
 			<paramset type="VALUES" id="hmw_pid_ch_values">
 				<parameter id="DESIRED_TEMP" operations="read,write,event" control="TEMP.LEVEL">
-					<logical type="float" default="0.0" min="0.0" max="30.0" unit="C"/>
+					<logical type="float" default="0.0" min="0.0" max="30.0" unit="&#x2103;"/>
 					<physical type="integer" interface="command" value_id="TEMP">
 						<set request="TEMP_SET"/>
 						<get request="TEMP_GET" response="INFO_TEMP"/>
@@ -349,7 +371,9 @@
          	 	<conversion type="float_integer_scale" factor="2"/>
         	</parameter>
       	</paramset>
-      	<link_roles><source name="TEST"/></link_roles>
+      	<link_roles>
+			<source name="TEST"/>
+		</link_roles>
 			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="18" address_start="0x370" address_step="6">
       	  	<parameter id="CHANNEL" operations="none" hidden="true">
 					<logical type="integer" min="0" max="255" default="255"/>
@@ -372,134 +396,117 @@
 			<paramset type="VALUES" id="hmw_input_ch_values">
         		<parameter id="VALVE" operations="read,write,event" control="VALVE.LEVEL">
 					<logical type="float" default="0.0" min="0.0" max="1.0" unit="100%"/>
-         	 	<physical type="integer" interface="command" value_id="STATE">
-         	   	<set request="LEVEL_SET"/>
-         	   	<get request="LEVEL_GET" response="INFO_LEVEL"/>
-         	   	<event frame="INFO_LEVEL"/>
-         	 	</physical>
-         	 	<conversion type="float_integer_scale" factor="200"/>
+					<physical type="integer" interface="command" value_id="STATE">
+						<set request="LEVEL_SET"/>
+						<get request="LEVEL_GET" response="INFO_LEVEL"/>
+						<event frame="INFO_LEVEL"/>
+					</physical>
+					<conversion type="float_integer_scale" factor="200"/>
         		</parameter>
         		<parameter id="STATE" operations="read,event" ui_flags="internal">
-          		<logical type="option">
-            		<option id="OFF"/>
-            		<option id="OFF"/>
-         		   <option id="OFF"/>
-     					<option id="OFF" default="true"/>
-            		<option id="ON"/>
-            		<option id="ON"/>
-            		<option id="ON"/>
-            		<option id="ON"/>
-            	</logical>
-          		<physical type="integer" interface="command" value_id="STATE_FLAGS">
-            		<get request="LEVEL_GET" response="INFO_LEVEL"/>
-            		<event frame="INFO_LEVEL"/>
-            		<event frame="ACK_STATUS"/>
-          		</physical>
-          		<conversion type="option_integer">
-            		<value_map device_value="0x00" parameter_value="0"/>
-            		<value_map device_value="0x01" parameter_value="1"/>
-            		<value_map device_value="0x02" parameter_value="2"/>
-            		<value_map device_value="0x03" parameter_value="3"/>
-            		<value_map device_value="0x04" parameter_value="4"/>
-            		<value_map device_value="0x05" parameter_value="5"/>
-            		<value_map device_value="0x06" parameter_value="6"/>
-            		<value_map device_value="0x07" parameter_value="7"/>
-          		</conversion>
+					<logical type="option">
+						<option id="OFF"/>
+						<option id="OFF"/>
+						<option id="OFF"/>
+						<option id="OFF" default="true"/>
+						<option id="ON"/>
+						<option id="ON"/>
+						<option id="ON"/>
+						<option id="ON"/>
+					</logical>
+					<physical type="integer" interface="command" value_id="STATE_FLAGS">
+						<get request="LEVEL_GET" response="INFO_LEVEL"/>
+						<event frame="INFO_LEVEL"/>
+						<event frame="ACK_STATUS"/>
+					</physical>
+					<conversion type="option_integer">
+						<value_map device_value="0x00" parameter_value="0"/>
+						<value_map device_value="0x01" parameter_value="1"/>
+						<value_map device_value="0x02" parameter_value="2"/>
+						<value_map device_value="0x03" parameter_value="3"/>
+						<value_map device_value="0x04" parameter_value="4"/>
+						<value_map device_value="0x05" parameter_value="5"/>
+						<value_map device_value="0x06" parameter_value="6"/>
+						<value_map device_value="0x07" parameter_value="7"/>
+					</conversion>
         		</parameter>
         		<parameter id="MODE" operations="read,event" ui_flags="internal">
-          		<logical type="option">
-            		<option id="MANU"/>
-            		<option id="MANU"/>
-          			<option id="AUTO"/>
-            		<option id="AUTO" default="true"/>
-            		<option id="MANU"/>
-            		<option id="MANU"/>
-            		<option id="AUTO"/>
-            		<option id="AUTO"/>
-          		</logical>
-          		<physical type="integer" interface="command" value_id="STATE_FLAGS">
-            		<get request="LEVEL_GET" response="INFO_LEVEL"/>
-            		<event frame="LEVEL_VALVE"/>
-            		<event frame="ACK_STATUS"/>
-          		</physical>
-          		<conversion type="option_integer">
-            		<value_map device_value="0x00" parameter_value="0"/>
-            		<value_map device_value="0x01" parameter_value="1"/>
-            		<value_map device_value="0x02" parameter_value="2"/>
-            		<value_map device_value="0x03" parameter_value="3"/>
-            		<value_map device_value="0x04" parameter_value="4"/>
-            		<value_map device_value="0x05" parameter_value="5"/>
-            		<value_map device_value="0x06" parameter_value="6"/>
-            		<value_map device_value="0x07" parameter_value="7"/>
-          		</conversion>
+					<logical type="option">
+						<option id="MANU"/>
+						<option id="MANU"/>
+						<option id="AUTO"/>
+						<option id="AUTO" default="true"/>
+						<option id="MANU"/>
+						<option id="MANU"/>
+						<option id="AUTO"/>
+						<option id="AUTO"/>
+					</logical>
+					<physical type="integer" interface="command" value_id="STATE_FLAGS">
+						<get request="LEVEL_GET" response="INFO_LEVEL"/>
+						<event frame="LEVEL_VALVE"/>
+						<event frame="ACK_STATUS"/>
+					</physical>
+					<conversion type="option_integer">
+						<value_map device_value="0x00" parameter_value="0"/>
+						<value_map device_value="0x01" parameter_value="1"/>
+						<value_map device_value="0x02" parameter_value="2"/>
+						<value_map device_value="0x03" parameter_value="3"/>
+						<value_map device_value="0x04" parameter_value="4"/>
+						<value_map device_value="0x05" parameter_value="5"/>
+						<value_map device_value="0x06" parameter_value="6"/>
+						<value_map device_value="0x07" parameter_value="7"/>
+					</conversion>
         		</parameter>
         		<parameter id="DIRECTION" operations="read,event" ui_flags="internal">
-          		<logical type="option">
-            		<option id="CLOSED" default="true"/>
-            		<option id="STEADY"/>
-            		<option id="CLOSING"/>
-            		<option id="OPENING"/>
-            		<option id="STEADY"/>
-            		<option id="STEADY"/>
-            		<option id="CLOSING"/>
-            		<option id="OPENING"/>
-					</logical>
-          		<physical type="integer" interface="command" value_id="STATE_FLAGS">
-            		<get request="LEVEL_GET" response="INFO_LEVEL"/>
-            		<event frame="INFO_LEVEL"/>
-            		<event frame="ACK_STATUS"/>
-          		</physical>
-          		<conversion type="option_integer">
-            		<value_map device_value="0x00" parameter_value="0"/>
-            		<value_map device_value="0x01" parameter_value="1"/>
-            		<value_map device_value="0x02" parameter_value="2"/>
-            		<value_map device_value="0x03" parameter_value="3"/>
-            		<value_map device_value="0x04" parameter_value="4"/>
-            		<value_map device_value="0x05" parameter_value="5"/>
-            		<value_map device_value="0x06" parameter_value="6"/>
-            		<value_map device_value="0x07" parameter_value="7"/>
-          		</conversion>
+					<logical type="option">
+						<option id="CLOSED" default="true"/>
+						<option id="STEADY"/>
+						<option id="CLOSING"/>
+						<option id="OPENING"/>
+						<option id="STEADY"/>
+						<option id="STEADY"/>
+						<option id="CLOSING"/>
+						<option id="OPENING"/>
+						</logical>
+					<physical type="integer" interface="command" value_id="STATE_FLAGS">
+						<get request="LEVEL_GET" response="INFO_LEVEL"/>
+						<event frame="INFO_LEVEL"/>
+						<event frame="ACK_STATUS"/>
+					</physical>
+					<conversion type="option_integer">
+						<value_map device_value="0x00" parameter_value="0"/>
+						<value_map device_value="0x01" parameter_value="1"/>
+						<value_map device_value="0x02" parameter_value="2"/>
+						<value_map device_value="0x03" parameter_value="3"/>
+						<value_map device_value="0x04" parameter_value="4"/>
+						<value_map device_value="0x05" parameter_value="5"/>
+						<value_map device_value="0x06" parameter_value="6"/>
+						<value_map device_value="0x07" parameter_value="7"/>
+					</conversion>
         		</parameter>
         		<parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true">
-          		<logical type="boolean" default="false"/>
-          		<physical type="integer" interface="command" value_id="INHIBIT">
-            		<set request="SET_LOCK"/>
-          		</physical>
+					<logical type="boolean" default="false"/>
+					<physical type="integer" interface="command" value_id="INHIBIT">
+						<set request="SET_LOCK"/>
+					</physical>
         		</parameter>
 				<parameter id="AUTO_MANUAL" operations="read,write,event" control="NONE">
-          		<logical type="boolean" default="false"/><!-- change to int, e.g. 201 to toggle auto-manu -->
-          		<physical type="integer" interface="command" value_id="AUTO_MANUAL">
-            		<set request="SET_MANUAL"/>
-            		<get request="LEVEL_GET" response="INFO_LEVEL"/>
-				</physical>
+					<logical type="boolean" default="false"/><!-- change to int, e.g. 201 to toggle auto-manu -->
+					<physical type="integer" interface="command" value_id="AUTO_MANUAL">
+						<set request="SET_MANUAL"/>
+						<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					</physical>
 				</parameter>
 			</paramset>
 		</channel>
 		
 		<channel index="5" physical_index_offset="-1" count="2" type="PID_TEMP">
-			<link_roles><source name="TEST"/></link_roles>
-			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="18" address_start="0x370" address_step="6">
-      	  	<parameter id="CHANNEL" operations="none" hidden="true">
-					<logical type="integer" min="0" max="255" default="255"/>
-          		<physical type="integer" size="1.0" interface="eeprom">
-            		<address index="+0"/>
-          		</physical>
-        		</parameter>
-        		<parameter id="ACTUATOR" operations="none" hidden="true">
-          		<logical type="address"/>
-          		<physical type="array">
-            		<physical type="integer" size="4.0" interface="eeprom">
-              			<address index="+1"/>
-            		</physical>
-            		<physical type="integer" size="1.0" interface="eeprom">
-              			<address index="+5"/>
-            		</physical>
-          		</physical>
-        		</parameter>
-      	</paramset>
+			<link_roles>
+				<source name="TEST"/>
+			</link_roles>
 			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0x07" address_step="14">
 				<parameter id="SEND_DELTA_TEMP">
-					<logical type="float" min="0.1" max="25" default="0.5">
+					<logical type="float" min="0.1" max="25" default="0.5" unit="&#x2103;">
 						<special_value id="NOT_USED" value="0"/>
 					</logical>
 					<physical type="integer" size="1.0" interface="eeprom">
@@ -511,11 +518,11 @@
 					</conversion>
 				</parameter>
 				<parameter id="OFFSET">
-					<logical type="integer" min="-127" max="127" unit="mC"/>
+					<logical type="integer" min="-127" max="127" unit="&#x2103;"/>
 					<physical type="integer" size="1" interface="eeprom">
 						<address index="+1.0"/>
 					</physical>
-					<conversion type="integer_integer_scale" offset="127"/>
+					<conversion type="integer_integer_scale" offset="127" factor="100"/>
 					<conversion type="integer_integer_map">
 						<value_map device_value="0xff" parameter_value="127" from_device="true" to_device="false"/>
 					</conversion>
@@ -556,9 +563,28 @@
 					</physical>
 				</parameter>
 			</paramset>
+			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="18" address_start="0x370" address_step="6">
+				<parameter id="CHANNEL" operations="none" hidden="true">
+					<logical type="integer" min="0" max="255" default="255"/>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+0"/>
+					</physical>
+        		</parameter>
+        		<parameter id="ACTUATOR" operations="none" hidden="true">
+					<logical type="address"/>
+					<physical type="array">
+						<physical type="integer" size="4.0" interface="eeprom">
+							<address index="+1"/>
+						</physical>
+						<physical type="integer" size="1.0" interface="eeprom">
+							<address index="+5"/>
+						</physical>
+					</physical>
+        		</parameter>
+			</paramset>
 			<paramset type="VALUES" id="hmw_analog_input_values">
 				<parameter id="TEMPERATURE" operations="event,read" control="TEMPERATURE">
-					<logical type="float" min="-273.15" max="327.67" unit="C"/>
+					<logical type="float" min="-273.15" max="327.67" unit="&#x2103;"/>
           			<physical type="integer" interface="command" value_id="TEMP">
           				<get request="TEMP_GET" response="INFO_TEMP"/>
           				<event frame="INFO_TEMP"/>

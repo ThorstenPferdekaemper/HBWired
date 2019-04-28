@@ -11,18 +11,15 @@
 
 #define EEPROM_SIZE 7
 
-
+#ifdef Support_HBWLink_InfoMessage
 HBWLinkInfoMessageActuator::HBWLinkInfoMessageActuator(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
 	eepromStart = _eepromStart;
 }
  
-// processKeyEvent wird aufgerufen, wenn ein Tastendruck empfangen wurde
-// TODO: von wem aufgerufen? Direkt von der Tasten-Implementierung oder vom Device? 
-//       wahrscheinlich besser vom Device ueber sendKeyEvent
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
-void HBWLinkInfoMessageActuator::receiveIMEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
+void HBWLinkInfoMessageActuator::receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                           uint8_t targetChannel, uint8_t length, uint8_t const * const data) {
 
   uint32_t sndAddrEEPROM;
@@ -47,8 +44,4 @@ void HBWLinkInfoMessageActuator::receiveIMEvent(HBWDevice* device, uint32_t send
 	  device->setInfo(targetChannel, length, data);    // channel, data length, data
   }
 }
- 
-void HBWLinkInfoMessageActuator::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
-                                          uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {
-}
-										  
+#endif
