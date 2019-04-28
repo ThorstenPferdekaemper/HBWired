@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <device version="12" eep_size="1024">
 	<supported_types>
-		<type name="RS485 2-channel PID Valve actuator(Fuse Mount)" id="HBW-CC-VD2-FM" priority="2">
+		<type name="RS485 2-channel PID Valve actuator" id="HBW-CC-VD2" priority="2">
 			<parameter index="0" size="1" const_value="0x97"/>
 			<parameter index="1" size="1" const_value="1"/>
 			<parameter index="2" size="2" cond_op="GE" const_value="0x0001"/>
 		</type>
 	</supported_types>
-	<paramset type="MASTER" id="HBW-CC-VD2-FM_dev_master">
+	<paramset type="MASTER" id="HBW-CC-VD2_dev_master">
 		<parameter id="LOGGING_TIME">
 			<logical type="float" min="0.1" max="25.5" default="5.0" unit="s"/>
 			<physical type="integer" size="1.0" interface="eeprom">
@@ -332,7 +332,7 @@
 			</paramset>
       
 			<paramset type="VALUES" id="hmw_pid_ch_values">
-				<parameter id="DESIRED_TEMP" operations="read,write,event" control="TEMP.LEVEL">
+				<parameter id="DESIRED_TEMP" operations="read,write,event">
 					<logical type="float" default="0.0" min="0.0" max="30.0" unit="&#x2103;"/>
 					<physical type="integer" interface="command" value_id="TEMP">
 						<set request="TEMP_SET"/>
@@ -351,31 +351,31 @@
 		</channel>
     
     	<channel index="3" physical_index_offset="-1" count="2" type="VALVE">
-      	<paramset type="MASTER" id="hmw_input_ch_master" address_start="0x35" address_step="3">
-      		<parameter id="SEND_MAX_INTERVALL">
-      			<logical type="integer" min="5" max="3600" unit="s">
-					<special_value id="NOT_USED" value="0"/>
-				</logical>
-      			<physical type="integer" size="2.0" interface="eeprom" endian="little">
-      				<address index="0"/>
-      			</physical>
-      			<conversion type="integer_integer_map">
-                 <value_map device_value="0xffff" parameter_value="150" from_device="true" to_device="false"/>
-               </conversion>
-      		</parameter>
-      		<parameter id="VALVE_ERROR_POS">
-				<logical type="integer" default="15" min="0" max="100" unit="%"/>
-         	 	<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+2"/>
-         	 	</physical>
-         	 	<conversion type="float_integer_scale" factor="2"/>
-        	</parameter>
-      	</paramset>
-      	<link_roles>
-			<source name="TEST"/>
-		</link_roles>
+			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0x35" address_step="3">
+				<parameter id="SEND_MAX_INTERVALL">
+					<logical type="integer" min="5" max="3600" unit="s">
+						<special_value id="NOT_USED" value="0"/>
+					</logical>
+					<physical type="integer" size="2.0" interface="eeprom" endian="little">
+						<address index="0"/>
+					</physical>
+					<conversion type="integer_integer_map">
+					 <value_map device_value="0xffff" parameter_value="150" from_device="true" to_device="false"/>
+				   </conversion>
+				</parameter>
+				<parameter id="VALVE_ERROR_POS">
+					<logical type="integer" default="15" min="0" max="100" unit="%"/>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+2"/>
+					</physical>
+					<conversion type="float_integer_scale" factor="2"/>
+				</parameter>
+			</paramset>
+			<link_roles>
+				<source name="TEST"/>
+			</link_roles>
 			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="18" address_start="0x370" address_step="6">
-      	  	<parameter id="CHANNEL" operations="none" hidden="true">
+				<parameter id="CHANNEL" operations="none" hidden="true">
 					<logical type="integer" min="0" max="255" default="255"/>
           		<physical type="integer" size="1.0" interface="eeprom">
             		<address index="+0"/>
