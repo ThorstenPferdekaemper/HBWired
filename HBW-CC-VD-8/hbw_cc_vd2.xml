@@ -531,7 +531,7 @@
 					<logical type="integer" min="5" max="3600" default="10" unit="s">
 						<special_value id="NOT_USED" value="0"/>
 					</logical>
-				<physical type="integer" size="2.0" interface="eeprom">
+				<physical type="integer" size="2.0" interface="eeprom" endian="little">
 					<address index="+2.0"/>
 				</physical>
 					<!--  <conversion type="float_integer_scale" factor="100"/> -->
@@ -543,7 +543,7 @@
 					<logical type="integer" min="5" max="3600" default="150" unit="s">
 						<special_value id="NOT_USED" value="0"/>
 					</logical>
-					<physical type="integer" size="2.0" interface="eeprom">
+					<physical type="integer" size="2.0" interface="eeprom" endian="little">
 						<address index="+4.0"/>
 					</physical>
 					<!-- <conversion type="float_integer_scale" factor="100"/> -->

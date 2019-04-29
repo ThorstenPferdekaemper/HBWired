@@ -57,17 +57,21 @@ void HBWPids::afterReadConfig()
   
   if (configValve->error_pos == 0xFF)  configValve->error_pos = 30;   // check PidsValve setting, as we use it now
 	
-	setOutputLimits(config->windowSize * 1000);
+	setOutputLimits((uint32_t) config->windowSize * 1000);
 	setTunings((float) config->kp, (float) config->ki / 100, (float) config->kd / 100);
 
   if (!pidConf.initDone)  // avoid to overwrite current output or inAuto mode
   {
     pidConf.inAuto = config->startMode; // 1 automatic ; 0 manual
-    pidConf.Output = mymap(configValve->error_pos, 200.0, config->windowSize * 1000);
-    pidConf.outputMap = mymap(configValve->error_pos, 200.0, MAPSIZE);
     pidConf.initDone = true;
   }
   setMode(pidConf.inAuto);
+  
+  if (!pidConf.inAuto || !pidConf.initDone)
+  {
+  pidConf.Output = mymap(configValve->error_pos, 200.0, (uint32_t) config->windowSize * 1000);
+  pidConf.outputMap = mymap(configValve->error_pos, 200.0, MAPSIZE);
+  }
 }
 
 
@@ -81,9 +85,10 @@ void HBWPidsValve::afterReadConfig()
 }
 
 
+/* set special input value for a channel, via peering event. */
 void HBWPids::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  if (length == 2)
+  if (length == 2)  // desired_temp has 2 bytes
   {
     pidConf.Input = ((data[0] << 8) | data[1]);
 #ifdef DEBUG_OUTPUT
@@ -94,7 +99,7 @@ void HBWPids::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const d
 }
 
 
-// setPidsTemp
+/* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
 void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
   if (length == 1)
@@ -119,7 +124,7 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 }
 
 
-//getPidsTemp
+/* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWPids::get(uint8_t* data)
 {
 // todo which commands do i really need ?
@@ -139,33 +144,39 @@ uint8_t HBWPids::get(uint8_t* data)
 }
 
 
+/* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
 void HBWPidsValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  //dataLenght == 1 ? level = data[0] : level = ((data[0] << 8) | data[1]);
   pid->setPidsValve(data);
 }
 /*
- * set the desired Valve State in Manual Mode
- * level = 0 - 200 like a Blind or Dimmer
+ * set the desired Valve State in Manual Mode level = 0 - 200 like a Blind or Dimmer
  */
 void HBWPids::setPidsValve(uint8_t const * const data)
 {
-
-  if (*(data) == 0) {
-    // toogle PID mode
+  if (*(data) == 0)    // toogle PID mode
+  {
     pidConf.inAuto = !pidConf.inAuto;
     setMode(pidConf.inAuto);
     pidConf.inAuto ? pidConf.outputMap = mymap(configValve->error_pos, 200.0, MAPSIZE) : pidConf.outputMap;
     pidConf.status = 0;
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("Toggle PID, inAuto: ")); hbwdebug(pidConf.inAuto); hbwdebug(F("\n"));
+#endif
   }
-  else if ((*(data) >= 0 && *(data) <= 200) && (pidConf.inAuto == MANUAL)) {  // right limits only if manual
+  else if ((*(data) >= 0 && *(data) <= 200) && (pidConf.inAuto == MANUAL))  // right limits only if manual
+  {
     // map to PID's WindowSize
     pidConf.outputMap = mymap(*(data), 200.0, MAPSIZE);
-    pidConf.Output = mymap(*(data), 200.0, config->windowSize * 1000);
+    pidConf.Output = mymap(*(data), 200.0, (uint32_t) config->windowSize * 1000);
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("Set PID manual: ")); hbwdebug(*(data)); hbwdebug(F("\n"));
+#endif
   }
 }
 
 
+/* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWPidsValve::get(uint8_t* data)
 {
   return pid->getPidsValve(data);
@@ -175,29 +186,22 @@ uint8_t HBWPidsValve::get(uint8_t* data)
  */
 uint8_t HBWPids::getPidsValve(uint8_t* data)
 {
-	uint16_t retVal = 0;
-  // uint8_t retVal = 0;
+  uint8_t retVal = 0;
 	uint8_t bits = 0;
 
 	// map the Valve level, so it fits
 	// into a standard FHEM slider (8bit)
 	// and send some status bits (8bit)
-	retVal = (uint16_t) mymap(pidConf.outputMap, MAPSIZE, 200.0);
-  // retVal = mymap(pidConf.outputMap, MAPSIZE, 200.0);
-	if (retVal % 2)	 retVal++;
+  retVal = mymap(pidConf.outputMap, MAPSIZE, 200.0);
+	if (retVal % 2)
+	  retVal++;
+   
 	// state_flags
 	bits = (pidConf.status << 2) | (pidConf.inAuto << 1) | pidConf.upDown;
-
-//TODO: simplify code (value & statusbits...)
-
-	//shift the 8bit value and the statusbits into 16bit
-	retVal = (retVal << 8 | (bits << 4));
-
+  
   // MSB first
-  *data++ = (retVal >> 8);
-  *data = retVal & 0xFF;
-  // *data++ = retVal;
-  // *data = (bits << 4);
+   *data++ = retVal;
+   *data = (bits << 4);
 
   return 2;
 }
@@ -215,9 +219,6 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 	uint32_t now = millis();
 
 	if (now < 15000)  return; // wait 15 sec on start
-
-//		pidConf[cnt].Input = temperature[cnt];
-//pidConf.Input = 2000;
     
 		// start the first time
 		// can't sending everything at once to the bus.
@@ -226,7 +227,6 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 		{
 			pidConf.windowStartTime = now - ((channel + 1) * 2000);
       pidConf.lastPidTime = now - pidConf.sampleTime;
-   
 #ifdef DEBUG_OUTPUT
 	hbwdebug(F("PID ch: ")); hbwdebug(channel);
 	hbwdebug(F(" temp ")); hbwdebug(pidConf.Input);
@@ -275,31 +275,32 @@ void HBWPidsValve::loop(HBWDevice* device, uint8_t channel)
 {
 	uint32_t now = millis();
 
+  if (pidValveConf.lastSentTime == 0 ) {
+    pidValveConf.lastSentTime = now - ((channel + 1) * 3000);
+  }
+
   if (pidValveConf.status != pid->getPidsValveStatus())  // check if pid status changed, turn ON or OFF
   {
     pidValveConf.status = pid->getPidsValveStatus();
     digitalWrite(pin, pidValveConf.status);  // turn ON or OFF
     
     // TODO: send key-event?
+#ifdef DEBUG_OUTPUT
     hbwdebug(F("TODO:key-event ch: ")); hbwdebug(channel); pidValveConf.status ? hbwdebug(F(" long\n")) : hbwdebug(F(" short\n"));
+#endif
+    // send InfoMessage if state changed, but not faster than send_max_interval
+    if (config->send_max_interval && now - pidValveConf.lastSentTime >= (uint32_t) (config->send_max_interval) * 1000)
+    {
+      // TODO: only set feedback trigger here? Send message in main loop? (allow resend on error?)
+      uint8_t level;
+      get(&level);
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("Valve ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(level/2); hbwdebug(F("%\n"));
+#endif
+      device->sendInfoMessage(channel, 2, &level);    // level has 2 byte here
+      pidValveConf.lastSentTime = now;
+    }
   }
-
-  if (pidValveConf.lastSentTime == 0 ) {
-    pidValveConf.lastSentTime = now - ((channel + 1) * 3000);
-    return;
-  }
-  
-
-	if (config->send_max_interval && now - pidValveConf.lastSentTime >= (uint32_t) (config->send_max_interval) * 1000)
-	{
-    uint8_t level;
-    get(&level);
-  #ifdef DEBUG_OUTPUT
-    hbwdebug(F("Valve ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(level/2); hbwdebug(F("%\n"));
-  #endif
-    device->sendInfoMessage(channel, 2, &level);    // level has 2 byte here
-    pidValveConf.lastSentTime = now;
-	}
 }
 
 
@@ -319,61 +320,57 @@ void HBWPids::setErrorPosition()
 
 int8_t HBWPids::computePid(uint8_t channel)
 {
-	uint32_t now = millis();
-	uint8_t retVal = 0;
+  uint32_t now = millis();
+  uint8_t retVal = 0;
   
-	// get Output from PID
-	compute();
+  // get Output from PID. Doesn't do anything in Manual mode.
+  compute();
   
-	//map Output from 0 to 65535
-	uint16_t valveStatus = (uint16_t) mymap(pidConf.Output, config->windowSize *1000, MAPSIZE);
-
-	// new window
-	if (now - pidConf.windowStartTime > (uint32_t) config->windowSize * 1000) {
-		// goes the Output up or down ?
-		if (valveStatus != pidConf.outputMap) {
-			valveStatus > pidConf.outputMap ? pidConf.upDown = 1 : pidConf.upDown = 0;
-			retVal = 1;
-		}
-		pidConf.outputMap = valveStatus;
-		pidConf.windowStartTime = now;
-    ////pidConf.windowStartTime += config->windowSize * 1000;
+  // new window
+  if (now - pidConf.windowStartTime > (uint32_t) config->windowSize * 1000) {
+  //map Output from 0 to 65535
+  uint16_t valveStatus = (uint16_t) mymap(pidConf.Output, (uint32_t) config->windowSize *1000, MAPSIZE);
+    // goes the Output up or down ?
+    if (valveStatus != pidConf.outputMap) {
+    	valveStatus > pidConf.outputMap ? pidConf.upDown = 1 : pidConf.upDown = 0;
+    	retVal = 1;
+    }
+    pidConf.outputMap = valveStatus;
+    pidConf.windowStartTime = now;
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("computePid ch: ")); hbwdebug(channel);
   hbwdebug(F(" inAuto: ")); hbwdebug(pidConf.inAuto);
-	hbwdebug(F(" windowSize: ")); hbwdebug(config->windowSize);
-	hbwdebug(F(" output: ")); hbwdebug(pidConf.Output);
-	hbwdebug(F(" outputMap: ")); hbwdebug(pidConf.outputMap);
-	hbwdebug(F(" input: ")); hbwdebug(pidConf.Input);
-	hbwdebug(F(" setpoint: ")); hbwdebug(pidConf.setPoint);
-	hbwdebug(F(" outMax: "));hbwdebug(pidConf.outMax);
-	hbwdebug(F(" Kp: "));hbwdebug(pidConf.kp);
-	hbwdebug(F(" Ki: "));hbwdebug(pidConf.ki);
-	hbwdebug(F(" Kd: "));hbwdebug(pidConf.kd);
-	hbwdebug(F("\n"));
+  hbwdebug(F(" windowSize: ")); hbwdebug(config->windowSize);
+  hbwdebug(F(" output: ")); hbwdebug(pidConf.Output);
+  hbwdebug(F(" outputMap: ")); hbwdebug(pidConf.outputMap);
+  hbwdebug(F(" input: ")); hbwdebug(pidConf.Input);
+  hbwdebug(F(" setpoint: ")); hbwdebug(pidConf.setPoint);
+  hbwdebug(F(" outMax: "));hbwdebug(pidConf.outMax);
+  hbwdebug(F(" Kp: "));hbwdebug(pidConf.kp);
+  hbwdebug(F(" Ki: "));hbwdebug(pidConf.ki);
+  hbwdebug(F(" Kd: "));hbwdebug(pidConf.kd);
+  hbwdebug(F("\n"));
 #endif
 	}
-	// under 2 seconds or under 1% of windowsize we do nothing.
-	// it makes no sense to send on's and off's over the bus in
-	// such a short time
-	// TODO: check for % calculation based on windowSize?
-	if ((unsigned long) pidConf.Output > now - pidConf.windowStartTime
-      && ((unsigned long) pidConf.Output > 2000
-			&& (unsigned long) pidConf.Output > (unsigned long) config->windowSize * 10)) {
-		// ON
-		if (pidConf.status == 0) {
-			pidConf.status = 1;
-			return 1;
-		}
-	}
-	else if ((unsigned long) pidConf.Output < (unsigned long) (config->windowSize * 1000) - (unsigned long) (config->windowSize * 10)) {
-		// OFF
-		if (pidConf.status == 1) {
-			pidConf.status = 0;
-			return 1;
-		}
-	}
-	return retVal;
+  // under 2 seconds or under 1% of windowsize we do nothing.
+  // it makes no sense to send on's and off's over the bus in
+  // such a short time
+  if ((uint32_t) pidConf.Output > now - pidConf.windowStartTime
+      && ((uint32_t) pidConf.Output > 2000	&& (uint32_t) pidConf.Output > (uint32_t) config->windowSize * 10)) {
+  	// ON
+  	if (pidConf.status == 0) {
+  		pidConf.status = 1;
+  		return 1;
+  	}
+  }
+  else if ((uint32_t) pidConf.Output < (uint32_t) config->windowSize * 1000 - (uint32_t) config->windowSize * 10) {
+  	// OFF
+  	if (pidConf.status == 1) {
+  		pidConf.status = 0;
+  		return 1;
+  	}
+  }
+  return retVal;
 }
 
 /* Compute() **********************************************************************
@@ -386,7 +383,7 @@ void HBWPids::compute()
 {
 	if (!pidConf.inAuto)  return;
    
-	unsigned long now = millis();
+	uint32_t now = millis();
   
 	if ((now - pidConf.lastPidTime) >= pidConf.sampleTime) {
 		/*Compute all the working error variables*/
@@ -430,7 +427,7 @@ void HBWPids::setSampleTime(int NewSampleTime)
 		double ratio = (double) NewSampleTime / (double) pidConf.sampleTime;
 		pidConf.ki *= ratio;
 		pidConf.kd /= ratio;
-		pidConf.sampleTime = (unsigned long) NewSampleTime;
+		pidConf.sampleTime = (uint32_t) NewSampleTime;
 	}
 }
 
@@ -478,7 +475,7 @@ void HBWPids::initialize()
 /*
  * map without in_min and out_min
  */
-long HBWPids::mymap(double x, double in_max, double out_max)
+int32_t HBWPids::mymap(double x, double in_max, double out_max)
 {
 	return (x * out_max) / in_max;
 }

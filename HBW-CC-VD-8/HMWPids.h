@@ -54,7 +54,7 @@ class HBWPids : public HBWChannel {
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
     
-    // pubplic, to get called my PidValve channels
+    // pubplic, to get called by PidValve channels
     virtual void setPidsValve(uint8_t const * const data);
     virtual uint8_t getPidsValve(uint8_t* data);
     bool getPidsValveStatus();
@@ -68,12 +68,12 @@ class HBWPids : public HBWChannel {
       uint8_t oldInAuto :1; // auto or manual stored here, when in error pos.
       uint8_t upDown  :1; // Pid regelt hoch oder runter
       uint8_t autoTune  :1; // Todo 0 = off ; 1 = autotune running
-      uint8_t status  :1; //bit ??
+      uint8_t status  :1; // outputs on or off?
       uint8_t error :1;
       uint8_t initDone :1;
       int16_t setPoint; // temperatures in m°C
-      uint16_t outputMap; // pid output mapped to 0 - MAPSIZE (60000)
-      uint32_t windowStartTime; // long needed ?? maybe *100
+      uint16_t outputMap; // pid output mapped to 0 - MAPSIZE
+      uint32_t windowStartTime;
       
       // pidlib
       uint32_t outMax;
@@ -86,7 +86,7 @@ class HBWPids : public HBWChannel {
     } pidConf;
 
     void autoTune();
-    long mymap(double x, double in_max, double out_max);
+    int32_t mymap(double x, double in_max, double out_max);
     int8_t computePid(uint8_t channel);
     void setErrorPosition();
     //pid lib
@@ -113,7 +113,6 @@ class HBWPidsValve : public HBWChannel {
     uint8_t pin;
     HBWPids* pid;
 
-    //uint8_t Output;
     struct pid_valve_config {
       uint8_t status  :1;
       uint32_t lastSentTime;   // time of last send
