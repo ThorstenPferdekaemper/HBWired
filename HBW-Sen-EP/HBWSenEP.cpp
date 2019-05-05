@@ -30,11 +30,16 @@ HBWSenEP::HBWSenEP(uint8_t _pin, hbw_config_sen_ep* _config, boolean _activeHigh
 void HBWSenEP::afterReadConfig() {
   if(config->send_delta_count == 0xFFFF) config->send_delta_count = 1;
   if(config->send_min_interval == 0xFFFF) config->send_min_interval = 10;
-  if(config->send_max_interval == 0xFFFF) config->send_max_interval = 600;
-  if(config->polling_time > 15) config->polling_time = POLLING_TIME/10;
+  if(config->send_max_interval == 0xFFFF) config->send_max_interval = 600; // 10 minutes
+  if(config->polling_time > 15) config->polling_time = POLLING_TIME/10;   // max. 150ms (polling_time*10)
 
   currentPortState = readInput(pin);
   oldPortState = currentPortState;
+
+  #ifdef DEBUG_OUTPUT
+  hbwdebug(F("Pin: ")); hbwdebug(pin); hbwdebug(F(" n_inv: ")); hbwdebug(config->n_inverted);
+  hbwdebug(F(" poll_time: ")); hbwdebug((uint8_t)config->polling_time *10); hbwdebug(F("ms\n"));
+  #endif
 }
 
 
@@ -53,6 +58,7 @@ void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
 
   if (!config->enabled) {  // skip disabled channels, reset counter
     currentCount = 0;
+    lastSentCount = 0;
     return;
   }
   
@@ -75,9 +81,9 @@ void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
   // do not send before min interval
   if (config->send_min_interval && now - lastSentTime < (uint32_t)config->send_min_interval * 1000)  return;
   if ((config->send_max_interval && now - lastSentTime >= (uint32_t)config->send_max_interval * 1000) ||
-      (config->send_delta_count && abs(currentCount - lastSentCount ) >= config->send_delta_count)) {
+      (config->send_delta_count && (currentCount - lastSentCount ) >= config->send_delta_count)) {
     // send
-    uint8_t level;
+    static uint8_t level;
     get(&level);
     // if bus is busy, then we try again in the next round
     if (device->sendInfoMessage(channel, 2, &level) != 1) {    // level has always 2 byte here
