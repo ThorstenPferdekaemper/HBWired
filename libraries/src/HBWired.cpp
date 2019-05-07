@@ -379,7 +379,7 @@ void HBWChannel::afterReadConfig() {};
 void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {};
 void HBWLinkReceiver::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                       uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {};
-#ifdef Support_HBWLink_InfoMessage
+#ifdef Support_HBWLink_InfoEvent
 void HBWLinkSender::sendInfoEvent(HBWDevice* device, uint8_t srcChan, uint8_t length, uint8_t const * const data) {};
 void HBWLinkReceiver::receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel,
                                        uint8_t targetChannel, uint8_t length, uint8_t const * const data) {};
@@ -486,12 +486,12 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
          /* case 'c':                                                               // Zieladresse löschen?
             // TODO: ???
             break;  */
-         #ifdef Support_HBWLink_InfoMessage
-         case 0xf1:                                                               // received i-Message
-            // receiveInfoEvent(senderAddress, frameData[1], frameData[2], frameDataLength-2, &(frameData[3]));
-            receiveInfoEvent(senderAddress, frameData[1], frameData[3], frameDataLength-2, &(frameData[2]));
+       #ifdef Support_HBWLink_InfoEvent
+         case 0xB4:                                                               // received 'Info Event' (peering with data)
+            if (frameDataLength > 3)
+              receiveInfoEvent(senderAddress, frameData[1], frameData[2], frameDataLength-3, &(frameData[3]));
             break;
-         #endif
+       #endif
          case 'h':                                 // 0x68 get Module type and hardware version
         	hbwdebug(F("T: HWVer,Typ\n"));
             onlyAck = false;
@@ -539,7 +539,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
 };
 
 
-#ifdef Support_HBWLink_InfoMessage	
+#ifdef Support_HBWLink_InfoEvent	
 // i-Message as linkReceiver
 void HBWDevice::receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan, 
                                 uint8_t dstChan, uint8_t length, uint8_t const * const data) {
@@ -634,29 +634,27 @@ uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t cons
 };
 
 
-#ifdef Support_HBWLink_InfoMessage
-// link "i-Message" senden
+#ifdef Support_HBWLink_InfoEvent
+// link "InfoEvent Message" senden
 uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel) {
    if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
    txTargetAddress = target_address;
-   txFrameControlByte = 0xF8;     // control byte
-   txFrameDataLength = 0x03 + length;      // Length
-   txFrameData[0] = 0xf1;//0x69;         // 'i'
-   txFrameData[1] = channel;      // Sensornummer
-   // txFrameData[2] = target_channel;   // Zielaktor
-   memcpy(&(txFrameData[2]), data, length);
-   txFrameData[3] = target_channel;   // Zielaktor
-   // memcpy(&(txFrameData[3]), data, length);
+   txFrameControlByte = 0xF8;          // control byte
+   txFrameDataLength = 0x03 + length;  // Length
+   txFrameData[0] = 0xB4;              // custom frame/command (mix of 'i' and 'K')
+   txFrameData[1] = channel;           // Sensornummer
+   txFrameData[2] = target_channel;    // Zielaktor
+   memcpy(&(txFrameData[3]), data, length);
    return sendFrame(true);  // only if bus is free
 };
 
 
-// iMessage-Event senden, inklusive peers etc.
+// InfoEvent senden, inklusive peers etc.
 uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data) {
 	if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
     if(linkSender)
         linkSender->sendInfoEvent(this, srcChan, length, data);
-	return 0;
+	return 0;  // return always success... can't send anything different //TODO: maybe linkSender->sendInfoEvent() should not be void...?
 };
 #endif
 
