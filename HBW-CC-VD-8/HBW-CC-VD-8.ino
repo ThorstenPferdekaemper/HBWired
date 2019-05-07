@@ -13,9 +13,13 @@
 // Changes
 // v0.01
 // - initial version
+// v0.02
+// - temperature channels and peering added
+// v0.03
+// - valve changed to "time proportioning control" with own lib (HBWValve.h)
 
 
-#define HARDWARE_VERSION 0x01
+#define HARDWARE_VERSION 0x03
 #define FIRMWARE_VERSION 0x0001
 
 #define NUMBER_OF_PID_CHAN 2   // output channels - PID regulator
@@ -40,7 +44,8 @@
 // HB Wired protocol and modules
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
-#include "HMWPids.h"
+#include "HBWPids.h"
+#include "HBWValve.h"
 #include <HBWLinkInfoMessageSensor.h>
 #include <HBWLinkInfoMessageActuator.h>
 
@@ -97,7 +102,7 @@ struct hbw_config {
   uint8_t              :7;   // 0x06:1-7
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x..(address step 14)
   hbw_config_pid pidCfg[NUMBER_OF_PID_CHAN];          // 0x.. - 0x..(address step 9)
-  hbw_config_pid_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0x.. - 0x..(address step 3)
+  hbw_config_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0x.. - 0x..(address step 7)
 } hbwconfig;
 
 
@@ -146,24 +151,19 @@ void setup()
   uint8_t g_owCurrentChannel = 255; // init with 255! used as trigger/reset in channel loop()
   g_ow = new OneWire(ONEWIRE_PIN);
 
-  // create channels
+  // create channels: 0...NUMBER_OF_PID_CHAN, n...NUMBER_OF_VD_CHAN, n...NUMBER_OF_TEMP_CHAN
   byte valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2};  // assing pins
-  HBWPids* g_pids[NUMBER_OF_PID_CHAN];
+  HBWValve* g_valves[NUMBER_OF_VD_CHAN];
   
   for(uint8_t i = 0; i < NUMBER_OF_PID_CHAN; i++) {
-    g_pids[i] = new HBWPids(&(hbwconfig.pidValveCfg[i]), &(hbwconfig.pidCfg[i]));
-    channels[i] = g_pids[i];
-    channels[i + NUMBER_OF_PID_CHAN] = new HBWPidsValve(valvePin[i], g_pids[i], &(hbwconfig.pidValveCfg[i]));
+    g_valves[i] = new HBWValve(valvePin[i], &(hbwconfig.pidValveCfg[i]));
+    channels[i + NUMBER_OF_PID_CHAN] = g_valves[i];
+    channels[i] = new HBWPids(g_valves[i], &(hbwconfig.pidCfg[i]));
   }
   for(uint8_t i = 0; i < NUMBER_OF_TEMP_CHAN; i++) {
     channels[i + NUMBER_OF_PID_CHAN *2] = new HBWOneWireTemp(g_ow, &(hbwconfig.TempOWCfg[i]), &g_owLastReadTime, &g_owCurrentChannel);
     tempConfig[i] = &(hbwconfig.TempOWCfg[i]);
   }
-
-  // check if HBWLinkInfoMessage support is enabled
-  #if !defined(Support_HBWLink_InfoMessage) && defined(NUM_LINKS_PID)
-  #error enable/define Support_HBWLink_InfoMessage in HBWired.h
-  #endif
 
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
@@ -178,7 +178,6 @@ void setup()
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
-  //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
   
 #else
   Serial.begin(19200);
@@ -193,7 +192,6 @@ void setup()
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
-  //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
 
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
@@ -206,3 +204,9 @@ void loop()
 {
   device->loop();
 };
+
+
+// check if HBWLinkInfoMessage support is enabled, when links are set
+#if !defined(Support_HBWLink_InfoEvent) && defined(NUM_LINKS_PID)
+#error enable/define Support_HBWLink_InfoMessage in HBWired.h
+#endif

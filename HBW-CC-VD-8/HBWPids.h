@@ -1,5 +1,5 @@
 /*
- * HMWPids.h
+ * HBWPids.h
  *
  * Created on: 15.04.2019
  * loetmeister.de
@@ -9,13 +9,13 @@
  * by Brett Beauregard <br3ttb@gmail.com> brettbeauregard.com
  */
 
-#ifndef HMWPIDS_H_
-#define HMWPIDS_H_
+#ifndef HBWPIDS_H_
+#define HBWPIDS_H_
 
 
 #include "HBWOneWireTempSensors.h"
 #include "HBWired.h"
-
+#include "HBWValve.h"
 
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
@@ -27,9 +27,8 @@
 
 // config of one PID channel, address step 9
 struct hbw_config_pid {
-  uint8_t logging:1;    // 0x32:0 1=on 0=off
   uint8_t startMode:1;  // 0x32:1 1=automatic 0=manual
-  uint8_t :6;     //fillup //0x32:2-8
+  uint8_t :7;     //fillup //0x32:1-8
   uint16_t kp;    // proportional
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
@@ -37,38 +36,26 @@ struct hbw_config_pid {
 };
 
 
-// config of one valve channel, address step 3
-struct hbw_config_pid_valve {
-  uint16_t send_max_interval;   // Maximum-Sendeintervall
-  uint8_t error_pos;
-};
-
-
 // Class HBWPids
 class HBWPids : public HBWChannel {
   public:
-    HBWPids(hbw_config_pid_valve* _configValve, hbw_config_pid* _config);
+    HBWPids(HBWValve* _valve, hbw_config_pid* _config);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
     
-    // pubplic, to get called by PidValve channels
-    virtual void setPidsValve(uint8_t const * const data);
-    virtual uint8_t getPidsValve(uint8_t* data);
-    bool getPidsValveStatus();
-
   private:
     hbw_config_pid* config;
-    hbw_config_pid_valve* configValve;
+    HBWValve* valve {NULL};  // linked valve channel
+
+    uint8_t desiredValveLevel;
 
     struct pid_config {
       uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
       uint8_t oldInAuto :1; // auto or manual stored here, when in error pos.
-      uint8_t upDown  :1; // Pid regelt hoch oder runter
       uint8_t autoTune  :1; // Todo 0 = off ; 1 = autotune running
-      uint8_t status  :1; // outputs on or off?
       uint8_t error :1;
       uint8_t initDone :1;
       int16_t setPoint; // temperatures in m°C
@@ -88,7 +75,6 @@ class HBWPids : public HBWChannel {
     void autoTune();
     int32_t mymap(double x, double in_max, double out_max);
     int8_t computePid(uint8_t channel);
-    void setErrorPosition();
     //pid lib
     void compute();
     void setTunings(double Kp, double Ki, double Kd);
@@ -99,25 +85,4 @@ class HBWPids : public HBWChannel {
 };
 
 
-// Class HBWPidsVavle
-class HBWPidsValve : public HBWChannel {
-  public:
-    HBWPidsValve(uint8_t _pin, HBWPids* _pid, hbw_config_pid_valve* _config);
-    virtual void loop(HBWDevice*, uint8_t channel);
-    virtual uint8_t get(uint8_t* data);
-    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-    virtual void afterReadConfig();
-
-  private:
-    hbw_config_pid_valve* config;
-    uint8_t pin;
-    HBWPids* pid;
-
-    struct pid_valve_config {
-      uint8_t status  :1;
-      uint32_t lastSentTime;   // time of last send
-    } pidValveConf;
-};
-
-
-#endif /* HMWPIDS_H_ */
+#endif /* HBWPIDS_H_ */
