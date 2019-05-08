@@ -33,7 +33,7 @@ void HBWOneWireTemp::afterReadConfig() {
       state.action = ACTION_START_CONVERSION; // start with new conversion, maybe the previous sensor was removed...
       
   #ifdef DEBUG_OUTPUT
-  hbwdebug(F("conf_OW addr: "));  m_hbwdebug_ow_address(&config->address[0]);  hbwdebug("\n");
+  hbwdebug(F("conf_OW addr: "));  m_hbwdebug_ow_address(&config->address[0]);  hbwdebug(F("\n"));
   #endif
 };
 
@@ -47,7 +47,7 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
   if (ow == NULL)  return;
   
   #ifdef DEBUG_OUTPUT
-  hbwdebug("OW sensorSearch\n");
+  hbwdebug(F("OW sensorSearch\n"));
   #endif
 
   uint8_t addr[OW_DEVICE_ADDRESS_SIZE];
@@ -61,7 +61,7 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
     for (channel = 0; channel < channels; channel++) {
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));    hbwdebug(channel);
-  hbwdebug(F(" stored address: "));  m_hbwdebug_ow_address(&_config[channel]->address[0]);  hbwdebug("\n");
+  hbwdebug(F(" stored address: "));  m_hbwdebug_ow_address(&_config[channel]->address[0]);  hbwdebug(F("\n"));
   #endif
 //      if (_config[channel]->address[0] == 0xFF) break;   // free slot found
       if (deviceInvalidOrEmptyID(_config[channel]->address[0])) break;   // free slot found
@@ -202,6 +202,7 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
 
   uint32_t now = millis();
+  static uint16_t level;
 
   if (lastSentTime == 0)
     lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time, to not spam the bus (will vary over time anyway...)
@@ -225,11 +226,19 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
       
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
-  hbwdebug(F(" read temp, m°C: "));  hbwdebug(currentTemp);  hbwdebug("\n");
+  hbwdebug(F(" read temp, m°C: "));  hbwdebug(currentTemp);  hbwdebug(F("\n"));
   #endif
     }
   }
   
+  #ifdef Support_HBWLink_InfoEvent
+  if (state.sendInfoEvent && now - lastSentTime > SEND_INFO_EVENT_DELAY) {
+    get((uint8_t*) &level);
+    device->sendInfoEvent(channel, 2, (uint8_t*) &level);
+    state.sendInfoEvent = false;
+  }
+  #endif
+  	
   // check if we have a valid temp
   if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && state.errorWasSend))  return; // send ERROR_TEMP in error state just once
 
@@ -239,12 +248,12 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   if ((config->send_max_interval && now - lastSentTime >= (long)config->send_max_interval * 1000) ||
       (config->send_delta_temp && abs( currentTemp - lastSentTemp ) >= (unsigned int)(config->send_delta_temp) * 10)) {
     // send temperature
-    uint8_t level;
-    get(&level);
-    device->sendInfoMessage(channel, 2, &level);    // level has 2 byte here
+    get((uint8_t*) &level);
+    device->sendInfoMessage(channel, 2, (uint8_t*) &level);    // level has always 2 byte here
 
-    // TODO: Peering via Info Message???
-    // device->sendIMEvent(channel, 2, &level);
+    #ifdef Support_HBWLink_InfoEvent
+    state.sendInfoEvent = true;
+    #endif
     
     lastSentTemp = currentTemp;
     lastSentTime = now;
@@ -252,7 +261,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
  
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
-  hbwdebug(F(" sent temp, m°C: "));  hbwdebug(lastSentTemp);  hbwdebug("\n");
+  hbwdebug(F(" sent temp, m°C: "));  hbwdebug(lastSentTemp);  hbwdebug(F("\n"));
   #endif
   }
 };

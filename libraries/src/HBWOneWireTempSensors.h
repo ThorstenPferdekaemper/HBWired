@@ -29,6 +29,7 @@
 #define ACTION_READ_TEMP 1
 #define ACTION_START_CONVERSION 0
 
+#define SEND_INFO_EVENT_DELAY 450
 
 // config of each sensor
 struct hbw_config_onewire_temp {
@@ -64,7 +65,7 @@ class HBWOneWireTemp : public HBWChannel {
       byte errorWasSend:1;       // flag to indicate if ERROR_TEMP was send
       byte isAllZeros:1;    // indicate that current device read was blank (usually happens when device gets disconnected)
       byte action:2;        // current action: measure, read temp
-      byte dummy:1;
+      byte sendInfoEvent:1;	// send flag for the peered channel event
     } state;
     static bool deviceInvalidOrEmptyID(uint8_t deviceType);
     static const uint8_t DS18S20_ID = 0x10;

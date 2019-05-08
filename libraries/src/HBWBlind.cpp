@@ -306,10 +306,9 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
     lastFeedbackTime = now;  // at least last time of trying
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
     // we know that the level has only 1 byte here
-    uint8_t level;
-    get(&level);
-    uint8_t errcode = device->sendInfoMessage(channel, 2, &level);
-    if (errcode == 1) {  // bus busy
+    static uint16_t level;
+    get((uint8_t*) &level);
+    if (device->sendInfoMessage(channel, 2, (uint8_t*) &level) == 1) {  // bus busy
     // try again later, but insert a small delay
       nextFeedbackDelay = 250;
     }
