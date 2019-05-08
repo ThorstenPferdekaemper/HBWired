@@ -19,7 +19,9 @@ class HBWDevice;
 class HBWChannel {
   public:
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+  #ifdef Support_HBWLink_InfoEvent
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);  // called by receiveInfoEvent
+  #endif
     virtual uint8_t get(uint8_t* data);  // returns length, data must be big enough 
     virtual void loop(HBWDevice*, uint8_t channel);  // channel for feedbacks etc.
     virtual void afterReadConfig();
@@ -80,9 +82,11 @@ class HBWDevice {
     virtual void loop(); // needs to be called as often as possible
 
   	// get logging time	
-    uint8_t getLoggingTime();	
-
+    uint8_t getLoggingTime();
+	
+  #ifdef Support_HBWLink_InfoEvent
 	virtual void setInfo(uint8_t, uint8_t, uint8_t const * const);    // channel, data length, data
+  #endif
 	virtual void set(uint8_t,uint8_t,uint8_t const * const);    // channel, data length, data
 	virtual uint8_t get(uint8_t channel, uint8_t* data);  // returns length
 	virtual void afterReadConfig();

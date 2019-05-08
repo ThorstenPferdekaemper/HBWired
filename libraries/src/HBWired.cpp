@@ -369,7 +369,9 @@ void HBWDevice::receive(){
 
 
 // Basisklasse fuer Channels, defaults
+#ifdef Support_HBWLink_InfoEvent
 void HBWChannel::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
+#endif
 void HBWChannel::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
 uint8_t HBWChannel::get(uint8_t* data) { return 0; };   
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
@@ -845,7 +847,7 @@ void HBWDevice::setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin) {
 	if(rxLedPin != NOT_A_PIN) pinMode(rxLedPin, OUTPUT);
 };
 
-
+#ifdef Support_HBWLink_InfoEvent
 void HBWDevice::setInfo(uint8_t channel, uint8_t length, uint8_t const * const data) {
 	if(hbwdebugstream) {
 	    hbwdebug(F("Si: ")); hbwdebughex(channel); hbwdebug(F(" "));
@@ -857,7 +859,7 @@ void HBWDevice::setInfo(uint8_t channel, uint8_t length, uint8_t const * const d
 	if(channel < numChannels)
         channels[channel]->setInfo(this, length, data);
 }
-
+#endif
 
 void HBWDevice::set(uint8_t channel, uint8_t length, uint8_t const * const data) {
 	if(hbwdebugstream) {

@@ -11,7 +11,7 @@
 
 #define EEPROM_SIZE 7
 
-#ifdef Support_HBWLink_InfoMessage
+#ifdef Support_HBWLink_InfoEvent
 HBWLinkInfoMessageActuator::HBWLinkInfoMessageActuator(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
 	eepromStart = _eepromStart;
