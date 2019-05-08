@@ -137,7 +137,7 @@
 				</physical>
 			</parameter>-->
 		</paramset>
-		<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0x60" address_step="6">
+		<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0xE6" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">
 				<logical type="integer" min="0" max="255" default="255"/>
 				<physical type="integer" size="1.0" interface="eeprom">

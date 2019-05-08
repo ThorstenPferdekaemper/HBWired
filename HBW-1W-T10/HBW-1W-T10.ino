@@ -20,11 +20,14 @@
 // - validate supported devices (see HBWOneWireTempSensors.h)
 // - optimized conversion and measurement sequence to avoid wrong readings
 
+
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0003
 
 #define NUMBER_OF_TEMP_CHAN 10   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
+//#define NUM_LINKS_TEMP 30
+#define LINKADDRESSSTART_TEMP 0xE6   // step 6
 
 
 #define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
@@ -35,6 +38,7 @@
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
+#include <HBWLinkInfoMessageSensor.h>
 
 
 // Pins
@@ -134,7 +138,11 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
+  #if defined(NUM_LINKS_TEMP)
+                             new HBWLinkInfoMessageSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
+  #else
                              NULL, NULL,
+  #endif
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
@@ -148,7 +156,11 @@ void setup()
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
+  #if defined(NUM_LINKS_TEMP)
+                             new HBWLinkInfoMessageSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
+  #else
                              NULL, NULL,
+  #endif
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
@@ -165,3 +177,10 @@ void loop()
 {
   device->loop();
 };
+
+
+// check if HBWLinkInfoMessage support is enabled, when links are set
+#if !defined(Support_HBWLink_InfoEvent) && defined(NUM_LINKS_TEMP)
+#error enable/define Support_HBWLink_InfoEvent in HBWired.h
+#endif
+  
