@@ -20,6 +20,7 @@ HBWPids::HBWPids(HBWValve* _valve, hbw_config_pid* _config)
   pidConf.windowStartTime = 0;
   pidConf.oldInAuto = 0; // we switch to MANUAL in error Position. Store the old value here
   pidConf.initDone = false;
+  pidConf.error = 0;
   //pid lib
   pidConf.Input = DEFAULT_TEMP; // force channel to manual, of no input temperature is received
   pidConf.Output = 0;
@@ -46,11 +47,11 @@ void HBWPids::afterReadConfig()
   if (!pidConf.initDone)  // only on device start - avoid to overwrite current output or inAuto mode
   {
     pidConf.inAuto = config->startMode; // 1 automatic ; 0 manual
-    setMode(pidConf.inAuto);
     valve->setPidsInAuto(pidConf.inAuto);
    //pidConf.Output = mymap(valve->getErrorPos(), 200.0, (uint32_t) config->windowSize * 1000);
     pidConf.initDone = true;
   }
+  setMode(pidConf.inAuto);
 }
 
 
@@ -60,9 +61,9 @@ void HBWPids::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const d
   if (length == 2)  // desired_temp has 2 bytes
   {
     pidConf.Input = ((data[0] << 8) | data[1]);  // set desired_temp
-#ifdef DEBUG_OUTPUT
+  #ifdef DEBUG_OUTPUT
   hbwdebug(F("setInfo: ")); hbwdebug(pidConf.Input); hbwdebug(F("\n"));
-#endif
+  #endif
   }
 }
 
@@ -129,21 +130,20 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 	// start the first time
 	// can't sending everything at once to the bus.
 	// so make a delay between channels
-	if (pidConf.windowStartTime == 0)
-	{
+	if (pidConf.windowStartTime == 0)	{
 	  pidConf.windowStartTime = now - ((channel + 1) * 2000);
     pidConf.lastPidTime = now - pidConf.sampleTime;
     
-#ifdef DEBUG_OUTPUT
-hbwdebug(F("PID ch: ")); hbwdebug(channel);
-hbwdebug(F(" temp ")); hbwdebug(pidConf.Input);
-hbwdebug(F(" starting...\n"));
-#endif
+  #ifdef DEBUG_OUTPUT
+  hbwdebug(F("PID ch: ")); hbwdebug(channel);
+  hbwdebug(F(" temp ")); hbwdebug(pidConf.Input);
+  hbwdebug(F(" starting...\n"));
+  #endif
 		return;
 	}
 
   if (pidConf.inAuto != valve->getPidsInAuto()) {
-    // apply new inAuto mode, if changed at the valve chan
+    // apply new inAuto mode, if changed at the valve chan (we cannot set a PID chan to auto/manual directly)
     pidConf.inAuto = valve->getPidsInAuto();
   }
 
@@ -153,8 +153,8 @@ hbwdebug(F(" starting...\n"));
   		pidConf.error = 0;
   		setMode(pidConf.oldInAuto);
       
-      uint8_t newLevel = pidConf.inAuto ? SET_AUTOMATIC : SET_MANUAL;
-      valve->set(device, 1, &newLevel);   // set new mode
+      uint8_t newMode = pidConf.inAuto ? SET_AUTOMATIC : SET_MANUAL;
+      valve->set(device, 1, &newMode);   // set new mode
   	}
   }
   
@@ -165,28 +165,16 @@ hbwdebug(F(" starting...\n"));
   	pidConf.oldInAuto = pidConf.inAuto;
     setMode(MANUAL);
     
-    uint8_t newLevel = SET_MANUAL;  // setting valve to manual will apply error position
-    valve->set(device, 1, &newLevel);   // set new mode
+    uint8_t newMode = SET_MANUAL;  // setting valve to manual will apply error position
+    valve->set(device, 1, &newMode);   // set new mode
   }
   
   // compute the PID Output
   if (computePid(channel))
   {
     valve->set(device, 1, &desiredValveLevel, true);  // setByPID = true
-#ifdef DEBUG_OUTPUT
-hbwdebug(F("computePid ch: ")); hbwdebug(channel);
-hbwdebug(F(" returns new value: ")); hbwdebug(desiredValveLevel);	hbwdebug(F("\n"));
-#endif
   }
 }
-
-
-//void HBWPids::setValveMode(HBWDevice* device, bool inAuto)
-//{
-//  uint8_t newLevel;
-//  newLevel = inAuto ? SET_AUTOMATIC : SET_MANUAL;
-//  valve->set(device, 1, &newLevel);
-//}
 
 
 int8_t HBWPids::computePid(uint8_t channel)
@@ -201,17 +189,16 @@ int8_t HBWPids::computePid(uint8_t channel)
   if (now - pidConf.windowStartTime > (uint32_t) config->windowSize * 1000)
   {
     uint16_t valveStatus = (uint16_t) mymap(pidConf.Output, (uint32_t) config->windowSize *1000, 200.0); //map from 0 to 200
-    if (valveStatus != desiredValveLevel && pidConf.inAuto) {   // only if different and inAuto (TODO: set even if same value???)
+    if (pidConf.inAuto) {   // only if inAuto (valve set() will only apply new level)
     	retVal = 1;
     }
     desiredValveLevel = valveStatus;
     pidConf.windowStartTime = now;
-#ifdef DEBUG_OUTPUT
+  #ifdef DEBUG_OUTPUT
   hbwdebug(F("computePid ch: ")); hbwdebug(channel);
   hbwdebug(F(" inAuto: ")); hbwdebug(pidConf.inAuto);
   hbwdebug(F(" windowSize: ")); hbwdebug(config->windowSize);
   hbwdebug(F(" output: ")); hbwdebug(pidConf.Output);
-  //hbwdebug(F(" outputMap: ")); hbwdebug(pidConf.outputMap);
   hbwdebug(F(" desiredValveLevel: ")); hbwdebug(desiredValveLevel);
   hbwdebug(F(" input: ")); hbwdebug(pidConf.Input);
   hbwdebug(F(" setpoint: ")); hbwdebug(pidConf.setPoint);
@@ -220,7 +207,7 @@ int8_t HBWPids::computePid(uint8_t channel)
   hbwdebug(F(" Ki: "));hbwdebug(pidConf.ki);
   hbwdebug(F(" Kd: "));hbwdebug(pidConf.kd);
   hbwdebug(F("\n"));
-#endif
+  #endif
 	}
   // under 2 seconds or under 1% of windowsize we do nothing.
   // it makes no sense to send on's and off's over the bus in
