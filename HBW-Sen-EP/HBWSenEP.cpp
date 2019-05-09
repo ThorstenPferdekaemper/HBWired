@@ -83,10 +83,10 @@ void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
   if ((config->send_max_interval && now - lastSentTime >= (uint32_t)config->send_max_interval * 1000) ||
       (config->send_delta_count && (currentCount - lastSentCount ) >= config->send_delta_count)) {
     // send
-    static uint8_t level;
-    get(&level);
+    static uint16_t level;
+    get((uint8_t*) &level);
     // if bus is busy, then we try again in the next round
-    if (device->sendInfoMessage(channel, 2, &level) != 1) {    // level has always 2 byte here
+    if (device->sendInfoMessage(channel, 2, (uint8_t*) &level) != 1) {    // level has always 2 byte here
       lastSentCount = currentCount;
       lastSentTime = now;
     
