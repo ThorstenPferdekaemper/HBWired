@@ -26,7 +26,7 @@
 
 #define NUMBER_OF_TEMP_CHAN 10   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
-//#define NUM_LINKS_TEMP 30
+//#define NUM_LINKS_TEMP 30    // requires Support_HBWLink_InfoEvent in HBWired.h
 #define LINKADDRESSSTART_TEMP 0xE6   // step 6
 
 
@@ -94,7 +94,8 @@ class HBTempOWDevice : public HBWDevice {
                OneWire* oneWire = NULL, hbw_config_onewire_temp** _tempSensorconfig = NULL) :
     HBWDevice(_devicetype, _hardware_version, _firmware_version,
               _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
-              _debugstream, linksender, linkreceiver) {
+              _debugstream, linksender, linkreceiver)
+              {
                 d_ow = oneWire;
                 tempSensorconfig = _tempSensorconfig;
     };
@@ -106,9 +107,8 @@ class HBTempOWDevice : public HBWDevice {
 };
 
 // device specific defaults
-void HBTempOWDevice::afterReadConfig() {
-  if (hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
-  
+void HBTempOWDevice::afterReadConfig()
+{
   HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_CONF_TEMP_CHAN);
 };
 
