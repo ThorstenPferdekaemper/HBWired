@@ -76,6 +76,7 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
     // toogle autotune
     pidConf.autoTune = !pidConf.autoTune;
     //TODO, toggle with specific value? e.g. 255?
+    // TODO: reply with INFO_AUTOTUNE & AUTOTUNE_FLAGS message
     
   #ifdef DEBUG_OUTPUT
   hbwdebug(F(" setPidsTemp autotune "));
@@ -96,14 +97,8 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWPids::get(uint8_t* data)
 {
-// todo which commands do i really need ?
-//	case 0x73: //s -- level set
-//		retVal = (pidConf[channel].setPoint << 8 | (pidConf[channel].autoTune << 4));
-//	case 0x78: //x -- level set
-//		retVal = pidConf[channel].setPoint;
-
-
-  //TODO: add state_flags?
+  //TODO: add state_flags? -> seperate get() function?
+  // retVal = (pidConf[channel].setPoint << 8 | (pidConf[channel].autoTune << 4));
   
   // return desired temperature
   // MSB first
@@ -130,7 +125,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 	// start the first time
 	// can't sending everything at once to the bus.
 	// so make a delay between channels
-	if (pidConf.windowStartTime == 0)	{
+	if (pidConf.windowStartTime == 0) {
 	  pidConf.windowStartTime = now - ((channel + 1) * 2000);
     pidConf.lastPidTime = now - pidConf.sampleTime;
     

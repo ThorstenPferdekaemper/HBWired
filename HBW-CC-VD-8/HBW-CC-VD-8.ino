@@ -22,18 +22,15 @@
 #define HARDWARE_VERSION 0x03
 #define FIRMWARE_VERSION 0x0001
 
-#define NUMBER_OF_PID_CHAN 2   // output channels - PID regulator
+#define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
 #define NUMBER_OF_VD_CHAN NUMBER_OF_PID_CHAN   // output channels - valve actuator (has to be same amount as PIDs)
-#define NUMBER_OF_TEMP_CHAN 2   // input channels - 1-wire temperature sensors
-
-#define ADDRESS_START_CONF_TEMP_CHAN 0x7
+#define NUMBER_OF_TEMP_CHAN 8  // input channels - 1-wire temperature sensors
+#define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 
 #define NUM_LINKS_PID 20    // address step 7
-#define LINKADDRESSSTART_PID 0x140   // ends @0x
-#define NUM_LINKS_VD 18    // address step 6
-#define LINKADDRESSSTART_VD 0x370   // ends @0x
-#define NUM_LINKS_TEMP 18    // address step 6
-#define LINKADDRESSSTART_TEMP 0x370   // ends @0x
+#define LINKADDRESSSTART_PID 0x140   // ends @0x1CB
+#define NUM_LINKS_TEMP 30    // address step 6
+#define LINKADDRESSSTART_TEMP 0x270   // ends @0x323
 
 
 #define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_ .xml into FHEM)
@@ -56,15 +53,15 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
-  #define ONEWIRE_PIN	A5 // Onewire Bus
-  #define VD1  3  // valve "PWM on valium" output
+  #define ONEWIRE_PIN	10 // Onewire Bus
+  #define VD1  3
   #define VD2  4
-//  #define VD3  5
-//  #define VD4  6
-//  #define VD5  7
-//  #define VD6  8
-//  #define VD7  9
-//  #define VD8  10
+  #define VD3  5
+  #define VD4  6
+  #define VD5  7
+  #define VD6  8
+  #define VD7  9
+  #define VD8  A5
 
 #else
   #define RS485_RXD 4
@@ -76,13 +73,12 @@
   #define ONEWIRE_PIN	10 // Onewire Bus
   #define VD1  A1
   #define VD2  A2
-//  #define VD3  5
-//  #define VD4  6
-//  #define VD5  7
-//  #define VD6  12
-//  #define VD7  9
-//  #define VD8  10
-  //#define xx10 NOT_A_PIN  // dummy pin to fill the array elements
+  #define VD3  5
+  #define VD4  6
+  #define VD5  7
+  #define VD6  12
+  #define VD7  9
+  #define VD8  A5
   
   #include "FreeRam.h"
   #include "HBWSoftwareSerial.h"
@@ -100,9 +96,9 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x..(address step 14)
-  hbw_config_pid pidCfg[NUMBER_OF_PID_CHAN];          // 0x.. - 0x..(address step 9)
-  hbw_config_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0x.. - 0x..(address step 7)
+  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x92 (address step 14)
+  hbw_config_pid pidCfg[NUMBER_OF_PID_CHAN];          // 0x93 - 0xDA (address step 9)
+  hbw_config_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0xDB - 0x112 (address step 7)
 } hbwconfig;
 
 
@@ -122,7 +118,8 @@ class HBVdDevice : public HBWDevice {
                OneWire* oneWire = NULL, hbw_config_onewire_temp** _tempSensorconfig = NULL) :
     HBWDevice(_devicetype, _hardware_version, _firmware_version,
               _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
-              _debugstream, linksender, linkreceiver) {
+              _debugstream, linksender, linkreceiver)
+              {
                 d_ow = oneWire;
                 tempSensorconfig = _tempSensorconfig;
     };
@@ -152,7 +149,8 @@ void setup()
   g_ow = new OneWire(ONEWIRE_PIN);
 
   // create channels: 0...NUMBER_OF_PID_CHAN, n...NUMBER_OF_VD_CHAN, n...NUMBER_OF_TEMP_CHAN
-  byte valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2};  // assing pins
+  byte valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2, VD3, VD4, VD5, VD6, VD7, VD8};  // assing pins
+  
   HBWValve* g_valves[NUMBER_OF_VD_CHAN];
   
   for(uint8_t i = 0; i < NUMBER_OF_PID_CHAN; i++) {

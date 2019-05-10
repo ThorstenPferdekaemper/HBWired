@@ -19,11 +19,10 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
   outputChangeLastTime = 600;
   onTimer = 200;
   offTimer = 200;
-  stateFlags.element.upDown = 0; // 0 up; 1 down
-
   lastSentTime = 0;
-  stateFlags.element.inAuto = false;
+  stateFlags.byte = 0;
   valveConf.initDone = false;
+  
   digitalWrite(pin, LOW);
   pinMode(pin, OUTPUT);
 }
@@ -32,23 +31,16 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
 // channel specific settings or defaults
 void HBWValve::afterReadConfig()
 {
-  if (config->send_max_interval == 0xFFFF)  config->send_max_interval = 150;  //TODO: check for default. 0 or high value, as we have notify already
+  if (config->send_max_interval == 0xFFFF)  config->send_max_interval = 300;
   if (config->error_pos == 0xFF)  config->error_pos = 30;   // 15%
-  if (config->valveSwitchTime == 0xFFFF)  config->valveSwitchTime = 180;  // use uint8, with 5 sec stepping? save 1 byte for x bytes of code?
+  if (config->valveSwitchTime == 0xFFFF)  config->valveSwitchTime = 180;
 
-   if (!valveConf.initDone) {
-     valveLevel = config->error_pos;
-     valveConf.firstState = true;
-     valveConf.initDone = true;
-   }
-//  if (!stateFlags.element.inAuto || !valveConf.initDone)  // keep manual value?
-//  {
-//    valveLevel = config->error_pos;
-//	  valveConf.initDone = true;
-//  }
-  
+  if (!valveConf.initDone) {
+    valveLevel = config->error_pos;
+    valveConf.firstState = true;
+    valveConf.initDone = true;
+  }
   valveConf.nextState = init_new_state();
-//  stateFlags.status = !valveConf.nextState; // leave it for the notify to pickup new status
 }
 
 
@@ -64,19 +56,18 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 {
   set(device, length, data, false);
 }
+
+// slighlty customized set() function, to allow PID channels to set level in automatic mode
 void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data, bool setByPID)
 {
   if (config->unlocked)
   {
+  /* TODO: Check if we allow setting level always (even when inAuto), but use the AUTO flag to fallback to error_pos if no set() was called
+   * for some time when inAuto (? switch_time *x?). PIDs should still sync the inAuto flag, to not overwrite manual set levels */
     if ((*(data) >= 0 && *(data) <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // right limits only if manual or setByPID
     {
-      if (valveLevel != *(data))  // set new state only if different
-      {
-        valveLevel < *(data) ? stateFlags.element.upDown = 1 : stateFlags.element.upDown = 0;
-        valveLevel = *(data);
-        valveConf.firstState = true;  // TODO: check if this should be done? it may interrupt the previous (incomplete) cycle?
-        valveConf.nextState = init_new_state();
-      }
+      setNewLevel(*(data));
+      
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("Valve set, level: ")); hbwdebug(valveLevel);
   hbwdebug(F(" inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
@@ -96,10 +87,8 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
           stateFlags.element.inAuto = MANUAL;
           break;
       }
-      //TODO: upDown not considered here (error_pos vs valveLevel)
-      stateFlags.element.inAuto ? valveLevel = config->error_pos : valveLevel;
-      valveConf.firstState = true;
-      valveConf.nextState = init_new_state();
+      setNewLevel(stateFlags.element.inAuto ? config->error_pos : valveLevel);
+      
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
   #endif
@@ -112,24 +101,30 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
   }
 }
 
+void HBWValve::setNewLevel(uint8_t NewLevel)
+{
+  if (valveLevel != NewLevel)  // set new state only if different
+  {
+    valveLevel < NewLevel ? stateFlags.element.upDown = 1 : stateFlags.element.upDown = 0;
+    valveLevel = NewLevel;
+    valveConf.firstState = true;  // TODO: check if this should be done? it may interrupt the previous (incomplete) cycle?
+    valveConf.nextState = init_new_state();
+  }
+}
+
 
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWValve::get(uint8_t* data)
 {
-//  uint8_t bits = 0;
-  
-  // state_flags
-//  bits = (valveConf.status << 2) | (valveConf.inAuto << 1) | valveConf.upDown;
-  
   // MSB first
   *data++ = valveLevel;
-//  *data = (bits << 4);
   *data = stateFlags.byte;
 
   return 2;
 }
 
 
+// helper functions to allow integration with PID channels (access private variables)
 bool HBWValve::getPidsInAuto()
 {
   return stateFlags.element.inAuto;
@@ -140,14 +135,12 @@ void HBWValve::setPidsInAuto(bool newAuto)
   stateFlags.element.inAuto = newAuto;
 }
 
-uint8_t HBWValve::getErrorPos() {
-  return config->error_pos;
-}
 
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWValve::loop(HBWDevice* device, uint8_t channel)
 {
 	uint32_t now = millis();
+  static uint16_t level;
 
   if (now - outputChangeLastTime >= outputChangeNextDelay)
   {
@@ -156,17 +149,18 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
     outputChangeLastTime = now;
   }
 
-
   // send InfoMessage if state changed, but not faster than send_max_interval
   // usually this is not used for an actor, as notify will be send on state changes - however if ...????
   if (config->send_max_interval && now - lastSentTime >= (uint32_t) (config->send_max_interval) * 1000)
   {
-    static uint8_t level;
-    get(&level);
+//    get((uint8_t*) &level);
  #ifdef DEBUG_OUTPUT
- hbwdebug(F("Valve ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(level/2); hbwdebug(F("%\n"));
+ hbwdebug(F("Valve ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(valveLevel/2); hbwdebug(F("%\n"));
  #endif
-    device->sendInfoMessage(channel, 2, &level);    // level has 2 byte here
+//    device->sendInfoMessage(channel, 2, (uint8_t*) &level);    // level has 2 byte here
+    // set variables, to send the InfoMessage by existing feedback/logging code next loop()
+    nextFeedbackDelay = 1;
+    lastFeedbackTime = now;
     lastSentTime = now;
   }
   
@@ -178,14 +172,14 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
   lastFeedbackTime = now;  // at least last time of trying
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
   // we know that the level has 2 byte here (value & state)
-  static uint8_t level;
-  get(&level);
-  if (device->sendInfoMessage(channel, 2, &level) == 1) {  // bus busy
+  get((uint8_t*) &level);
+  if (device->sendInfoMessage(channel, 2, (uint8_t*) &level) == 1) {  // bus busy
   // try again later, but insert a small delay
     nextFeedbackDelay = 250;
   }
   else {
     nextFeedbackDelay = 0;
+    lastSentTime = now; // reset lastSentTime (for send_max_interval), as we just send an InfoMessage
   }
 }
 
@@ -259,7 +253,7 @@ int HBWValve::init_new_state()
   onTimer = set_ontimer(valveLevel);
   offTimer = set_offtimer(onTimer);
   
-  #ifdef DEBUG_OUTPUT 
+  #ifdef DEBUG_OUTPUT
   hbwdebug(F("Valve init_new_state, onTimer: "));  hbwdebug(onTimer);
   hbwdebug(F(" offTimer: "));  hbwdebug(offTimer);
   hbwdebug(F(" valveSwitchTime: "));  hbwdebug((uint32_t)config->valveSwitchTime *1000);  hbwdebug(F("\n"));

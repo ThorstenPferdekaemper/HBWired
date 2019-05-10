@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <device version="12" eep_size="1024">
 	<supported_types>
-		<type name="RS485 2-channel PID Valve actuator" id="HBW-CC-VD2" priority="2">
+		<type name="RS485 8-channel PID Valve actuator" id="HBW-CC-VD8" priority="2">
 			<parameter index="0" size="1" const_value="0x97"/>
 			<parameter index="1" size="1" const_value="1"/>
-			<parameter index="2" size="2" cond_op="GE" const_value="0x0001"/>
+			<parameter index="2" size="2" cond_op="GE" const_value="0x0003"/>
 		</type>
 	</supported_types>
-	<paramset type="MASTER" id="HBW-CC-VD2_dev_master">
+	<paramset type="MASTER" id="HBW-CC-VD8_dev_master">
 		<parameter id="LOGGING_TIME">
 			<logical type="float" min="0.1" max="25.5" default="5.0" unit="s"/>
 			<physical type="integer" size="1.0" interface="eeprom">
@@ -93,8 +93,8 @@
 			</paramset>
 		</channel>
 		
-		<channel index="1" physical_index_offset="-1" count="2" type="PID">
-			<paramset type="MASTER" id="hmw_pid_ch_master" address_start="0x23" address_step="9">
+		<channel index="1" physical_index_offset="-1" count="8" type="PID">
+			<paramset type="MASTER" id="hmw_pid_ch_master" address_start="0x93" address_step="9">
 				<parameter id="POWERON_MODE">
 				  <logical type="option">
 					<option id="MANUAL"/>
@@ -144,7 +144,7 @@
 				</parameter>
 			</paramset>
 		
-			<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x140" address_step="7"><!--step 28-->
+			<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x140" address_step="7">
 				<parameter id="UI_HINT">
 				  <logical type="string" default="" use_default_on_failure="true"/>
 				  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -209,8 +209,8 @@
 			</paramset>
 		</channel>
     
-    	<channel index="3" physical_index_offset="-1" count="2" type="VALVE">
-			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0x35" address_step="7">
+    	<channel index="3" physical_index_offset="-1" count="8" type="VALVE">
+			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0xDB" address_step="7">
 				<parameter id="LOGGING">
 				  <logical type="option">
 					<option id="OFF"/>
@@ -402,7 +402,7 @@
 			</paramset>
 		</channel>
 		
-		<channel index="5" physical_index_offset="-1" count="2" type="PID_TEMP">
+		<channel index="5" physical_index_offset="-1" count="8" type="PID_TEMP">
 			<link_roles>
 				<source name="TEST"/>
 			</link_roles>
@@ -465,7 +465,7 @@
 					</physical>
 				</parameter>
 			</paramset>
-			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="18" address_start="0x370" address_step="6">
+			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0x270" address_step="6">
 				<parameter id="CHANNEL" operations="none" hidden="true">
 					<logical type="integer" min="0" max="255" default="255"/>
 					<physical type="integer" size="1.0" interface="eeprom">

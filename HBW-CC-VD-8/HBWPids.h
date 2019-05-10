@@ -22,8 +22,6 @@
 
 #define MANUAL 0
 #define AUTOMATIC 1
-#define MAPSIZE 65535.0
-
 
 // config of one PID channel, address step 9
 struct hbw_config_pid {
@@ -32,7 +30,7 @@ struct hbw_config_pid {
   uint16_t kp;    // proportional
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
-  uint16_t windowSize;
+  uint16_t windowSize;  // TODO: reduce to 1byte? (10 seconds steps? = max 2550 seconds)
 };
 
 
@@ -59,14 +57,13 @@ class HBWPids : public HBWChannel {
       uint8_t error :1;
       uint8_t initDone :1;
       int16_t setPoint; // temperatures in m°C
-      uint16_t outputMap; // pid output mapped to 0 - MAPSIZE
       uint32_t windowStartTime;
       
       // pidlib
       uint32_t outMax;
       double ITerm;
       int16_t Input, lastInput;
-      uint16_t sampleTime; //2 sec
+      uint16_t sampleTime;
       uint32_t lastPidTime; // pid computes every sampleTime
       double Output;
       double kp, ki, kd;

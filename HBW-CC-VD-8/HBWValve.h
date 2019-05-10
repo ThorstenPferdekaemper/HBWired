@@ -7,10 +7,9 @@
  *
  *  15.02.2015
  *      Author: hglaser
- * Eine einfache Ventilsteuerung für mein Thermisches 24V Ventil. Ich habe
- * es mittels eines TIP 220 angesteuert, es geht natürlich auch über ein Relaismodul
- * oder ähnliches. Verwendet wird zur Umrechnung der Ventilstellung die von FHEM gesendet
- * wird, "time proportioning control" eine Art extrem langsames PWM. Bei über 50% schaltet
+ * Eine einfache Ventilsteuerung für mein Thermisches 24V Ventil.
+ * Verwendet wird zur Umrechnung der Ventilstellung die von FHEM gesendet wird,
+ * "time proportioning control" eine Art extrem langsames PWM. Bei über 50% schaltet
  * das Ventil zuerst ein, unter 50% zuerst aus. Nach einer Änderung wird die erste
  * Ein- oder Auszeit einmal halbiert
  *
@@ -74,13 +73,13 @@ class HBWValve : public HBWChannel {
     // linked PID channel access
     bool getPidsInAuto();
     void setPidsInAuto(bool newAuto);
-    uint8_t getErrorPos();
 
   private:
     hbw_config_valve* config;
     uint8_t pin;
 
     uint8_t valveLevel;
+    void setNewLevel(uint8_t NewLevel);
     
     // output control
     inline void switchstate(int State);
@@ -90,6 +89,7 @@ class HBWValve : public HBWChannel {
     int init_new_state();
     uint32_t set_ontimer(uint8_t VentPositionRequested);
     uint32_t set_offtimer(uint32_t ontimer);
+    
     uint32_t outputChangeLastTime;    // last time output state was changed
     uint32_t outputChangeNextDelay;    // time until next state change
     uint32_t onTimer, offTimer;     // current calculated on and of duration
@@ -99,19 +99,14 @@ class HBWValve : public HBWChannel {
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
     
     struct valve_config {
-//      uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
-//      uint8_t upDown  :1; // Pid regelt hoch oder runter
-//      uint8_t status  :1; // outputs on or off?
       uint8_t initDone :1;
       uint8_t firstState:1;
       uint8_t nextState :1;
     } valveConf;
 
-    //boolean initDone;
-
     union tag_state_flags {
       struct state_flags {
-        uint8_t notUsed :4;
+        uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
         uint8_t upDown  :1; // Pid regelt hoch oder runter
         uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
         uint8_t status  :1; // outputs on or off?
