@@ -43,7 +43,8 @@
 #include <HBWired.h>
 #include <HBWLinkSwitchAdvanced.h>
 //#include "HBWSwitchSerialAdvanced.h"  //TODO : move to seperate files
-#include <HBWAnalogIn.h>
+//#include <HBWAnalogIn.h>
+#include "HBWAnalogPow.h"
 #include <HBWlibStateMachine.h>
 
 // shift register library
@@ -118,8 +119,8 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_switch switchCfg[NUM_SW_CHANNELS]; // 0x07-0x1F (2 bytes each)
-  hbw_config_analog_in ctCfg[NUM_AD_CHANNELS];    // 0x20-0x2C (2 bytes each)
+  hbw_config_switch switchCfg[NUM_SW_CHANNELS]; // 0x07-0x1E (2 bytes each)
+  hbw_config_analogPow_in ctCfg[NUM_AD_CHANNELS];    // 0x1F-0x2A (2 bytes each)
 } hbwconfig;
 
 
@@ -515,7 +516,7 @@ void setup()
   for(uint8_t i = 0; i < NUM_SW_CHANNELS; i++) {
     if (i < 6) {
       channels[i] = new HBWChanSw(RelayBitPos[i], LEDBitPos[i], &myShReg_one, &(hbwconfig.switchCfg[i]));
-      channels[i+NUM_SW_CHANNELS] = new HBWAnalogIn(currentTransformerPins[i], &(hbwconfig.ctCfg[i]));
+      channels[i+NUM_SW_CHANNELS] = new HBWAnalogPow(currentTransformerPins[i], &(hbwconfig.ctCfg[i]));
     }
     else
       channels[i] = new HBWChanSw(RelayBitPos[i %6], LEDBitPos[i %6], &myShReg_two, &(hbwconfig.switchCfg[i]));

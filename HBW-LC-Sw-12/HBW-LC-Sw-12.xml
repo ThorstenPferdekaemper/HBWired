@@ -38,8 +38,6 @@
 	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
 		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
-	</frame>
-	<frame id="ANALOG_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
 	</frame>
 </frames>
@@ -389,7 +387,7 @@
 	</channel>
 	
 	<channel index="13" count="6" physical_index_offset="-1" type="ANALOGSENSOR">
-	    <paramset type="MASTER" id="hmw_analog_ch_master" address_step="2" address_start="0x20">
+	    <paramset type="MASTER" id="hmw_analog_ch_master" address_step="2" address_start="0x1F">
 			<parameter id="ENABLED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
@@ -397,11 +395,14 @@
 				</physical>
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
-			<parameter id="SAMPLES">
-			   <logical type="integer" default="2" min="1" max="7"/>   
-               <physical size="0.3" type="integer" interface="eeprom" endian="little">
-                  <address index="+0.1"/>
-               </physical>
+			<parameter id="NOTIFY">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF" default="true"/>
+				</logical>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
 			</parameter>
 			<parameter id="SAMPLE_INTERVAL">
 			   <logical type="integer" unit="s" default="20" min="4" max="255"/>   
@@ -411,11 +412,11 @@
 			</parameter>
 		</paramset>
 		<paramset type="VALUES" id="hmw_analog_input_values">
-			<parameter id="VALUE" operations="read,event">
+			<parameter id="ANALOGVALUE" operations="read,event">
 				<logical type="integer" min="0" max="1023"/>
 				<physical type="integer" interface="command" value_id="ANALOGVALUE">
-					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
-					<event frame="ANALOG_EVENT"/>
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
 				</physical>
 			</parameter>
 		</paramset>
