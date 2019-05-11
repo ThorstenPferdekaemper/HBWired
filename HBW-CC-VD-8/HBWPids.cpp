@@ -48,7 +48,6 @@ void HBWPids::afterReadConfig()
   {
     pidConf.inAuto = config->startMode; // 1 automatic ; 0 manual
     valve->setPidsInAuto(pidConf.inAuto);
-   //pidConf.Output = mymap(valve->getErrorPos(), 200.0, (uint32_t) config->windowSize * 1000);
     pidConf.initDone = true;
   }
   setMode(pidConf.inAuto);
@@ -126,7 +125,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 	// can't sending everything at once to the bus.
 	// so make a delay between channels
 	if (pidConf.windowStartTime == 0) {
-	  pidConf.windowStartTime = now - ((channel + 1) * 2000);
+	  pidConf.windowStartTime = now - ((channel + 1) * 3000);
     pidConf.lastPidTime = now - pidConf.sampleTime;
     
   #ifdef DEBUG_OUTPUT

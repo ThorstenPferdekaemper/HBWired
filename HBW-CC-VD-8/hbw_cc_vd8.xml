@@ -3,7 +3,7 @@
 	<supported_types>
 		<type name="RS485 8-channel PID Valve actuator" id="HBW-CC-VD8" priority="2">
 			<parameter index="0" size="1" const_value="0x97"/>
-			<parameter index="1" size="1" const_value="1"/>
+			<parameter index="1" size="1" const_value="2"/>
 			<parameter index="2" size="2" cond_op="GE" const_value="0x0003"/>
 		</type>
 	</supported_types>
@@ -209,7 +209,7 @@
 			</paramset>
 		</channel>
     
-    	<channel index="3" physical_index_offset="-1" count="8" type="VALVE">
+    	<channel index="9" physical_index_offset="-1" count="8" type="VALVE">
 			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0xDB" address_step="7">
 				<parameter id="LOGGING">
 				  <logical type="option">
@@ -402,7 +402,7 @@
 			</paramset>
 		</channel>
 		
-		<channel index="5" physical_index_offset="-1" count="8" type="PID_TEMP">
+		<channel index="17" physical_index_offset="-1" count="8" type="PID_TEMP">
 			<link_roles>
 				<source name="TEST"/>
 			</link_roles>

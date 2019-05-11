@@ -19,8 +19,8 @@
 // - valve changed to "time proportioning control" with own lib (HBWValve.h)
 
 
-#define HARDWARE_VERSION 0x03
-#define FIRMWARE_VERSION 0x0001
+#define HARDWARE_VERSION 0x02
+#define FIRMWARE_VERSION 0x0003
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
 #define NUMBER_OF_VD_CHAN NUMBER_OF_PID_CHAN   // output channels - valve actuator (has to be same amount as PIDs)
@@ -148,15 +148,15 @@ void setup()
   uint8_t g_owCurrentChannel = 255; // init with 255! used as trigger/reset in channel loop()
   g_ow = new OneWire(ONEWIRE_PIN);
 
+  HBWValve* g_valves[NUMBER_OF_VD_CHAN];  // pointer to Valve channels, to link in HBWPids channels
+
   // create channels: 0...NUMBER_OF_PID_CHAN, n...NUMBER_OF_VD_CHAN, n...NUMBER_OF_TEMP_CHAN
   byte valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2, VD3, VD4, VD5, VD6, VD7, VD8};  // assing pins
   
-  HBWValve* g_valves[NUMBER_OF_VD_CHAN];
-  
   for(uint8_t i = 0; i < NUMBER_OF_PID_CHAN; i++) {
     g_valves[i] = new HBWValve(valvePin[i], &(hbwconfig.pidValveCfg[i]));
-    channels[i + NUMBER_OF_PID_CHAN] = g_valves[i];
     channels[i] = new HBWPids(g_valves[i], &(hbwconfig.pidCfg[i]));
+    channels[i + NUMBER_OF_PID_CHAN] = g_valves[i];
   }
   for(uint8_t i = 0; i < NUMBER_OF_TEMP_CHAN; i++) {
     channels[i + NUMBER_OF_PID_CHAN *2] = new HBWOneWireTemp(g_ow, &(hbwconfig.TempOWCfg[i]), &g_owLastReadTime, &g_owCurrentChannel);
