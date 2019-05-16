@@ -25,12 +25,12 @@
 
 // config of one PID channel, address step 9
 struct hbw_config_pid {
-  uint8_t startMode:1;  // 0x32:1 1=automatic 0=manual
-  uint8_t :7;     //fillup //0x32:1-8
+  uint8_t startMode:1;  // 0x..:1 1=automatic 0=manual
+  uint8_t :7;     //fillup //0x..:1-8
   uint16_t kp;    // proportional
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
-  uint16_t windowSize;  // TODO: reduce to 1byte? (10 seconds steps? = max 2550 seconds)
+  uint16_t windowSize;  // TODO: reduce to 1byte? (10 seconds steps? = max 2540 seconds)
 };
 
 

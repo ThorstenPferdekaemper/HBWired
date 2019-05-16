@@ -96,9 +96,9 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x92 (address step 14)
-  hbw_config_pid pidCfg[NUMBER_OF_PID_CHAN];          // 0x93 - 0xDA (address step 9)
-  hbw_config_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0xDB - 0x112 (address step 7)
+  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x76 (8* address step 14)
+  hbw_config_pid pidCfg[NUMBER_OF_PID_CHAN];          // 0x77 - 0xBE (8* address step 9)
+  hbw_config_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0xBF - 0xEE (8* address step 6) - Max. 0xFF!
 } hbwconfig;
 
 
@@ -148,15 +148,15 @@ void setup()
   uint8_t g_owCurrentChannel = 255; // init with 255! used as trigger/reset in channel loop()
   g_ow = new OneWire(ONEWIRE_PIN);
 
-  HBWValve* g_valves[NUMBER_OF_VD_CHAN];  // pointer to Valve channels, to link in HBWPids channels
+  HBWValve* valves[NUMBER_OF_VD_CHAN];  // pointer to Valve channels, to link in HBWPids channels
 
   // create channels: 0...NUMBER_OF_PID_CHAN, n...NUMBER_OF_VD_CHAN, n...NUMBER_OF_TEMP_CHAN
   byte valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2, VD3, VD4, VD5, VD6, VD7, VD8};  // assing pins
   
   for(uint8_t i = 0; i < NUMBER_OF_PID_CHAN; i++) {
-    g_valves[i] = new HBWValve(valvePin[i], &(hbwconfig.pidValveCfg[i]));
-    channels[i] = new HBWPids(g_valves[i], &(hbwconfig.pidCfg[i]));
-    channels[i + NUMBER_OF_PID_CHAN] = g_valves[i];
+    valves[i] = new HBWValve(valvePin[i], &(hbwconfig.pidValveCfg[i]));
+    channels[i] = new HBWPids(valves[i], &(hbwconfig.pidCfg[i]));
+    channels[i + NUMBER_OF_PID_CHAN] = valves[i];
   }
   for(uint8_t i = 0; i < NUMBER_OF_TEMP_CHAN; i++) {
     channels[i + NUMBER_OF_PID_CHAN *2] = new HBWOneWireTemp(g_ow, &(hbwconfig.TempOWCfg[i]), &g_owLastReadTime, &g_owCurrentChannel);

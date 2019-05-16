@@ -39,7 +39,7 @@ void HBWPids::afterReadConfig()
   if (config->kp == 0xFFFF)  config->kp = 1000;
   if (config->ki == 0xFFFF)  config->ki = 50; //todo do i need size 2 for autotune 0,5
   if (config->kd == 0xFFFF)  config->kd = 10; //dito 0,1
-  if (config->windowSize == 0xFFFF)  config->windowSize = 600; // 10min
+  if (config->windowSize > 10000 || config->windowSize < 5)  config->windowSize = 600; // 10min
 
 	setOutputLimits((uint32_t) config->windowSize * 1000);
 	setTunings((float) config->kp, (float) config->ki / 100, (float) config->kd / 100);
@@ -203,10 +203,8 @@ int8_t HBWPids::computePid(uint8_t channel)
   hbwdebug(F("\n"));
   #endif
 	}
-  // under 2 seconds or under 1% of windowsize we do nothing.
-  // it makes no sense to send on's and off's over the bus in
-  // such a short time
-//  TODO: check if shoud/can ignore 1% changes?
+
+//  TODO: check if should/can ignore 1% changes?
 
   return retVal;
 }

@@ -210,7 +210,7 @@
 		</channel>
     
     	<channel index="3" physical_index_offset="-1" count="2" type="VALVE">
-			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0x35" address_step="7">
+			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0x35" address_step="6">
 				<parameter id="LOGGING">
 				  <logical type="option">
 					<option id="OFF"/>
@@ -253,12 +253,13 @@
 					<conversion type="float_integer_scale" factor="2"/>
 				</parameter>
 				<parameter id="SWITCH_TIME">
-					<logical type="integer" min="5" max="3600" unit="s"/>
-					<physical type="integer" size="2.0" interface="eeprom" endian="little">
+					<logical type="integer" min="10" max="2540" unit="s"/>
+					<physical type="integer" size="1.0" interface="eeprom" endian="little">
 						<address index="+4"/>
 					</physical>
+					<conversion type="float_integer_scale" factor="10"/>
 					<conversion type="integer_integer_map">
-					 <value_map device_value="0xffff" parameter_value="180" from_device="true" to_device="false"/>
+					 <value_map device_value="0xff" parameter_value="18" from_device="true" to_device="false"/>
 				   </conversion>
 				</parameter>
 			</paramset>

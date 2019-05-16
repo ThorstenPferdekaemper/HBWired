@@ -94,7 +94,7 @@
 		</channel>
 		
 		<channel index="1" physical_index_offset="-1" count="8" type="PID">
-			<paramset type="MASTER" id="hmw_pid_ch_master" address_start="0x93" address_step="9">
+			<paramset type="MASTER" id="hmw_pid_ch_master" address_start="0x77" address_step="9">
 				<parameter id="POWERON_MODE">
 				  <logical type="option">
 					<option id="MANUAL"/>
@@ -137,7 +137,7 @@
 				   <logical type="integer" min="2" max="10000" unit="s"/>
 				   <physical type="integer" size="2.0" interface="eeprom" endian="little">
 					  <address index="+7"/>
-				   </physical>		
+				   </physical>
 				   <conversion type="integer_integer_map">
 					 <value_map device_value="0xffff" parameter_value="600" from_device="true" to_device="false"/>
 				   </conversion>
@@ -210,7 +210,7 @@
 		</channel>
     
     	<channel index="9" physical_index_offset="-1" count="8" type="VALVE">
-			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0xDB" address_step="7">
+			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0xBF" address_step="6">
 				<parameter id="LOGGING">
 				  <logical type="option">
 					<option id="OFF"/>
@@ -242,7 +242,7 @@
 						<address index="+1"/>
 					</physical>
 					<conversion type="integer_integer_map">
-					 <value_map device_value="0xffff" parameter_value="300" from_device="true" to_device="false"/>
+					 <value_map device_value="0xffff" parameter_value="0" from_device="true" to_device="false"/>
 				   </conversion>
 				</parameter>
 				<parameter id="VALVE_ERROR_POS">
@@ -253,12 +253,13 @@
 					<conversion type="float_integer_scale" factor="2"/>
 				</parameter>
 				<parameter id="SWITCH_TIME">
-					<logical type="integer" min="5" max="3600" unit="s"/>
-					<physical type="integer" size="2.0" interface="eeprom" endian="little">
+					<logical type="integer" min="10" max="2540" unit="s"/>
+					<physical type="integer" size="1.0" interface="eeprom" endian="little">
 						<address index="+4"/>
 					</physical>
+					<conversion type="float_integer_scale" factor="0.1"/>
 					<conversion type="integer_integer_map">
-					 <value_map device_value="0xffff" parameter_value="180" from_device="true" to_device="false"/>
+					 <value_map device_value="0xff" parameter_value="18" from_device="true" to_device="false"/>
 				   </conversion>
 				</parameter>
 			</paramset>

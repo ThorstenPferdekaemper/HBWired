@@ -46,15 +46,15 @@
 #define SET_AUTOMATIC 205
 
 
-// config of one valve channel, address step 7
+// config of one valve channel, address step 6
 struct hbw_config_valve {
   uint8_t logging:1;      // +0.0   1=on 0=off
   uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED
   uint8_t n_inverted:1;   // +0.2   inverted logic (use NO valves, NC is default)
   uint8_t :5;     //fillup //0x..:3-8
-  uint16_t send_max_interval;   // Maximum-Sendeintervall
+  uint16_t send_max_interval;   // Maximum-Sendeintervall // TODO: keep? or only use logging/notify?
   uint8_t error_pos;
-  uint16_t valveSwitchTime;   // Time the valve needs to reach 100% (NC:open or NO:closed state)
+  uint8_t valveSwitchTime;   // (factor 10!) Time the valve needs to reach 100% (NC:open or NO:closed state)
 // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
   uint8_t dummy :8;
 };
@@ -82,7 +82,7 @@ class HBWValve : public HBWChannel {
     void setNewLevel(uint8_t NewLevel);
     
     // output control
-    inline void switchstate(int State);
+    inline void switchstate(byte State);
     uint32_t set_timer(bool firstState, byte status);
     uint32_t set_peakmiddle(uint32_t ontimer, uint32_t offtimer);
     bool first_on_or_off(uint32_t ontimer, uint32_t offtimer);

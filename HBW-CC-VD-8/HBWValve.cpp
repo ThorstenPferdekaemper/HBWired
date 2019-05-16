@@ -31,9 +31,9 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
 // channel specific settings or defaults
 void HBWValve::afterReadConfig()
 {
-  if (config->send_max_interval == 0xFFFF)  config->send_max_interval = 300;
+  if (config->send_max_interval == 0xFFFF)  config->send_max_interval = 0;
   if (config->error_pos == 0xFF)  config->error_pos = 30;   // 15%
-  if (config->valveSwitchTime == 0xFFFF)  config->valveSwitchTime = 180;
+  if (config->valveSwitchTime == 0xFF || config->valveSwitchTime == 0)  config->valveSwitchTime = 18; // default 180s (factor 10!)
 
   if (!valveConf.initDone) {
     valveLevel = config->error_pos;
@@ -107,7 +107,7 @@ void HBWValve::setNewLevel(uint8_t NewLevel)
   {
     valveLevel < NewLevel ? stateFlags.element.upDown = 1 : stateFlags.element.upDown = 0;
     valveLevel = NewLevel;
-    valveConf.firstState = true;  // TODO: check if this should be done? it may interrupt the previous (incomplete) cycle?
+    valveConf.firstState = true;
     valveConf.nextState = init_new_state();
   }
 }
@@ -140,7 +140,7 @@ void HBWValve::setPidsInAuto(bool newAuto)
 void HBWValve::loop(HBWDevice* device, uint8_t channel)
 {
 	uint32_t now = millis();
-  static uint16_t level;
+  static uint8_t level[2];
 
   if (now - outputChangeLastTime >= outputChangeNextDelay)
   {
@@ -153,11 +153,9 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
   // usually this is not used for an actor, as notify will be send on state changes - however if ...????
   if (config->send_max_interval && now - lastSentTime >= (uint32_t) (config->send_max_interval) * 1000)
   {
-//    get((uint8_t*) &level);
  #ifdef DEBUG_OUTPUT
  hbwdebug(F("Valve ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(valveLevel/2); hbwdebug(F("%\n"));
  #endif
-//    device->sendInfoMessage(channel, 2, (uint8_t*) &level);    // level has 2 byte here
     // set variables, to send the InfoMessage by existing feedback/logging code next loop()
     nextFeedbackDelay = 1;
     lastFeedbackTime = now;
@@ -172,8 +170,8 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
   lastFeedbackTime = now;  // at least last time of trying
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
   // we know that the level has 2 byte here (value & state)
-  get((uint8_t*) &level);
-  if (device->sendInfoMessage(channel, 2, (uint8_t*) &level) == 1) {  // bus busy
+  get(level);
+  if (device->sendInfoMessage(channel, 2, level) == 1) {  // bus busy
   // try again later, but insert a small delay
     nextFeedbackDelay = 250;
   }
@@ -185,7 +183,7 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
 
 
 // called by loop() with next state, if delay time has passed
-void HBWValve::switchstate(int State)
+void HBWValve::switchstate(byte State)
 {
   switch(State)
   {
@@ -208,19 +206,19 @@ void HBWValve::switchstate(int State)
   digitalWrite(pin, stateFlags.element.status);
   
   #ifdef DEBUG_OUTPUT
-  hbwdebug(F("switchtstate, "));
-  State == VENTOFF ? hbwdebug(F("VENTOFF")) : hbwdebug(F("VENTON"));
+  hbwdebug(F("switchtstate, pin: ")); hbwdebug(pin);
+  State == VENTOFF ? hbwdebug(F(" VENTOFF")) : hbwdebug(F(" VENTON"));
   hbwdebug(F(" next delay: ")); hbwdebug(outputChangeNextDelay); hbwdebug(F("\n"));
   #endif
 }
 
 
-uint32_t HBWValve::set_timer(bool firstState, byte status)
+uint32_t HBWValve::set_timer(bool firstState, byte Status)
 {
   if (firstState == true)
     return set_peakmiddle(onTimer, offTimer);
 
-  if (status == VENTON)  //on
+  if (Status == VENTON)  //on
     return onTimer;
   else
     return offTimer;
@@ -247,16 +245,13 @@ bool HBWValve::first_on_or_off(uint32_t ontimer, uint32_t offtimer)
 
 int HBWValve::init_new_state()
 {
-//int HBWValve::init_new_state(bool firstState) {
-//    valveConf.firstState = firstState;
-//    valveConf.nextState = init_new_state();
   onTimer = set_ontimer(valveLevel);
   offTimer = set_offtimer(onTimer);
   
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("Valve init_new_state, onTimer: "));  hbwdebug(onTimer);
   hbwdebug(F(" offTimer: "));  hbwdebug(offTimer);
-  hbwdebug(F(" valveSwitchTime: "));  hbwdebug((uint32_t)config->valveSwitchTime *1000);  hbwdebug(F("\n"));
+  hbwdebug(F(" valveSwitchTime: "));  hbwdebug((uint32_t)config->valveSwitchTime *10000);  hbwdebug(F("\n"));
   #endif
   
   if (first_on_or_off(onTimer, offTimer)) {
@@ -268,10 +263,10 @@ int HBWValve::init_new_state()
 
 
 uint32_t HBWValve::set_ontimer(uint8_t VentPositionRequested) {
-    return ((((uint32_t)config->valveSwitchTime *10) * VentPositionRequested) / 2);
+    return ((((uint32_t)config->valveSwitchTime *100) * VentPositionRequested) / 2);
 }
 
 
 uint32_t HBWValve::set_offtimer(uint32_t ontimer) {
-    return ((uint32_t)config->valveSwitchTime *1000 - ontimer);
+    return ((uint32_t)config->valveSwitchTime *10000 - ontimer);
 }
