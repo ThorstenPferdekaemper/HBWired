@@ -202,7 +202,7 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
 
   uint32_t now = millis();
-  static uint16_t level;
+  static uint8_t level[2];
 
   if (lastSentTime == 0)
     lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time, to not spam the bus (will vary over time anyway...)
@@ -233,8 +233,8 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   
   #ifdef Support_HBWLink_InfoEvent
   if (state.sendInfoEvent && now - lastSentTime > SEND_INFO_EVENT_DELAY) {
-    get((uint8_t*) &level);
-    device->sendInfoEvent(channel, 2, (uint8_t*) &level);
+    get(level);
+    device->sendInfoEvent(channel, 2, level);
     state.sendInfoEvent = false;
   }
   #endif
@@ -248,8 +248,8 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   if ((config->send_max_interval && now - lastSentTime >= (long)config->send_max_interval * 1000) ||
       (config->send_delta_temp && abs( currentTemp - lastSentTemp ) >= (unsigned int)(config->send_delta_temp) * 10)) {
     // send temperature
-    get((uint8_t*) &level);
-    device->sendInfoMessage(channel, 2, (uint8_t*) &level);    // level has always 2 byte here
+    get(level);
+    device->sendInfoMessage(channel, 2, level);    // level has always 2 byte here
 
     #ifdef Support_HBWLink_InfoEvent
     state.sendInfoEvent = true;

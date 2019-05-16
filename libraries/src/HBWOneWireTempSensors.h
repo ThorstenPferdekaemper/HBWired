@@ -31,13 +31,15 @@
 
 #define SEND_INFO_EVENT_DELAY 450
 
-// config of each sensor
+
+// config of each sensor, address step 14
 struct hbw_config_onewire_temp {
-  byte send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird
-  byte offset;                           // offset in m°C (-1.27..+1.27 °C)
+  uint8_t send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird
+  uint8_t offset;                           // offset in m°C (-1.27..+1.27 °C)
   uint16_t send_min_interval;            // Minimum-Sendeintervall
   uint16_t send_max_interval;            // Maximum-Sendeintervall
-  byte address[OW_DEVICE_ADDRESS_SIZE];  // 1-Wire-Adresse
+  uint8_t address[OW_DEVICE_ADDRESS_SIZE];  // 1-Wire-Adresse
+  // TODO: check if address can moved to seperate array, to only keep pointer here (uint8_t* address = (uint8_t*)&ow_addr...; uint8_t ow_addr[8])
 };
 
 

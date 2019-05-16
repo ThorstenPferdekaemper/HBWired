@@ -15,7 +15,7 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define POLLING_TIME 10	  // S0-Puls muss laut Definition mindestens 30ms lang sein - Abtastung mit 10ms soll ausreichen
+#define POLLING_TIME 10	  // S0-Puls muss laut Definition mindestens 30ms lang sein - Abtastung mit 10ms sollte ausreichen
                           // POLLING_TIME wird als Standard genommen, kann aber von config polling_time überschrieben werden
 
 
