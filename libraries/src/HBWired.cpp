@@ -649,8 +649,6 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const 
    memcpy(&(txFrameData[3]), data, length);
    return sendFrame(true);  // only if bus is free
 };
-
-
 // InfoEvent senden, inklusive peers etc.
 uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data) {
 	if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead

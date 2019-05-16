@@ -8,10 +8,12 @@
 #ifndef HBWired_h
 #define HBWired_h
 
-// #define Support_HBWLink_InfoEvent
-
 #include "Arduino.h"
 #include "hardware.h"
+
+/* enable the below to allow peering with HBWLinkInfoMessageActuator/HBWLinkInfoMessageSensor
+ * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
+//#define Support_HBWLink_InfoEvent
 
 class HBWDevice;
 
