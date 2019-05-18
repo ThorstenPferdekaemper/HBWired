@@ -5,7 +5,7 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // 
-// - Direktes Peering für Temperatursensoren möglich. (HBWLinkInfoMessage*)
+// - Direktes Peering für Temperatursensoren möglich. (HBWLinkInfoEvent*)
 //
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -43,8 +43,8 @@
 #include <HBWOneWireTempSensors.h>
 #include "HBWPids.h"
 #include "HBWValve.h"
-#include <HBWLinkInfoMessageSensor.h>
-#include <HBWLinkInfoMessageActuator.h>
+#include <HBWLinkInfoEventSensor.h>
+#include <HBWLinkInfoEventActuator.h>
 
 
 // Pins
@@ -171,8 +171,8 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
-                             new HBWLinkInfoMessageSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoMessageActuator(NUM_LINKS_PID,LINKADDRESSSTART_PID),
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
+                             new HBWLinkInfoEventActuator(NUM_LINKS_PID,LINKADDRESSSTART_PID),
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
@@ -185,8 +185,8 @@ void setup()
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
-                             new HBWLinkInfoMessageSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoMessageActuator(NUM_LINKS_PID,LINKADDRESSSTART_PID),
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
+                             new HBWLinkInfoEventActuator(NUM_LINKS_PID,LINKADDRESSSTART_PID),
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
@@ -204,7 +204,7 @@ void loop()
 };
 
 
-// check if HBWLinkInfoMessage support is enabled, when links are set
+// check if HBWLinkInfoEvent support is enabled, when links are set
 #if !defined(Support_HBWLink_InfoEvent) && defined(NUM_LINKS_PID)
 #error enable/define Support_HBWLink_InfoMessage in HBWired.h
 #endif

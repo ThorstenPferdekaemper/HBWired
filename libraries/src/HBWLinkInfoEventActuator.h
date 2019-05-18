@@ -1,5 +1,5 @@
 /* 
-** HBWLinkInfoMessageActuator
+** HBWLinkInfoEventActuator
 **
 ** Einfache direkte Verknuepfung (Peering), zu Schaltausgaengen
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
@@ -7,14 +7,14 @@
 **
 */
 
-#ifndef HBWLinkInfoMessageActuator_h
-#define HBWLinkInfoMessageActuator_h
+#ifndef HBWLinkInfoEventActuator_h
+#define HBWLinkInfoEventActuator_h
 
 #include "HBWired.h"
 
-class HBWLinkInfoMessageActuator : public HBWLinkReceiver {
+class HBWLinkInfoEventActuator : public HBWLinkReceiver {
   public:
-      HBWLinkInfoMessageActuator(uint8_t _numLinks, uint16_t _eepromStart);
+      HBWLinkInfoEventActuator(uint8_t _numLinks, uint16_t _eepromStart);
       void receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                            uint8_t targetChannel, uint8_t length, uint8_t const * const data);
   private:

@@ -1,5 +1,5 @@
 /* 
-** HBWLinkInfoMessageSensor
+** HBWLinkInfoEventSensor
 **
 ** Einfache direkte Verknuepfung (Peering), vom Sensor ausgehend
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
@@ -8,19 +8,19 @@
 */
 
 
-#include "HBWLinkInfoMessageSensor.h"
+#include "HBWLinkInfoEventSensor.h"
 
 #define EEPROM_SIZE 6
 
 #ifdef Support_HBWLink_InfoEvent
-HBWLinkInfoMessageSensor::HBWLinkInfoMessageSensor(uint8_t _numLinks, uint16_t _eepromStart) {
+HBWLinkInfoEventSensor::HBWLinkInfoEventSensor(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
 	eepromStart = _eepromStart;
 }
 
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
-void HBWLinkInfoMessageSensor::sendInfoEvent(HBWDevice* device, uint8_t srcChan, 
+void HBWLinkInfoEventSensor::sendInfoEvent(HBWDevice* device, uint8_t srcChan, 
                                     uint8_t length, uint8_t const * const data) {
 	uint8_t channelEEPROM;
 	uint32_t addrEEPROM;

@@ -1,5 +1,5 @@
 /* 
-** HBWLinkInfoMessageActuator
+** HBWLinkInfoEventActuator
 **
 ** Einfache direkte Verknuepfung (Peering), zu Schaltausgaengen
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
@@ -7,19 +7,19 @@
 **
 */
 
-#include "HBWLinkInfoMessageActuator.h"
+#include "HBWLinkInfoEventActuator.h"
 
 #define EEPROM_SIZE 7
 
 #ifdef Support_HBWLink_InfoEvent
-HBWLinkInfoMessageActuator::HBWLinkInfoMessageActuator(uint8_t _numLinks, uint16_t _eepromStart) {
+HBWLinkInfoEventActuator::HBWLinkInfoEventActuator(uint8_t _numLinks, uint16_t _eepromStart) {
 	numLinks = _numLinks;
 	eepromStart = _eepromStart;
 }
  
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
-void HBWLinkInfoMessageActuator::receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
+void HBWLinkInfoEventActuator::receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                           uint8_t targetChannel, uint8_t length, uint8_t const * const data) {
 
   uint32_t sndAddrEEPROM;

@@ -1,5 +1,5 @@
 /* 
-** HBWLinkInfoMessageSensor
+** HBWLinkInfoEventSensor
 **
 ** Einfache direkte Verknuepfung (Peering), vom Sensor ausgehend
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
@@ -8,14 +8,14 @@
 */
 
 
-#ifndef HBWLinkInfoMessageSensor_h
-#define HBWLinkInfoMessageSensor_h
+#ifndef HBWLinkInfoEventSensor_h
+#define HBWLinkInfoEventSensor_h
 
 #include "HBWired.h"
 
-class HBWLinkInfoMessageSensor : public HBWLinkSender {
+class HBWLinkInfoEventSensor : public HBWLinkSender {
   public:
-      HBWLinkInfoMessageSensor(uint8_t _numLinks, uint16_t _eepromStart);
+      HBWLinkInfoEventSensor(uint8_t _numLinks, uint16_t _eepromStart);
       void sendInfoEvent(HBWDevice* device, uint8_t srcChan, uint8_t length, uint8_t const * const data);
   private:
       uint8_t numLinks;         // number of links of this type  

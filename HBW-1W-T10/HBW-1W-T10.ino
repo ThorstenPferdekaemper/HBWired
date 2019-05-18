@@ -38,7 +38,7 @@
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
-#include <HBWLinkInfoMessageSensor.h>
+#include <HBWLinkInfoEventSensor.h>
 
 
 // Pins
@@ -139,7 +139,7 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
   #if defined(NUM_LINKS_TEMP)
-                             new HBWLinkInfoMessageSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
   #else
                              NULL, NULL,
   #endif
@@ -157,7 +157,7 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
   #if defined(NUM_LINKS_TEMP)
-                             new HBWLinkInfoMessageSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
   #else
                              NULL, NULL,
   #endif
@@ -179,7 +179,7 @@ void loop()
 };
 
 
-// check if HBWLinkInfoMessage support is enabled, when links are set
+// check if HBWLinkInfoEvent support is enabled, when links are set
 #if !defined(Support_HBWLink_InfoEvent) && defined(NUM_LINKS_TEMP)
 #error enable/define Support_HBWLink_InfoEvent in HBWired.h
 #endif

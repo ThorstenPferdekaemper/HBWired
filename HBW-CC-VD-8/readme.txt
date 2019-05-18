@@ -8,7 +8,7 @@ Das Modul HBW-CC-VD-8 bietet die Möglichkeit, bis zu 8 auf einem Thermoelement b
 Basis ist ein Arduino NANO mit RS485-Interface.
 (Hinweis Hex Dateien: Geeignet für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
 
-Direktes Peering ist für die Temperatursensoren mit den PID Regler möglich (HBWLinkInfoMessageActuator & HBWLinkInfoMessageSensor).
+Direktes Peering ist für die Temperatursensoren mit den PID Regler möglich (HBWLinkInfoEventActuator & HBWLinkInfoEventSensor).
 
 
 Die Ventile können wie ein Dimmer von 0-100% gesetzt werden.
