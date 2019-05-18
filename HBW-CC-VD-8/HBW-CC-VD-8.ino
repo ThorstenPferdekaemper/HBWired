@@ -1,6 +1,6 @@
 //*******************************************************************
 //
-// HBW-CC-VD-8, RS485 2-channel PID Valve actuator
+// HBW-CC-VD-8, RS485 8-channel PID Valve actuator
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
@@ -33,7 +33,7 @@
 #define LINKADDRESSSTART_TEMP 0x270   // ends @0x323
 
 
-#define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_ .xml into FHEM)
+#define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
 
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
 
@@ -145,12 +145,12 @@ void setup()
   // variables for all OneWire channels
   OneWire* g_ow = NULL;
   uint32_t g_owLastReadTime = 0;
-  uint8_t g_owCurrentChannel = 255; // init with 255! used as trigger/reset in channel loop()
+  uint8_t g_owCurrentChannel = 255; // always init with 255! used as trigger/reset in channel loop()
   g_ow = new OneWire(ONEWIRE_PIN);
 
   HBWValve* valves[NUMBER_OF_VD_CHAN];  // pointer to Valve channels, to link in HBWPids channels
 
-  // create channels: 0...NUMBER_OF_PID_CHAN, n...NUMBER_OF_VD_CHAN, n...NUMBER_OF_TEMP_CHAN
+  // create channels: 0...NUMBER_OF_PID_CHAN, ...NUMBER_OF_VD_CHAN, ...NUMBER_OF_TEMP_CHAN
   byte valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2, VD3, VD4, VD5, VD6, VD7, VD8};  // assing pins
   
   for(uint8_t i = 0; i < NUMBER_OF_PID_CHAN; i++) {

@@ -60,10 +60,9 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
     // get a free slot
     for (channel = 0; channel < channels; channel++) {
   #ifdef EXTRA_DEBUG_OUTPUT
-  hbwdebug(F("channel: "));    hbwdebug(channel);
+  hbwdebug(F("channel: "));  hbwdebug(channel);
   hbwdebug(F(" stored address: "));  m_hbwdebug_ow_address(&_config[channel]->address[0]);  hbwdebug(F("\n"));
   #endif
-//      if (_config[channel]->address[0] == 0xFF) break;   // free slot found
       if (deviceInvalidOrEmptyID(_config[channel]->address[0])) break;   // free slot found
     }
     if (channel == channels) break;   // no free slot found
@@ -120,7 +119,7 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
  * send "start conversion" to device
  */
 void HBWOneWireTemp::oneWireStartConversion() {
-//  if (config->address[0] == 0xFF)
+  
   if (deviceInvalidOrEmptyID(config->address[0]))
     return;  // ignore channels without valid sensor
   ow->reset();
@@ -136,7 +135,6 @@ void HBWOneWireTemp::oneWireStartConversion() {
  */
 int16_t HBWOneWireTemp::oneWireReadTemp() {
   
-//	if (config->address[0] == 0xFF)
   if (deviceInvalidOrEmptyID(config->address[0]))
 	  return DEFAULT_TEMP;  // ignore channels without valid sensor
 
@@ -207,10 +205,8 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   if (lastSentTime == 0)
     lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time, to not spam the bus (will vary over time anyway...)
   
-  if (*owCurrentChannel == 255) {
-      *owCurrentChannel = channel;}
-  
-  // TODO: if (config->send_min_interval == 3601)  return; // use config->send_min_interval == 0xE11 to disable a channel?
+  if (*owCurrentChannel == 255)
+      *owCurrentChannel = channel;
   
   // read onewire sensor every n seconds (OW_POLL_FREQUENCY/1000)
   if (now - *owLastReadTime >= OW_POLL_FREQUENCY && *owCurrentChannel == channel) {
@@ -226,7 +222,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
       
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
-  hbwdebug(F(" read temp, m°C: "));  hbwdebug(currentTemp);  hbwdebug(F("\n"));
+  hbwdebug(F(" read temp, c°C: "));  hbwdebug(currentTemp);  hbwdebug(F("\n"));	// display temperatue in centi celcius incl. offset
   #endif
     }
   }

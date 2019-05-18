@@ -257,7 +257,7 @@
 					<physical type="integer" size="1.0" interface="eeprom" endian="little">
 						<address index="+4"/>
 					</physical>
-					<conversion type="float_integer_scale" factor="10"/>
+					<conversion type="float_integer_scale" factor="0.1"/>
 					<conversion type="integer_integer_map">
 					 <value_map device_value="0xff" parameter_value="18" from_device="true" to_device="false"/>
 				   </conversion>

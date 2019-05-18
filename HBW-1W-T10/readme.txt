@@ -1,9 +1,8 @@
-Homematic Wired Homebrew OneWire 10 Channel Temperature Module
-===============================================================
+Homematic Wired Homebrew 10 Channel OneWire Temperature Module
+==============================================================
 
 Am Modul HBW-1W-T10 können bis zu 10 OneWire Temperatursensoren angeschlossen werden.
 Basis ist ein Arduino NANO mit RS485-Interface.
-(Hinweis Hex Dateien: Geeignet für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
 
 Unterstützte 1-Wire® Temperatursensoren:
 DS18S20 Gerätecode 0x10
@@ -31,5 +30,5 @@ A6 - Bedientaster (Reset)
 2  - Tx RS485
 3  - RS485 Enable
 13 - Status LED
-8 - Bedientaster (Reset)
+8  - Bedientaster (Reset)
 10 - OneWire Bus (parasitäre Stromversorgung)

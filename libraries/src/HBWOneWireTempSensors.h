@@ -22,8 +22,8 @@
 
 #define OW_POLL_FREQUENCY 1200  // read temperature every X milli seconds (not less than 900 ms! -> 750 ms conversion time @12 bit resolution)
 #define DEFAULT_TEMP -27315   // for unused channels
-#define ERROR_TEMP -27314     // CRC error
-#define OW_DEVICE_ADDRESS_SIZE 8   // fixed length for temp sensors
+#define ERROR_TEMP -27314     // CRC or read error
+#define OW_DEVICE_ADDRESS_SIZE 8   // fixed length for temp sensors address
 
 
 #define ACTION_READ_TEMP 1
@@ -35,11 +35,11 @@
 // config of each sensor, address step 14
 struct hbw_config_onewire_temp {
   uint8_t send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird
-  uint8_t offset;                           // offset in m°C (-1.27..+1.27 °C)
+  uint8_t offset;                           // offset in c°C (-1.27..+1.27 °C)
   uint16_t send_min_interval;            // Minimum-Sendeintervall
   uint16_t send_max_interval;            // Maximum-Sendeintervall
   uint8_t address[OW_DEVICE_ADDRESS_SIZE];  // 1-Wire-Adresse
-  // TODO: check if address can moved to seperate array, to only keep pointer here (uint8_t* address = (uint8_t*)&ow_addr...; uint8_t ow_addr[8])
+  // TODO: check if address can moved to seperate array, to only keep pointer here (ow_addr* ..?/ uint8_t* address = (uint8_t*)&ow_addr...; uint8_t ow_addr[8])
 };
 
 
