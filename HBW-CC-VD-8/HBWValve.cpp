@@ -60,7 +60,7 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 // slighlty customized set() function, to allow PID channels to set level in automatic mode
 void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data, bool setByPID)
 {
-  if (config->unlocked)
+  if (config->unlocked || setByPID)
   {
   /* TODO: Check if we allow setting level always (even when inAuto), but use the AUTO flag to fallback to error_pos if no set() was called
    * for some time when inAuto (? switch_time *x?). PIDs should still sync the inAuto flag, to not overwrite manual set levels */

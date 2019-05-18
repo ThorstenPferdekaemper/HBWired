@@ -148,7 +148,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   		setMode(pidConf.oldInAuto);
       
       uint8_t newMode = pidConf.inAuto ? SET_AUTOMATIC : SET_MANUAL;
-      valve->set(device, 1, &newMode);   // set new mode
+      valve->set(device, 1, &newMode, true);  // setByPID = true   // set new mode
   	}
   }
   
@@ -160,7 +160,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
     setMode(MANUAL);
     
     uint8_t newMode = SET_MANUAL;  // setting valve to manual will apply error position
-    valve->set(device, 1, &newMode);   // set new mode
+    valve->set(device, 1, &newMode, true);  // setByPID = true   // set new mode
   }
   
   // compute the PID Output
