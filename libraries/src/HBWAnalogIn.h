@@ -21,7 +21,7 @@
 
 
 struct hbw_config_analog_in {
-  uint8_t input_enabled:1;     // 0x07:0   0=DISABLED, 1=ENABLED (default)
+  uint8_t input_disabled:1;     // 0x07:0   1=DISABLED (default), 0=ENABLED
   uint8_t notify_disabled:1;   // 0x07:1   1=DISABLED (default), 0=ENABLED
   uint8_t        :6;      // 0x07:2-7
   uint8_t update_interval;

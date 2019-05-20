@@ -369,10 +369,23 @@ void HBWDevice::receive(){
 
 
 // Basisklasse fuer Channels, defaults
+#ifdef Support_HBWLink_InfoEvent
+void HBWChannel::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
+#endif
 void HBWChannel::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
 uint8_t HBWChannel::get(uint8_t* data) { return 0; };   
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
 void HBWChannel::afterReadConfig() {};
+
+
+void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {};
+void HBWLinkReceiver::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
+                                      uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {};
+#ifdef Support_HBWLink_InfoEvent
+void HBWLinkSender::sendInfoEvent(HBWDevice* device, uint8_t srcChan, uint8_t length, uint8_t const * const data) {};
+void HBWLinkReceiver::receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel,
+                                       uint8_t targetChannel, uint8_t length, uint8_t const * const data) {};
+#endif
 
 
 // Processing of default events (related to all modules)
@@ -475,7 +488,12 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
          /* case 'c':                                                               // Zieladresse löschen?
             // TODO: ???
             break;  */
-
+       #ifdef Support_HBWLink_InfoEvent
+         case 0xB4:                                                               // received 'Info Event' (peering with data)
+            if (frameDataLength > 3)
+              receiveInfoEvent(senderAddress, frameData[1], frameData[2], frameDataLength-3, &(frameData[3]));
+            break;
+       #endif
          case 'h':                                 // 0x68 get Module type and hardware version
         	hbwdebug(F("T: HWVer,Typ\n"));
             onlyAck = false;
@@ -523,12 +541,23 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
 };
 
 
+#ifdef Support_HBWLink_InfoEvent	
+// i-Message as linkReceiver
+void HBWDevice::receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan, 
+                                uint8_t dstChan, uint8_t length, uint8_t const * const data) {
+    if(linkReceiver)
+        linkReceiver->receiveInfoEvent(this, senderAddress, srcChan, dstChan, length, data);
+};
+#endif
+
+
 // Enhanced peering, needs more data
 void HBWDevice::receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan, 
                                 uint8_t dstChan, uint8_t keyPressNum, boolean longPress) {
     if(linkReceiver)
         linkReceiver->receiveKeyEvent(this, senderAddress, srcChan, dstChan, keyPressNum, longPress);
 };
+
 
 void HBWDevice::processEventGetLevel(byte channel, byte command){
    // get value from the hardware and send it back
@@ -605,6 +634,29 @@ uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t cons
    memcpy(&(txFrameData[2]), data, length);
    return sendFrame(true);  // only if bus is free
 };
+
+
+#ifdef Support_HBWLink_InfoEvent
+// link "InfoEvent Message" senden
+uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel) {
+   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   txTargetAddress = target_address;
+   txFrameControlByte = 0xF8;          // control byte
+   txFrameDataLength = 0x03 + length;  // Length
+   txFrameData[0] = 0xB4;              // custom frame/command (mix of 'i' and 'K')
+   txFrameData[1] = channel;           // Sensornummer
+   txFrameData[2] = target_channel;    // Zielaktor
+   memcpy(&(txFrameData[3]), data, length);
+   return sendFrame(true);  // only if bus is free
+};
+// InfoEvent senden, inklusive peers etc.
+uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data) {
+	if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
+    if(linkSender)
+        linkSender->sendInfoEvent(this, srcChan, length, data);
+	return 0;  // return always success... can't send anything different //TODO: maybe linkSender->sendInfoEvent() should not be void...?
+};
+#endif
 
 
 // key-Event senden, inklusive peers etc.
@@ -713,8 +765,6 @@ void HBWDevice::readEEPROM(void* dst, uint16_t address, uint16_t length,
 // this might need to "wait" until the bus is free
 void HBWDevice::handleBroadcastAnnounce() {
    // avoid sending broadcast in the first second
-   // we don't care for the overflow as the announce
-   // is sent after 40 days anyway (hopefully)
    if(millis() < 1000) return;
    if(pendingActions.announced) return;
    // send methods return 0 if everything is ok
@@ -795,6 +845,19 @@ void HBWDevice::setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin) {
 	if(rxLedPin != NOT_A_PIN) pinMode(rxLedPin, OUTPUT);
 };
 
+#ifdef Support_HBWLink_InfoEvent
+void HBWDevice::setInfo(uint8_t channel, uint8_t length, uint8_t const * const data) {
+	if(hbwdebugstream) {
+	    hbwdebug(F("Si: ")); hbwdebughex(channel); hbwdebug(F(" "));
+		for(uint8_t i = 0; i < length; i++)
+			hbwdebughex(data[i]); 
+		hbwdebug("\n");
+	};
+	// to avoid crashes, do not try to set any channels, which do not exist
+	if(channel < numChannels)
+        channels[channel]->setInfo(this, length, data);
+}
+#endif
 
 void HBWDevice::set(uint8_t channel, uint8_t length, uint8_t const * const data) {
 	if(hbwdebugstream) {

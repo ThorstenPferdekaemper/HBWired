@@ -1,17 +1,17 @@
 /*
- * HBWAnalogIn.cpp
+ * HBWAnalogPow.cpp
  * 
- * analog input channel, max. 16 bit reading
+ * analog power meter input channel, using current transformers connected to ADC
  * 
- * Updated: 29.09.2018
+ * Updated: 02.04.2019
  * www.loetmeister.de
  * 
  */
 
-#include "HBWAnalogIn.h"
+#include "HBWAnalogPow.h"
 
-// Class HBWAnalogIn
-HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
+// Class HBWAnalogPow
+HBWAnalogPow::HBWAnalogPow(uint8_t _pin, hbw_config_analogPow_in* _config) {
   pin = _pin;
   config = _config;
   lastActionTime = 0;
@@ -22,13 +22,13 @@ HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
 
 
 // channel specific settings or defaults
-//void HBWAnalogIn::afterReadConfig() {
+//void HBWAnalogPow::afterReadConfig() {
 //
 //};
 
 
 /* standard public function - returns length of data array. Data array contains current channel reading */
-uint8_t HBWAnalogIn::get(uint8_t* data) {
+uint8_t HBWAnalogPow::get(uint8_t* data) {
   
   // MSB first
   *data++ = (currentValue >> 8);
@@ -38,7 +38,7 @@ uint8_t HBWAnalogIn::get(uint8_t* data) {
 
 
 /* standard public function - called by main loop for every channel in sequential order */
-void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
+void HBWAnalogPow::loop(HBWDevice* device, uint8_t channel) {
   
   if (config->input_disabled) {   // skip disabled channels
     currentValue = 0;
@@ -48,11 +48,19 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   if (millis() - lastActionTime < ((uint32_t)nextActionDelay *1000)) return; // quit if wait time not yet passed
     
   nextActionDelay = SAMPLE_INTERVAL;
-  #define MAX_SAMPLES 3    // update "buffer" array definition, when changing this
+  #define MAX_SAMPLES 3    // update "buffer" array definition, when changing this!
   static uint16_t buffer[MAX_SAMPLES] = {0, 0, 0};
   static uint8_t nextIndex = 0;
   
-  buffer[nextIndex++] = analogRead(pin);
+  uint16_t adcReading = analogRead(pin);
+  if (adcReading < CENTRE_VALUE) {
+    adcReading = CENTRE_VALUE - adcReading;
+  }
+  else
+  {
+    adcReading = adcReading - CENTRE_VALUE;
+  }
+  buffer[nextIndex++] = adcReading;//analogRead(pin);
   lastActionTime = millis();
   
   if (nextIndex >= MAX_SAMPLES) {
@@ -76,4 +84,3 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
 #endif
   }
 };
-

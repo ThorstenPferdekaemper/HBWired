@@ -20,7 +20,8 @@ HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config, boolean _activeHigh)
   keyPressedMillis = 0;
   nextFeedbackDelay = 0;
   currentState = false; // init flag
-  pinMode(pin, INPUT);
+  if (activeHigh) pinMode(pin, INPUT);
+  else pinMode(pin, INPUT_PULLUP); // pullup only for activeLow
 };
 
 

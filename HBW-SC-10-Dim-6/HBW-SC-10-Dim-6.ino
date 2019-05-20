@@ -62,15 +62,15 @@
   
   #define PWM1 9  // PWM out (controlled by timer1)
   #define PWM2_DAC 5  // PWM out (controlled by timer0)
-  #define PWM3_DAC 6  // PWM out (controlled by timer0)
-  #define PWM4   3// PWM out (controlled by timer2)
-  #define PWM5 10  // PWM out (controlled by timer1)
-  #define PWM6 11  // PWM out (controlled by timer2)
+  #define PWM3_DAC 10  // PWM out (controlled by timer1)
+  #define PWM4   6 // PWM out (controlled by timer0)
+  #define PWM5 11  // PWM out (controlled by timer2)
+  #define PWM6 3  // PWM out (controlled by timer2)
 
-  #define IO1 4
-  #define IO2 7
-  #define IO3 8
-  #define IO4 12
+  #define IO1 12
+  #define IO2 8
+  #define IO3 7
+  #define IO4 4
   #define IO5 A0
   #define IO6 A1
   #define IO7 A2
@@ -84,22 +84,22 @@
   #define BUTTON 8  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
-  #define PWM1 NOT_A_PIN  // dummy pin to fill the array elements
+  #define PWM1 9
   #define PWM2_DAC 5
-  #define PWM3_DAC 6
-  #define PWM4 9
-  #define PWM5 10
-  #define PWM6 11
+  #define PWM3_DAC 10
+  #define PWM4 6
+  #define PWM5 11
+  #define PWM6 NOT_A_PIN  // dummy pin to fill the array elements
 
-  #define IO1 4
-  #define IO2 7
-  #define IO3 A5
-  #define IO4 12
-  #define IO5 A0
-  #define IO6 A1
-  #define IO7 A2
-  #define IO8 A3
-  #define IO9 A4
+  #define IO1 7
+  #define IO2 A5
+  #define IO3 12
+  #define IO4 A0
+  #define IO5 A1
+  #define IO6 A2
+  #define IO7 A3
+  #define IO8 A4
+  #define IO9 NOT_A_PIN  // dummy pin to fill the array elements
   #define IO10 NOT_A_PIN  // dummy pin to fill the array elements
   
   #include "HBWSoftwareSerial.h"
