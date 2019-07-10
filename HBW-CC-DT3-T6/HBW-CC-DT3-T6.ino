@@ -12,7 +12,7 @@
 // v0.01
 // - initial version
 
-//TODO: get it working... ;-)
+
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0001
@@ -20,13 +20,13 @@
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 #define NUM_LINKS_TEMP 20    // requires Support_HBWLink_InfoEvent in HBWired.h
-#define LINKADDRESSSTART_TEMP 0x1A2 //!!0x100  // step 6
+#define LINKADDRESSSTART_TEMP 0x100  // step 6
 #define NUMBER_OF_DELTAT_CHAN 3 // result output channels, can peer with switch
 #define NUM_LINKS_DELTATX 6     // peer  input channels (T1 & T2) with temperature sensor
-#define LINKADDRESSSTART_DELTATX 0x178 //0x1A8 // step 7
+#define LINKADDRESSSTART_DELTATX 0x220  // step 7
 #define NUMBER_OF_KEY_CHAN 3  // input channels - pushbutton/switch
-#define NUM_LINKS_KEY 12
-#define LINKADDRESSSTART_KEY 0x1A2 // 0x15F // step 6
+#define NUM_LINKS_KEY 12    // 3 DELTA_T, 9 for pushbutton/switch
+#define LINKADDRESSSTART_KEY 0x100 //0x1A2, only one start address possible for all sensor type peers  // step 6
 
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import .xml into FHEM)
 
@@ -53,6 +53,10 @@
   #define RELAY_1 5
   #define RELAY_2 6
   #define RELAY_3 7
+
+  #define BUTTON_1 A1
+  #define BUTTON_2 A2
+  #define BUTTON_3 A3
   
   #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
   #define BLOCKED_TWI_SCL A5  // used by I²C - SCL
@@ -142,14 +146,16 @@ void HBDTControlDevice::afterReadConfig()
   
   HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_CONF_TEMP_CHAN);
 
-hbwdebug(F("EE "));hbwdebug(F("\n"));
-static const uint8_t Esize = 64;
-byte eeFoo[Esize];
-readEEPROM(eeFoo, 0x1A2, Esize);
-for(byte i = 0; i < Esize; i++) {
-hbwdebughex(eeFoo[i]);
-if (i % 6 == 0 && i != 0) hbwdebug(F("\n"));
-} hbwdebug(F("\n"));
+
+//static const uint16_t sAddr = 0x100;
+//hbwdebug(F("EE@ 0x100"));hbwdebug(F("\n"));
+//static const uint8_t Esize = 64;
+//byte eeFoo[Esize];
+//readEEPROM(eeFoo, sAddr, Esize);
+//for(byte i = 0; i < Esize; i++) {
+//hbwdebughex(eeFoo[i]);
+//if (i % 6 == 0 && i != 0) hbwdebug(F("\n"));
+//} hbwdebug(F("\n"));
 
 };
 
@@ -195,13 +201,15 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
-  #if defined(NUM_LINKS_TEMP)
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_DELTATX),
+  #if defined(NUM_LINKS_KEY) && defined(NUM_LINKS_TEMP)
+                             new HBWLinkKey(NUM_LINKS_KEY + NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
   #else
                              NULL, NULL,
   #endif
-                             g_ow, tempConfig);
+                             g_ow, tempConfig,
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP + NUM_LINKS_KEY,LINKADDRESSSTART_TEMP),
+                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_DELTATX)
+                             );
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
@@ -213,14 +221,10 @@ void setup()
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
-  #if defined(NUM_LINKS_TEMP)
-                             new HBWLinkKey(NUM_LINKS_KEY,LINKADDRESSSTART_KEY), NULL,
+                             new HBWLinkKey(NUM_LINKS_KEY + NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
                              //new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_KEY),
-  #else
-                             NULL, NULL,
-  #endif
                              g_ow, tempConfig,
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP + NUM_LINKS_KEY,LINKADDRESSSTART_TEMP),
                              new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_DELTATX)
                              );
   

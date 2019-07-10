@@ -44,9 +44,9 @@ struct hbw_config_DeltaT {
 
 // config of one DeltaTx channel, address step 2
 struct hbw_config_DeltaTx {
-  uint8_t unlocked:1;     // +0.0   0=LOCKED, 1=UNLOCKED  // TODO: needed? only lock deltaT chan!
-  uint8_t :7;     //fillup
-  uint8_t dummy :8;
+  uint8_t unused:4;
+  uint8_t :4;     //fillup
+  uint8_t dummy:8;
 };
 
 
@@ -103,8 +103,8 @@ class HBWDeltaT : public HBWChannel {
     union tag_state_flags {
       struct state_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
-        uint8_t dlimit  :1; // delta limit (delta temperature above max delta value)
-        uint8_t active  :1; // true if active (both input values received)
+        uint8_t dlimit  :1; // delta within limit (0 = temperature exceeds max delta value)
+        uint8_t mode    :1; // true = active (both input values received)
         uint8_t status  :1; // outputs on or off?
       } element;
       uint8_t byte:8;

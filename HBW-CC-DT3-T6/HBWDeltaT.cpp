@@ -19,7 +19,7 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
 
   deltaT = 0xFF;
   outputChangeLastTime = DELTA_CALCULATION_WAIT_TIME;
-  deltaCalcLastTime = 0;
+  deltaCalcLastTime = MIN_CHANGE_WAIT_TIME; // wait some time to get input values
   lastFeedbackTime = 0;
   stateFlags.byte = 0;
   initDone = false;
@@ -75,7 +75,7 @@ void HBWDeltaTx::setInfo(HBWDevice* device, uint8_t length, uint8_t const * cons
 /* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
 void HBWDeltaTx::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  if (length == 2)  // desired_temp has 2 bytes
+  if (length == 2)  // temperature has 2 bytes
   {
     currentTemperature = ((data[0] << 8) | data[1]);  // set input temp
     
@@ -102,12 +102,12 @@ uint8_t HBWDeltaT::get(uint8_t* data)
   if (deltaT > 254 || deltaT < 0)
   {
     *data++ = 255;
-    stateFlags.element.dlimit = true;
+    stateFlags.element.dlimit = false;  // exceeded
   }
   else
   {
-    *data++ = deltaT;//lastDeltaT;
-    stateFlags.element.dlimit = false;
+    *data++ = deltaT;
+    stateFlags.element.dlimit = true; // within the limit
   }
   
   *data = stateFlags.byte;
@@ -122,7 +122,7 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 	uint32_t now = millis();
   static uint8_t level[2];
 
-  stateFlags.element.active = calculateNewState();
+  stateFlags.element.mode = calculateNewState();
   
   if (now - outputChangeLastTime >= MIN_CHANGE_WAIT_TIME) // TODO: use DELTA_CALCULATION_WAIT_TIME * 3 ?
   {
@@ -215,11 +215,7 @@ bool HBWDeltaT::calculateNewState()
     else  {
       if ((int16_t)(deltaT + config->deltaHys) <= config->deltaT)  nextState = OFF;
     }
-    
-//  #ifdef DEBUG_OUTPUT
-//  hbwdebug(F(" deltaT: ")); hbwdebug(deltaT); hbwdebug(F("d°C"));
-//  hbwdebug(F(" nextState: ")); hbwdebug(nextState); hbwdebug(F("\n"));
-//  #endif
+    return true;
   }
-  return true;
+  return stateFlags.element.mode;
 }

@@ -93,9 +93,9 @@
 	</channel>
 	
 	<channel index="1" count="6" physical_index_offset="-1" type="TEMPSENSOR">
-		<!--<link_roles>
+		<link_roles>
 			<source name="TEST"/>
-		</link_roles>-->
+		</link_roles>
 		<paramset type="MASTER" id="hmw_input_t_ch_master" address_step="14" address_start="0x07">
 			<parameter id="SEND_DELTA_TEMP">
 				<logical type="float" unit="&#x2103;" default="0.5" min="0.1" max="25.0">
@@ -161,7 +161,7 @@
 				</conversion>
 			</parameter>
 		</paramset>
-		<paramset type="LINK" id="hmw_input_t_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="20" address_start="0x100" address_step="6">
+		<paramset type="LINK" id="hmw_input_t_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="32" address_start="0x100" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">
 				<logical type="integer" min="0" max="255" default="255"/>
 				<physical type="integer" size="1.0" interface="eeprom">
@@ -186,7 +186,6 @@
 				<!--<physical type="integer" interface="command" value_id="TEMPERATURE">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
 					<event frame="INFO_LEVEL"/>-->
-					
 				<physical type="integer" interface="command" value_id="TEMP">
 					<get request="TEMP_GET" response="INFO_TEMP"/>
 					<event frame="INFO_TEMP"/>
@@ -263,7 +262,7 @@
 				</conversion>
 			</parameter>
 		</paramset>
-		<paramset type="LINK" id="hmw_deltat_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="12" address_start="0x1A2" address_step="6">
+		<paramset type="LINK" id="hmw_deltat_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="32" address_start="0x100" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">
 				<logical type="integer" min="0" max="255" default="255"/>
 				<physical type="integer" size="1.0" interface="eeprom">
@@ -321,14 +320,14 @@
 			</parameter>
 			<parameter id="MODE" operations="read,event" ui_flags="internal">
 				<logical type="option">
-					<option id="MANU" default="true"/>
-					<option id="MANU"/>
-					<option id="AUTO"/>
-					<option id="AUTO"/>
-					<option id="MANU"/>
-					<option id="MANU"/>
-					<option id="AUTO"/>
-					<option id="AUTO"/>
+					<option id="IDLE" default="true"/>
+					<option id="IDLE"/>
+					<option id="ACTIVE"/>
+					<option id="ACTIVE"/>
+					<option id="IDLE"/>
+					<option id="IDLE"/>
+					<option id="ACTIVE"/>
+					<option id="ACTIVE"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
@@ -348,14 +347,14 @@
 			</parameter>
 			<parameter id="DLIMIT" operations="read,event" ui_flags="internal">
 				<logical type="option">
-					<option id="ABOVE" default="true"/>
-					<option id="ABOVE"/>
-					<option id="BELOW"/>
-					<option id="BELOW"/>
-					<option id="ABOVE"/>
-					<option id="ABOVE"/>
-					<option id="BELOW"/>
-					<option id="BELOW"/>
+					<option id="INACTIVE" default="true"/>
+					<option id="WITHIN"/>
+					<option id="EXCEED"/>
+					<option id="WITHIN"/>
+					<option id="EXCEED"/>
+					<option id="WITHIN"/>
+					<option id="EXCEED"/>
+					<option id="WITHIN"/>
 					</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
@@ -378,11 +377,9 @@
 	
 	<channel index="10" count="3" physical_index_offset="-1" type="DELTA_T1">
 		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="2" address_start="0x6A">
+		
 		</paramset>
-		<!--<link_roles>
-			<target name="TEST"/>
-		</link_roles>-->
-		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x178" address_step="7">
+		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
 			  <logical type="string" default="" use_default_on_failure="true"/>
 			  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -442,11 +439,9 @@
 	
 	<channel index="13" count="3" physical_index_offset="-1" type="DELTA_T2">
 		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="2" address_start="0x7C">
+		
 		</paramset>
-		<!--<link_roles>
-			<target name="TEST"/>
-		</link_roles>-->
-		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x178" address_step="7">
+		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
 			  <logical type="string" default="" use_default_on_failure="true"/>
 			  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -506,9 +501,9 @@
 
 	
 	<channel index="16" type="KEY" count="3" physical_index_offset="-1">
-		<!--<link_roles>
+		<link_roles>
 		   <source name="SWITCH"/>
-		</link_roles>-->
+		</link_roles>
 		<paramset id="hbw_input_ch_master" type="MASTER" address_step="2" address_start="0x31">
 			<parameter id="INPUT_LOCKED">
 				<logical type="boolean" default="false"/>
@@ -547,7 +542,7 @@
 			</parameter>
 		</paramset>
 		
-		<paramset type="LINK" id="hmw_input_ch_link" channel_param="CHANNEL" peer_param="ACTUATOR" count="12" address_start="0x1A2" address_step="6">
+		<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="32" address_start="0x100" address_step="6">
 			<parameter hidden="true" id="CHANNEL" operations="none">
 				<logical type="integer" default="255" max="255" min="0"/>
 				<physical size="1.0" type="integer" interface="eeprom">
