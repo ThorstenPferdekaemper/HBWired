@@ -31,6 +31,7 @@
 
 #define SEND_INFO_EVENT_DELAY 450
 
+#define OW_CHAN_INIT 0xFF
 
 // config of each sensor, address step 14
 struct hbw_config_onewire_temp {

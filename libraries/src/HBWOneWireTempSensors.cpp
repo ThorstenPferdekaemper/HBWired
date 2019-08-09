@@ -205,7 +205,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   if (lastSentTime == 0)
     lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time, to not spam the bus (will vary over time anyway...)
   
-  if (*owCurrentChannel == 255)
+  if (*owCurrentChannel == OW_CHAN_INIT)
       *owCurrentChannel = channel;
   
   // read onewire sensor every n seconds (OW_POLL_FREQUENCY/1000)
@@ -218,7 +218,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
     else if (state.action == ACTION_READ_TEMP) {
       currentTemp = oneWireReadTemp();   // read temperature
       state.action = ACTION_START_CONVERSION;  // next action
-      *owCurrentChannel = 255;    // 'reset' current channel. Next call to loop will point to next channel
+      *owCurrentChannel = OW_CHAN_INIT;    // 'reset' current channel. Next call to loop will point to next channel
       
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);

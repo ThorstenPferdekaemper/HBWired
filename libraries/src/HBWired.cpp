@@ -542,7 +542,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
 
 
 #ifdef Support_HBWLink_InfoEvent	
-// i-Message as linkReceiver
+// custom (info) message as linkReceiver
 void HBWDevice::receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan, 
                                 uint8_t dstChan, uint8_t length, uint8_t const * const data) {
     if(linkReceiver)
