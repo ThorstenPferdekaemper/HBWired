@@ -61,10 +61,12 @@
 #define BITMASK_OffDelayNewTime B00001111
 #define BITMASK_OffDelayOldTime B11110000
 
-#define ON_LEVEL_USE_OLD_VALUE  202
+#define ON_LEVEL_USE_OLD_VALUE  201
 
 #define DIM_UP true
 #define DIM_DOWN false
+#define STATEFLAG_DIM_UP 1
+#define STATEFLAG_DIM_DOWN 2
 
 
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
@@ -86,21 +88,79 @@ class HBWDimmerAdvanced : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
-    
+
+    enum Actions
+    {
+       INACTIVE,
+       JUMP_TO_TARGET,
+       TOGGLE_TO_COUNTER,
+       TOGGLE_INVERS_TO_COUNTER,
+       UPDIM,
+       DOWNDIM,
+       TOGGLEDIM,
+       TOGGLEDIM_TO_COUNTER,
+       TOGGLEDIM_INVERS_TO_COUNTER
+    };
+
+    /*struct ActionParameter
+    {
+       uint8_t actionType    : 4;
+       uint8_t   : 1;
+       uint8_t multiExecute  : 1;
+       uint8_t offTimeMode   : 1;
+       uint8_t onTimeMode    : 1;
+       uint8_t onDelayTime;
+       uint8_t onTime;
+       uint8_t offDelayTime;
+       uint8_t offTime;
+       uint8_t jtOnDelay  : 3;
+       uint8_t jtOn       : 3;
+       uint8_t jtOffDelay : 3;
+       uint8_t jtOff      : 3;
+       uint8_t jtRampOn   : 3;
+       uint8_t jtRampOff  : 3;
+       uint8_t   :6;
+       uint8_t offLevel;
+       uint8_t onMinLevel;
+       uint8_t onLevel;
+       uint8_t onDelayMode   : 1;
+       uint8_t onLevelPrio   : 1;
+       uint8_t offDelayBlink : 1;
+       uint8_t    : 1;
+       uint8_t rampStartStep :4;
+       uint8_t rampOnTime;
+       uint8_t rampOffTime;
+       uint8_t dimMinLevel;
+       uint8_t dimMaxLevel;
+       uint8_t dimStep      :4;
+       uint8_t offDelayStep  :4;
+       uint8_t offDelayNewTime :4;
+       uint8_t offDelayOldTime  :4;
+    };
+ 
+    struct LinkCommand
+    {
+       uint8_t keyNum;
+       ActionParameter* actionParameter;
+    };*/
+
+
   private:
     uint8_t pin;
     hbw_config_dim* config; // logging
     uint8_t currentValue;
+    uint8_t oldOnValue;
     uint8_t oldValue;
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
     HBWlibStateMachine StateMachine;
     
-    void setOutputNoLogging(uint8_t const * const data);
-    void setOutput(HBWDevice* device, uint8_t const * const data);
+    void setOutputNoLogging(uint8_t newValue);
+    void setOutput(HBWDevice* device, uint8_t newValue);
     uint8_t dimUpDown(uint8_t const * const data, boolean dimUp);
     void prepareOnOffRamp(uint8_t rampTime, uint8_t level);
     
+    // ActionParameter const* actionParameter;
     uint8_t rampOnTime;
     uint8_t rampOffTime;
     uint8_t dimMinLevel;
@@ -132,6 +192,16 @@ class HBWDimmerAdvanced : public HBWChannel {
       return (peerConfigOffDtime & BITMASK_OffDelayOldTime) >> 4;
     }
     
+    union tag_state_flags {
+      struct state_flags {
+        uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
+        uint8_t upDown  :2; // dim up = 1 or down = 2
+        uint8_t working :1; // true, if working
+        uint8_t   :1;
+      } element;
+      uint8_t byte:8;
+    } stateFlags;
+
   protected:
   
 };
