@@ -145,7 +145,7 @@ void setup()
   // variables for all OneWire channels
   OneWire* g_ow = NULL;
   uint32_t g_owLastReadTime = 0;
-  uint8_t g_owCurrentChannel = 255; // always init with 255! used as trigger/reset in channel loop()
+  uint8_t g_owCurrentChannel = OW_CHAN_INIT; // always init with OW_CHAN_INIT! used as trigger/reset in channel loop()
   g_ow = new OneWire(ONEWIRE_PIN);
 
   HBWValve* valves[NUMBER_OF_VD_CHAN];  // pointer to Valve channels, to link in HBWPids channels

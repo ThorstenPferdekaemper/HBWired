@@ -163,10 +163,8 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
   }
   
   // feedback trigger set?
-  if (!nextFeedbackDelay)
-    return;
-  if (now - lastFeedbackTime < nextFeedbackDelay)
-    return;
+  if (!nextFeedbackDelay)  return;
+  if (now - lastFeedbackTime < nextFeedbackDelay)  return;
   lastFeedbackTime = now;  // at least last time of trying
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
   // we know that the level has 2 byte here (value & state)
@@ -228,8 +226,6 @@ uint32_t HBWValve::set_timer(bool firstState, byte Status)
 /* bisect the timer the first time */
 uint32_t HBWValve::set_peakmiddle (uint32_t ontimer, uint32_t offtimer)
 {
-//  return first_on_or_off(ontimer, offtimer) ? (ontimer / 2) : (offtimer / 2);
-  
   if (first_on_or_off(ontimer, offtimer))
     return ontimer / 2;
   else

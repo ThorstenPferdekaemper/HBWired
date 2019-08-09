@@ -188,6 +188,8 @@
 						<address index="+6.2"/>
 					</physical>
 				</parameter>
+				<!--using address_step="7", as common actuator layout. If individual address spaces would be possible for multiple actuator channels,
+				the EEPROM layout could be reduced to the required minimum-->
 			</paramset>
       
 			<paramset type="VALUES" id="hmw_pid_ch_values">
@@ -210,7 +212,7 @@
 		</channel>
     
     	<channel index="9" physical_index_offset="-1" count="8" type="VALVE">
-			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0xBF" address_step="6">
+			<paramset type="MASTER" id="hmw_output_ch_master" address_start="0xBF" address_step="6">
 				<parameter id="LOGGING">
 				  <logical type="option">
 					<option id="OFF"/>
@@ -263,7 +265,8 @@
 				   </conversion>
 				</parameter>
 			</paramset>
-			<!--<link_roles>
+			<!-- no peering to additional switch channels supported
+			<link_roles>
 				<source name="TEST"/>
 			</link_roles>
 			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="18" address_start="0x370" address_step="6">
@@ -285,7 +288,7 @@
 					</physical>
 				</parameter>
 			</paramset>-->
-			<paramset type="VALUES" id="hmw_input_ch_values">
+			<paramset type="VALUES" id="hmw_output_ch_values">
         		<parameter id="VALVE" operations="read,write,event" control="VALVE.LEVEL">
 					<logical type="float" default="0.0" min="0.0" max="1.0" unit="100%"/>
 					<physical type="integer" interface="command" value_id="STATE">
@@ -295,7 +298,7 @@
 					</physical>
 					<conversion type="float_integer_scale" factor="200"/>
         		</parameter>
-        		<parameter id="STATE" operations="read,event" ui_flags="internal">
+        		<parameter id="OUTPUT_STATE" operations="read,event" ui_flags="internal"><!--id="STATE" will show on/off as chan state-->
 					<logical type="option">
 						<option id="OFF"/>
 						<option id="OFF"/>

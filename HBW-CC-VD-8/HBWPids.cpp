@@ -83,7 +83,7 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
   }
   else //if (length > 1)
   {
-  //set temperature
+  //set desired temperature
   uint16_t level = ((data[0] << 8) | data[1]);
     // right limits 0 - 30 °C
     if (level > 0 && level <= 3000) {
@@ -96,7 +96,7 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWPids::get(uint8_t* data)
 {
-  //TODO: add state_flags? -> seperate get() function?
+  //TODO: add state_flags?
   // retVal = (pidConf[channel].setPoint << 8 | (pidConf[channel].autoTune << 4));
   
   // return desired temperature
@@ -173,21 +173,20 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 
 int8_t HBWPids::computePid(uint8_t channel)
 {
-  uint32_t now = millis();
   uint8_t retVal = 0;
   
   // get Output from PID. Doesn't do anything in Manual mode.
   compute();
   
   // new window
-  if (now - pidConf.windowStartTime > (uint32_t) config->windowSize * 1000)
+  if (millis() - pidConf.windowStartTime > (uint32_t) config->windowSize * 1000)
   {
     uint16_t valveStatus = (uint16_t) mymap(pidConf.Output, (uint32_t) config->windowSize *1000, 200.0); //map from 0 to 200
     if (pidConf.inAuto) {   // only if inAuto (valve set() will only apply new level)
     	retVal = 1;
     }
     desiredValveLevel = valveStatus;
-    pidConf.windowStartTime = now;
+    pidConf.windowStartTime = millis();
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("computePid ch: ")); hbwdebug(channel);
   hbwdebug(F(" inAuto: ")); hbwdebug(pidConf.inAuto);
@@ -218,10 +217,8 @@ int8_t HBWPids::computePid(uint8_t channel)
 void HBWPids::compute()
 {
   if (!pidConf.inAuto)  return;
-   
-	uint32_t now = millis();
   
-	if ((now - pidConf.lastPidTime) >= pidConf.sampleTime) {
+	if ((millis() - pidConf.lastPidTime) >= pidConf.sampleTime) {
 		/*Compute all the working error variables*/
 		int16_t error = pidConf.setPoint - pidConf.Input;
 		pidConf.ITerm += (pidConf.ki * error);
@@ -240,7 +237,7 @@ void HBWPids::compute()
 
 		/*Remember some variables for next time*/
 		pidConf.lastInput = pidConf.Input;
-		pidConf.lastPidTime = now;
+		pidConf.lastPidTime = millis();
 	}
 }
 
