@@ -4,7 +4,7 @@
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
-// PWM/0-10V/1-10V Master Dimmer + 10 digitale Eingänge (Key/Taster & Sensor)
+// PWM/0-10V/1-10V Master Dimmer + 10 digitale Eingänge (Key/Taster & Sensor) & Sensorkontakte
 // - Direktes Peering für Dimmer möglich. (HBWLinkDimmerAdvanced)
 // - Direktes Peering für Taster möglich. (HBWLinkKey)
 //
@@ -21,17 +21,21 @@
 // - added input channels: Key & Sensor
 // v0.04
 // - added virtual key channels, allow external peering with Dim channels (e.g. switch 1-10V dimmer on/off)
+// v0.05
+// - added state flags
+// - put key channels back in, kept virtual key channels (dimmer key)
 //
+
 // TODO: Implement dim peering params: RAMP_START_STEP. Validate behaviour of OnLevelPrio and on/off time 'absolute'.
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0004
+#define FIRMWARE_VERSION 0x0005
 
-#define NUMBER_OF_INPUT_CHAN 0 //10   // input channel - pushbutton, key, other digital in
+#define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
 #define NUMBER_OF_SEN_INPUT_CHAN 10  // equal number of sensor channels, using same ports/IOs as INPUT_CHAN
 #define NUMBER_OF_DIM_CHAN 6  // PWM & analog output channels
-#define NUMBER_OF_VIRTUAL_INPUT_CHAN 6
+#define NUMBER_OF_VIRTUAL_KEY_CHAN 6  // virtual keys, mapped to dimmer channel
 
 #define NUM_LINKS_DIM 20    // address step 42
 #define LINKADDRESSSTART_DIM 0x038   // ends @0x37F
@@ -47,10 +51,10 @@
 
 // HB Wired protocol and module
 #include <HBWired.h>
-#include "HBWLinkDimmerAdvanced.h"
-#include "HBWDimmerAdvanced.h"
+#include <HBWLinkDimmerAdvanced.h>
+#include <HBWDimmerAdvanced.h>
 #include <HBWLinkKey.h>
-//#include <HBWKey.h>
+#include <HBWKey.h>
 #include <HBWSenSC.h>
 #include "HBWKeyVirtual.h"
 
@@ -109,7 +113,7 @@
 
 #define LED LED_BUILTIN        // Signal-LED
 
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_INPUT_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_KEY_CHAN
 
 
 struct hbw_config {
@@ -117,11 +121,10 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  // TODO: Add to disable Rx, Tx LED
   hbw_config_dim dimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x12 (address step 2)
   hbw_config_senSC senCfg[NUMBER_OF_SEN_INPUT_CHAN]; // 0x13 - 0x1C (address step 1)
-  hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_INPUT_CHAN]; // (address step 2)  
-  // hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
+  hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
+  hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_KEY_CHAN]; // 0x31 - 0x37 (address step 1)
 } hbwconfig;
 
 
@@ -164,9 +167,9 @@ void setup()
   
   // create channels
 #if NUMBER_OF_DIM_CHAN == 6
-
   byte PWMOut[6] = {PWM1, PWM2_DAC, PWM3_DAC, PWM4, PWM5, PWM6};  // assing pins
   
+  // dimmer + dimmer key channels
   for(uint8_t i = 0; i < NUMBER_OF_DIM_CHAN; i++) {
     channels[i] = new HBWDimmerAdvanced(PWMOut[i], &(hbwconfig.dimCfg[i]));
     channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKeyVirtual(i, &(hbwconfig.keyVirtCfg[i]));
@@ -175,17 +178,18 @@ void setup()
   #error Dimming channel count and pin missmatch!
 #endif
 
-#if NUMBER_OF_INPUT_CHAN == 0 && NUMBER_OF_SEN_INPUT_CHAN == 10
-
+#if NUMBER_OF_INPUT_CHAN == 10 && NUMBER_OF_SEN_INPUT_CHAN == 10
   byte digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
-  
+
+  // input sensor and key channels
   for(uint8_t i = 0; i < NUMBER_OF_SEN_INPUT_CHAN; i++) {
     channels[i + NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]));
-    // channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
   };
 #else
   #error Input channel count and pin missmatch!
 #endif
+
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);
@@ -197,7 +201,6 @@ void setup()
                              new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
-  //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
   
 #else
   Serial.begin(19200);
@@ -210,7 +213,7 @@ void setup()
                              new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
-  device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
+  //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
 
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());

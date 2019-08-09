@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-SC-10-Dim-6" name="RS485 6-channel master dimming actuator and 10 Digital inputs">
 		<parameter const_value="0x96" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="1" size="1" index="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0004" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
+		<parameter const_value="0x0005" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -41,6 +41,9 @@
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
 		<parameter size="0.3" index="12.4" type="integer" param="STATE_FLAGS"/>
 	</frame>
+	<frame id="OLD_LEVEL" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="201"/>
+	</frame>
 	<frame id="STATE_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
 		<parameter size="1.0" index="11.0" type="integer" param="STATE"/>
 	</frame>
@@ -61,10 +64,10 @@
 		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
 	</frame>
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
-		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
+		<parameter type="integer" index="12.0" size="1.0" param="INHIBIT"/>
 	</frame>
 	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
-		<parameter param="toggle_flag" size="1.0" index="11.0" type="integer"/>
+		<parameter type="integer" index="11.0" size="1.0" param="TOGGLE_FLAG"/>
 	</frame>
 </frames>
 
@@ -103,7 +106,7 @@
 			</parameter>
 			<parameter id="PWM_RANGE">
 				<logical type="option">
-					<option id="DISABLED"/>
+					<option id="CH_DISABLED"/>
 					<option id="40%"/>
 					<option id="50%"/>
 					<option id="60%"/>
@@ -320,15 +323,15 @@
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_MIN_LEVEL">
-				<logical type="float" min="0.0" max="1.0" default="0.1" unit="%"/>
+				<logical type="float" min="0.0" max="1.0" default="0.1" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
 					<address index="+15"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_LEVEL">
-				<logical type="float" min="0.0" max="1.0" default="1.0" unit="%">
-					<special_value id="OLD_LEVEL" value="1.01"/>
+				<logical type="float" min="0.0" max="1.0" default="1.0" unit="100%">
+					<special_value id="OLD_LEVEL" value="1.005"/>
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
@@ -362,7 +365,7 @@
 			</parameter>
 		<!-- index="+17.3 unused -->
 			<parameter id="SHORT_RAMP_START_STEP">
-				<logical type="float" min="0" max="15" default="5" unit="%"/>
+				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+17.4"/>
 				</physical>
@@ -607,15 +610,15 @@
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_MIN_LEVEL">
-				<logical type="float" min="0.0" max="1.0" default="0.1" unit="%"/>
+				<logical type="float" min="0.0" max="1.0" default="0.1" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
 					<address index="+33"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_LEVEL">
-				<logical type="float" min="0.0" max="1.0" default="1.0" unit="%">
-					<special_value id="OLD_LEVEL" value="1.01"/>
+				<logical type="float" min="0.0" max="1.0" default="1.0" unit="100%">
+					<special_value id="OLD_LEVEL" value="1.005"/>
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
@@ -739,6 +742,32 @@
 					<event frame="ACK_STATUS"/>
 				</physical>
 				<conversion type="boolean_integer"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0x04" parameter_value="1" mask="0x04"/>
+					<value_map device_value="0x00" parameter_value="0"/>
+					<value_map device_value="0x01" parameter_value="1"/>
+					<value_map device_value="0x02" parameter_value="1"/>
+					<value_map device_value="0x03" parameter_value="0"/>
+				</conversion>
+			</parameter>
+			<parameter id="DIRECTION" operations="read,event" ui_flags="internal">
+				<logical type="option">
+					<option id="NONE" default="true"/>
+					<option id="UP"/>
+					<option id="DOWN"/>
+					<option id="UNDEFINED"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+					<event frame="ACK_STATUS"/>
+				</physical>
+				<conversion type="option_integer">
+					<value_map device_value="0x00" parameter_value="0"/>
+					<value_map device_value="0x01" parameter_value="1"/>
+					<value_map device_value="0x02" parameter_value="2"/>
+					<value_map device_value="0x03" parameter_value="3"/>
+				</conversion>
 			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
 				<logical type="boolean" default="false"/>
@@ -746,12 +775,18 @@
 					<set request="SET_LOCK"/>
 				</physical>
 			</parameter>
-			<parameter id="INSTALL_TEST" ui_flags="internal" operations="write">
+			<parameter id="OLD_LEVEL" operations="write"> <!-- control="DIMMER.OLD_LEVEL"-->
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="OLD_LEVEL"/>
+				</physical>
+			</parameter>
+			<parameter id="INSTALL_TEST" operations="write" ui_flags="internal">
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="TOGGLE_FLAG" no_init="true">
 					<set request="TOGGLE_INSTALL_TEST"/>
 				</physical>
-				<conversion type="blind_test" value="201"/>
+				<conversion type="toggle" value="LEVEL" on="200" off="0"/>
 			</parameter>
 		</paramset>
 	</channel>
@@ -800,11 +835,99 @@
 		</paramset>
 	</channel>
 	
-	<channel index="17" type="DIMMER KEY" count="6" physical_index_offset="-1">	<!-- virtual input key chan -->
+	<channel index="17" type="KEY" count="10" physical_index_offset="-1">	<!-- input key chan -->
 		<link_roles>
-			<target name="SWITCH"/>
+			<source name="SWITCH"/>
 		</link_roles>
 		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x1D" address_step="2">
+		    <parameter id="INPUT_LOCKED">
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<parameter id="INVERTED">
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<!-- don't allow to change, cause using same IO pins as input sensor contact channels
+			<parameter id="PULLUP">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.2"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter> -->
+			<parameter id="INPUT_TYPE">
+				<logical type="option">
+					<option id="DOORSENSOR" default="true"/>
+					<option id="MOTIONSENSOR"/>
+					<option id="SWITCH"/>
+					<option id="PUSHBUTTON"/>
+				</logical>
+				<physical size="0.2" type="integer" interface="eeprom">
+					<address index="+0.3"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_PRESS_TIME">
+				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+1"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
+				</conversion>
+			</parameter>
+		</paramset>
+		
+		<paramset id="hmw_input_ch_link" type="LINK" channel_param="CHANNEL" peer_param="ACTUATOR" count="20" address_start="0x380" address_step="6">
+			<parameter hidden="true" id="CHANNEL" operations="none">
+				<logical type="integer" default="255" max="255" min="0"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+			</parameter>
+			<parameter hidden="true" id="ACTUATOR" operations="none">
+				<logical type="address"/>
+				<physical type="array">
+					<physical size="4.0" type="integer" interface="eeprom">
+						<address index="+1"/>
+					</physical>
+					<physical size="1.0" type="integer" interface="eeprom">
+						<address index="+5"/>
+					</physical>
+				</physical>
+			</parameter>
+		</paramset>
+		
+		<paramset type="VALUES" id="hbw_input_ch_values">
+			<parameter id="PRESS_SHORT" operations="event" loopback="true" control="BUTTON.SHORT">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<parameter id="PRESS_LONG" operations="event" loopback="true" control="BUTTON.LONG">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_LONG"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+		</paramset>
+	</channel>
+	
+	<channel index="27" type="DIMMER KEY" count="6" physical_index_offset="-1">	<!-- virtual input key chan, triggered by dimmmer chan -->
+		<link_roles>
+			<source name="SWITCH"/>
+		</link_roles>
+		<paramset id="hbw_vinput_ch_master" type="MASTER" address_start="0x31" address_step="2">
 		    <parameter id="INPUT_LOCKED">
 				<logical type="boolean" default="true"/>
 				<physical size="0.1" type="integer" interface="eeprom">
@@ -818,13 +941,6 @@
 					<address index="+0.1"/>
 				</physical>
 				<conversion type="boolean_integer" invert="true"/>
-			</parameter>
-			<parameter id="THRESHOLD">
-				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
-				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+1"/>
-				</physical>
-				<conversion type="float_integer_scale" factor="200"/>
 			</parameter>
 		</paramset>
 		
