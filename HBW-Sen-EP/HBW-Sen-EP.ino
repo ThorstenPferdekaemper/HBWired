@@ -28,7 +28,7 @@
 
 // HB Wired protocol and modules
 #include <HBWired.h>
-#include "HBWSenEP.h"
+#include <HBWSenEP.h>
 
 
 // Pins
