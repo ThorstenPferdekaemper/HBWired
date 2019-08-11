@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <device version="12" eep_size="1024">
 <supported_types>
-	<type name="RS485 3 Channel Delta Temperature Module" id="HBW-CC-DT3-T6" priority="2">
+	<type name="RS485 3 Channel Delta Temperature and 6 One Wire Channel Temperature Module" id="HBW-CC-DT3-T6" priority="2">
 		<parameter index="0" size="1" const_value="0x71"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0001" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -45,12 +45,13 @@
 		<!--<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/>-->
 	</frame>
 	<frame id="LEVEL_GET" direction="to_device" type="#S" channel_field="10"/>
-	<!--<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
-		<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/>
-	</frame>-->
 	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" param="TEMPERATURE_DELTA"/>
 		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
+	</frame>
+	<!--
+	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/>
 	</frame>
 	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
 		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
@@ -70,7 +71,7 @@
 	</frame>
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
 		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
-	</frame>
+	</frame>-->
 </frames>
 
 <channels>
@@ -189,7 +190,6 @@
 				<physical type="integer" interface="command" value_id="TEMP">
 					<get request="TEMP_GET" response="INFO_TEMP"/>
 					<event frame="INFO_TEMP"/>
-					
 				</physical>
 				<conversion type="float_integer_scale" factor="100"/>
 			</parameter>
@@ -200,7 +200,7 @@
 		<!--<link_roles>
 		   <source name="SWITCH"/>
 		</link_roles>-->
-		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x5B" address_step="5">
+		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x5B" address_step="6">
 			<parameter id="LOGGING">
 			  <logical type="option">
 				<option id="OFF"/>
@@ -262,6 +262,7 @@
 				</conversion>
 			</parameter>
 		</paramset>
+		<!--
 		<paramset type="LINK" id="hmw_deltat_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="32" address_start="0x100" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">
 				<logical type="integer" min="0" max="255" default="255"/>
@@ -280,7 +281,7 @@
 					</physical>
 				</physical>
 			</parameter>
-		</paramset>
+		</paramset> -->
 		<paramset type="VALUES" id="hmw_deltat_ch_values">
 			<parameter id="DELTAT" operations="read,event" control="none"> <!--control="DELTAT.LEVEL"-->
 				<logical type="float" default="0.0" min="0.0" max="25.5" unit="&#x2103;"/>
@@ -376,8 +377,8 @@
 	</channel>
 	
 	<channel index="10" count="3" physical_index_offset="-1" type="DELTA_T1">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="2" address_start="0x6A">
-		
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="2" address_start="0x6D">
+		<!--no config...-->
 		</paramset>
 		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
@@ -438,8 +439,8 @@
 	</channel>
 	
 	<channel index="13" count="3" physical_index_offset="-1" type="DELTA_T2">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="2" address_start="0x7C">
-		
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="2" address_start="0x73">
+		<!--no config...-->
 		</paramset>
 		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
@@ -499,7 +500,7 @@
 		</paramset>
 	</channel>
 
-	
+	<!--
 	<channel index="16" type="KEY" count="3" physical_index_offset="-1">
 		<link_roles>
 		   <source name="SWITCH"/>
@@ -577,7 +578,6 @@
 				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
 			</parameter>
 		</paramset>
-	</channel>
+	</channel>-->
 </channels>
-
 </device>
