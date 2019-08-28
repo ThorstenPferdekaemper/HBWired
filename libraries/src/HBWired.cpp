@@ -63,11 +63,13 @@ boolean HBWDevice::parseFrame () { // returns true, if event needs to be process
   if(frameStatus & FRAME_SENTACKWAIT) {   // wir warten auf ACK?
     // Empfangene Sendefolgenummer muss stimmen
     seqNumReceived = (frameControlByte >> 5) & 0x03;
-    seqNumSent     = (txFrameControlByte >> 1) & 0x03;
+    seqNumSent     = (txFrame.controlByte >> 1) & 0x03;
     // Absenderadresse mus stimmen
-    if(seqNumReceived == seqNumSent && senderAddress == txTargetAddress) {
+    if(seqNumReceived == seqNumSent && senderAddress == txFrame.targetAddress) {
       // "ackwait" zuruecksetzen (ansonsten wird auf den Timeout vertraut)
-      hbwdebug(F("R: ACK\n"));
+      #ifdef DEBUG
+        hbwdebug(F("R: ACK\n"));
+      #endif
       frameStatus &= ~FRAME_SENTACKWAIT;
     }
   }
@@ -79,7 +81,7 @@ boolean HBWDevice::parseFrame () { // returns true, if event needs to be process
   if((frameControlByte & 0x03) == 1) return false;
 // Leere Message und kein Broadcast? -> Ein ACK senden koennen wir selbst
   if(frameDataLength == 0 && targetAddress != 0xFFFFFFFF) {
-    txTargetAddress = senderAddress;
+    txFrame.targetAddress = senderAddress;
     sendAck();
     return false;
   };
@@ -94,7 +96,7 @@ boolean HBWDevice::parseFrame () { // returns true, if event needs to be process
 //   0 -> ok
 //   1 -> bus not idle (only if onlyIfIdle)
 //   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-byte HBWDevice::sendFrame(boolean onlyIfIdle){
+byte HBWDevice::sendFrame(boolean onlyIfIdle, uint8_t retries){
 // TODO: non-blocking
 // TODO: Wenn als Antwort kein reines ACK kommt, dann geht die Antwort verloren
 //       D.h. sie wird nicht interpretiert. Die Gegenstelle sollte es dann nochmal
@@ -102,8 +104,9 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle){
 
 // carrier sense
    if(onlyIfIdle) {
-	 if(millis() - lastReceivedTime < minIdleTime)
-		 return 1;
+	 //if(millis() - lastReceivedTime < minIdleTime)
+	 if(!busIsIdle())
+		 return BUS_BUSY;
 	 // set new idle time
 	 minIdleTime = random(DIFS_CONSTANT, DIFS_CONSTANT+DIFS_RANDOM);
    }
@@ -111,16 +114,16 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle){
    txLEDStatus = true;
 
 // simple send for ACKs and Broadcasts
-  if(txTargetAddress == 0xFFFFFFFF || ((txFrameControlByte & 0x03) == 1)) {
+  if(txFrame.targetAddress == 0xFFFFFFFF || ((txFrame.controlByte & 0x03) == 1)) {
 	sendFrameSingle();
 	// TODO: nicht besonders schoen, zuerst ackwait zu setzen und dann wieder zu loeschen
 	frameStatus &= ~FRAME_SENTACKWAIT; // we do not really wait
-	return 0;  // we do not wait for an ACK, i.e. always ok
+	return SUCCESS;  // we do not wait for an ACK, i.e. always ok
   };
 
   uint32_t lastTry = 0;
 
-  for(byte i = 0; i < 3; i++) {  // maximal 3 Versuche
+  for(byte i = 0; i < retries; i++) {  // default, maximal 3 Versuche
     sendFrameSingle();
     lastTry = millis();
 // wait for ACK
@@ -136,7 +139,7 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle){
           frameComplete = 0;
           parseFrame();
           if(!(frameStatus & FRAME_SENTACKWAIT))  // ACK empfangen
-            return 0;  // we have an ACK, i.e. ok
+            return SUCCESS;  // we have an ACK, i.e. ok
         };
       };
     };
@@ -144,9 +147,9 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle){
     // other stuff on the bus and we might better keep quiet
     // TODO: random part?
     if(onlyIfIdle && millis() - lastTry < RETRYIDLETIME)
-        return 1;	// bus is not really free
+        return BUS_BUSY;	// bus is not really free
   };
-  return 2;  // three times without ACK
+  return NO_ACK;  // three times without ACK
 }
 
 
@@ -167,29 +170,31 @@ void HBWDevice::sendFrameSingle() {
  //       Wahrscheinlich stimmt das immer oder ist egal, da die Gegenseite nicht auf
  //       ein ACK wartet. (Da man nicht kein ACK senden kann, ist jeder Wert gleich
  //       gut, wenn keins gesendet werden muss.)
-      if(txTargetAddress != 0xFFFFFFFF){
+      if(txFrame.targetAddress != 0xFFFFFFFF){
         byte txSeqNum = (frameControlByte >> 1) & 0x03;
-        txFrameControlByte &= 0x9F;
-        txFrameControlByte |= (txSeqNum << 5);
+        txFrame.controlByte &= 0x9F;
+        txFrame.controlByte |= (txSeqNum << 5);
       };
 
-      hbwdebug(F("T: "));
+      #ifdef DEBUG
+        hbwdebug(F("T: ")); hbwdebughex(FRAME_STARTBYTE);
+      #endif
       digitalWrite(txEnablePin, HIGH);
-      hbwdebughex(FRAME_STARTBYTE);
+      
       serial->write(FRAME_STARTBYTE);  // send startbyte
       crc16Shift(FRAME_STARTBYTE , &crc16checksum);
 
       byte i;
-      uint32_t address = txTargetAddress;
+      uint32_t address = txFrame.targetAddress;
       for( i = 0; i < 4; i++){      // send target address
     	 tmpByte = address >> 24;
          sendFrameByte( tmpByte, &crc16checksum);
          address = address << 8;
       };
 
-      sendFrameByte(txFrameControlByte, &crc16checksum);
+      sendFrameByte(txFrame.controlByte, &crc16checksum);
 
-      if(bitRead(txFrameControlByte,3)){                                      // check if message has sender
+      if(bitRead(txFrame.controlByte,3)){                                      // check if message has sender
     	  address = ownAddress;
     	  for( i = 0; i < 4; i++){                                           // send sender address
     	    	 tmpByte = address >> 24;
@@ -197,11 +202,11 @@ void HBWDevice::sendFrameSingle() {
     	         address = address << 8;
     	  }
       };
-      tmpByte = txFrameDataLength + 2;                              // send data length
+      tmpByte = txFrame.dataLength + 2;                              // send data length
       sendFrameByte(tmpByte, &crc16checksum);
 
-      for(i = 0; i < txFrameDataLength; i++){            // send data, falls was zu senden
-          sendFrameByte(txFrameData[i], &crc16checksum);
+      for(i = 0; i < txFrame.dataLength; i++){            // send data, falls was zu senden
+          sendFrameByte(txFrame.data[i], &crc16checksum);
       }
       crc16Shift(0 , &crc16checksum);
       crc16Shift(0 , &crc16checksum);
@@ -214,8 +219,9 @@ void HBWDevice::sendFrameSingle() {
       digitalWrite(txEnablePin, LOW);
 
       frameStatus |= FRAME_SENTACKWAIT;
-	  
-	  hbwdebug(F("\n"));
+      #ifdef DEBUG  
+        hbwdebug(F("\n"));
+      #endif
 } // sendFrameSingle
 
 
@@ -223,12 +229,13 @@ void HBWDevice::sendFrameSingle() {
 // Before sending check byte for special chars. Special chars are escaped before sending
 // TX-Pin needs to be HIGH before calling this
 void HBWDevice::sendFrameByte(byte sendByte, uint16_t* checksum) {
-	// Debug
-	hbwdebug(":");
-	hbwdebughex(sendByte);
-	// calculate checksum, if needed
-	if(checksum)
-		crc16Shift(sendByte, checksum);
+  // Debug
+  #ifdef DEBUG
+    hbwdebug(":"); hbwdebughex(sendByte);
+  #endif
+  // calculate checksum, if needed
+  if(checksum)
+  crc16Shift(sendByte, checksum);
     // Add escape character, if needed
     if(sendByte == FRAME_STARTBYTE || sendByte == 0xFE || sendByte == ESCAPE_CHAR) {
        serial->write(ESCAPE_CHAR);
@@ -242,8 +249,8 @@ void HBWDevice::sendFrameByte(byte sendByte, uint16_t* checksum) {
 // txTargetAdress
 // txSenderAdress
 void HBWDevice::sendAck() {
-      txFrameControlByte = 0x19;
-      txFrameDataLength = 0;
+      txFrame.controlByte = 0x19;
+      txFrame.dataLength = 0;
       sendFrame();
 };
 
@@ -293,12 +300,14 @@ void HBWDevice::receive(){
     byte rxByte = serial->read();    // von Serial oder SoftSerial
 
     // Debug
+   #ifdef DEBUG
     if( rxByte == FRAME_STARTBYTE ){
 		hbwdebug(F("R: "));
 	}else{
 		hbwdebug(F(":"));
 	}	
     hbwdebughex(rxByte);
+   #endif
 
    if(rxByte == ESCAPE_CHAR && !(frameStatus & FRAME_ESCAPE)){
 // TODO: Wenn frameEscape gesetzt ist, dann sind das zwei Escapes hintereinander
@@ -338,7 +347,9 @@ void HBWDevice::receive(){
             if(frameDataLength > MAX_RX_FRAME_LENGTH) // Maximale Puffergöße checken.
             {
                 frameStatus &= ~FRAME_START;
+              #ifdef DEBUG
                 hbwdebug(F("E: MsgTooLong\n"));
+              #endif
             }
          }else{                   // Daten empfangen
             frameData[framePointer] = rxByte;   // Daten in Puffer speichern
@@ -352,12 +363,16 @@ void HBWDevice::receive(){
                   frameDataLength -= 2;
                   // es liegt eine neue Nachricht vor
                   frameComplete = 1;
-				  hbwdebug(F("\n"));
+                  #ifdef DEBUG
+                    hbwdebug(F("\n"));
+                  #endif
                   // auch wenn noch Daten im Puffer sind, muessen wir erst einmal
                   // die gerade gefundene Nachricht verarbeiten
                   return;
                }else{
-            	  hbwdebug(F("E: CRC\n"));
+                 #ifdef DEBUG
+                   hbwdebug(F("E: CRC\n"));
+                 #endif
                }
             }
          }
@@ -423,11 +438,11 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
          return;
       };
 
-      txTargetAddress = senderAddress;
+      txFrame.targetAddress = senderAddress;
       // gibt es was zu verarbeiten -> Ja, die Kommunikationsschicht laesst nur Messages durch,
       // die auch Daten enthalten
 
-      txFrameControlByte = 0x78;
+      txFrame.controlByte = 0x78;
 
       switch(frameData[0]){
          case '@':             // 0x40                 // HBW-specifics
@@ -445,7 +460,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             // if(frameData[1] == '!') { };   //  then goto 0
             break;  */
          case 'A':                                                             // Announce
-        	txFrameData[0] = 'i';
+        	txFrame.data[0] = 'i';
 			onlyAck = false;
             break;
          case 'C':                                                              // re read Config
@@ -463,22 +478,26 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
         	// TODO: Check requested length...
             if(frameDataLength == 4) {                                // Length of incoming data must be 4
                onlyAck = false;
-               hbwdebug(F("C: Read EEPROM\n"));
+               #ifdef DEBUG
+                 hbwdebug(F("C: Read EEPROM\n"));
+               #endif
                adrStart = ((uint16_t)(frameData[1]) << 8) | frameData[2];  // start adress of eeprom
                for(byte i = 0; i < frameData[3]; i++) {
-            	   txFrameData[i] = EEPROM.read(adrStart + i);
+            	   txFrame.data[i] = EEPROM.read(adrStart + i);
                };
-               txFrameDataLength = frameData[3];
+               txFrame.dataLength = frameData[3];
             };
             break;
          case 'S':                                                               // GET Level
             processEventGetLevel(frameData[1], frameData[0]);
-            txFrameData[0] = 'i';
+            txFrame.data[0] = 'i';
 			onlyAck = false;
             break;
          case 'W':                                                               // Write EEPROM
             if(frameDataLength == frameData[3] + 4) {
-            	hbwdebug(F("C: Write EEPROM\n"));
+              #ifdef DEBUG
+                hbwdebug(F("C: Write EEPROM\n"));
+              #endif
                adrStart = ((uint16_t)(frameData[1]) << 8) | frameData[2];  // start adress of eeprom
                for(byte i = 4; i < frameDataLength; i++){
             	 writeEEPROM(adrStart+i-4, frameData[i]);
@@ -495,29 +514,33 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
        #endif
          case 'h':                                 // 0x68 get Module type and hardware version
-        	hbwdebug(F("T: HWVer,Typ\n"));
+            #ifdef DEBUG
+              hbwdebug(F("T: HWVer,Typ\n"));
+            #endif
             onlyAck = false;
-            txFrameData[0] = deviceType;
-            txFrameData[1] = hardware_version;
-            txFrameDataLength = 2;
+            txFrame.data[0] = deviceType;
+            txFrame.data[1] = hardware_version;
+            txFrame.dataLength = 2;
             break;
          /* case 'l':               // set Lock Does this really make sense?
             processEventSetLock();
             break;   */
          case 'n':                                       // Seriennummer
-        	determineSerial(txFrameData);
-        	txFrameDataLength = 10;
+        	determineSerial(txFrame.data);
+        	txFrame.dataLength = 10;
         	onlyAck = false;
         	break;
          /* case 'q':                                                               // Zieladresse hinzufügen?
             // TODO: ???
         	break; */
          case 'v':                                                               // get firmware version
-            hbwdebug(F("T: FWVer\n"));
+            #ifdef DEBUG
+              hbwdebug(F("T: FWVer\n")); 
+            #endif
             onlyAck = false;
-            txFrameData[0] = firmware_version / 0x100;
-            txFrameData[1] = firmware_version & 0xFF;
-            txFrameDataLength = 2;
+            txFrame.data[0] = firmware_version / 0x100;
+            txFrame.data[1] = firmware_version & 0xFF;
+            txFrame.dataLength = 2;
             break;
          case 's':   // level set
          case 'x':   // Level set. In der Protokollbeschreibung steht hier was von "install test",
@@ -527,7 +550,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
 			// TODO: Is this really what the standard modules do?
 			//       For slow modules, this might not be correct 
             processEventGetLevel(frameData[1], frameData[0]);  // for feedback
-            txFrameData[0] = 'i';
+            txFrame.data[0] = 'i';
             onlyAck = false; 
             break;
       }
@@ -561,12 +584,10 @@ void HBWDevice::receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan,
 
 void HBWDevice::processEventGetLevel(byte channel, byte command){
    // get value from the hardware and send it back
-   txFrameData[0] = 0x69;         // 'i'
-   txFrameData[1] = channel;      // Sensornummer
-   uint8_t length = get(channel, &(txFrameData[2]));
-   // hmwrs485->txFrameData[2] = info / 0x100;
-   // hmwrs485->txFrameData[3] = info & 0xFF;
-   txFrameDataLength = 0x02 + length;      // Length
+   txFrame.data[0] = 0x69;         // 'i'
+   txFrame.data[1] = channel;      // Sensornummer
+   uint8_t length = get(channel, &(txFrame.data[2]));
+   txFrame.dataLength = 0x02 + length;      // Length
 };
 
 
@@ -577,26 +598,26 @@ void HBWDevice::processEmessage(uint8_t const * const frameData) {
    uint8_t blocknum  = frameData[4];
    
    // length of response
-   txFrameDataLength = 4 + blocknum / 8;
+   txFrame.dataLength = 4 + blocknum / 8;
    // care for odd block numbers
-   if(blocknum % 8) txFrameDataLength++;
+   if(blocknum % 8) txFrame.dataLength++;
    // we don't need to check the size as it can maximum
    // be 4 + 255 div 8 + 1 = 36
    // init to zero, mainly because we need it later
-   memset(txFrameData,0,txFrameDataLength);
+   memset(txFrame.data,0,txFrame.dataLength);
    // first byte "e" - answer on "E"
-   txFrameData[0]  = 0x65;  //e
+   txFrame.data[0]  = 0x65;  //e
    // next 3 bytes are just repeated from request
-   txFrameData[1]  = frameData[1];
-   txFrameData[2]  = frameData[2];
-   txFrameData[3]  = frameData[3];
+   txFrame.data[1]  = frameData[1];
+   txFrame.data[2]  = frameData[2];
+   txFrame.data[3]  = frameData[3];
    
    // determine whether blocks are used
    for(int block = 0; block <= blocknum; block++) {
       // check this memory block
       for(int byteIdx = 0; byteIdx < blocksize; byteIdx++) {
          if(EEPROM.read(block * blocksize + byteIdx) != 0xFF) {
-            bitSet(txFrameData[4 + block / 8], block % 8);
+            bitSet(txFrame.data[4 + block / 8], block % 8);
             break;
          }
       }
@@ -606,32 +627,32 @@ void HBWDevice::processEmessage(uint8_t const * const frameData) {
 
 // "Announce-Message" ueber broadcast senden
 byte HBWDevice::broadcastAnnounce(byte channel) {
-   txTargetAddress = 0xFFFFFFFF;  // broadcast
-   txFrameControlByte = 0xF8;     // control byte
-   txFrameDataLength = 16;      // Length
-   txFrameData[0] = 0x41;         // 'i'
-   txFrameData[1] = channel;      // Sensornummer
-   txFrameData[2] = deviceType;
-   txFrameData[3] = hardware_version;
-   txFrameData[4] = firmware_version / 0x100;
-   txFrameData[5] = firmware_version & 0xFF;
-   determineSerial(txFrameData + 6);
+   txFrame.targetAddress = 0xFFFFFFFF;  // broadcast
+   txFrame.controlByte = 0xF8;     // control byte
+   txFrame.dataLength = 16;      // Length
+   txFrame.data[0] = 0x41;         // 'i'
+   txFrame.data[1] = channel;      // Sensornummer
+   txFrame.data[2] = deviceType;
+   txFrame.data[3] = hardware_version;
+   txFrame.data[4] = firmware_version / 0x100;
+   txFrame.data[5] = firmware_version & 0xFF;
+   determineSerial(txFrame.data + 6);
    // only send, if bus is free. Don't send in zeroCommunication mode, return with "bus busy" instead
-   return (pendingActions.zeroCommunicationActive ? 1 : sendFrame(true));
+   return (pendingActions.zeroCommunicationActive ? BUS_BUSY : sendFrame(true));
 };
 
 
 // "i-Message" senden
 // this is only called from "outside" and not as a response
 uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address) {
-   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
-   txTargetAddress = target_address;
-   if(!txTargetAddress) txTargetAddress = getCentralAddress();	
-   txFrameControlByte = 0xF8;     // control byte
-   txFrameDataLength = 0x02 + length;      // Length
-   txFrameData[0] = 0x69;         // 'i'
-   txFrameData[1] = channel;      // Sensornummer
-   memcpy(&(txFrameData[2]), data, length);
+   if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   txFrame.targetAddress = target_address;
+   if(!txFrame.targetAddress) txFrame.targetAddress = getCentralAddress();	
+   txFrame.controlByte = 0xF8;     // control byte
+   txFrame.dataLength = 0x02 + length;      // Length
+   txFrame.data[0] = 0x69;         // 'i'
+   txFrame.data[1] = channel;      // Sensornummer
+   memcpy(&(txFrame.data[2]), data, length);
    return sendFrame(true);  // only if bus is free
 };
 
@@ -639,59 +660,158 @@ uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t cons
 #ifdef Support_HBWLink_InfoEvent
 // link "InfoEvent Message" senden
 uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel) {
-   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
-   txTargetAddress = target_address;
-   txFrameControlByte = 0xF8;          // control byte
-   txFrameDataLength = 0x03 + length;  // Length
-   txFrameData[0] = 0xB4;              // custom frame/command (mix of 'i' and 'K')
-   txFrameData[1] = channel;           // Sensornummer
-   txFrameData[2] = target_channel;    // Zielaktor
-   memcpy(&(txFrameData[3]), data, length);
-   return sendFrame(true);  // only if bus is free
+   if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   txFrame.targetAddress = target_address;
+   txFrame.controlByte = 0xF8;          // control byte
+   txFrame.dataLength = 0x03 + length;  // Length
+   txFrame.data[0] = 0xB4;              // custom frame/command (mix of 'i' and 'K')
+   txFrame.data[1] = channel;           // Sensornummer
+   txFrame.data[2] = target_channel;    // Zielaktor
+   memcpy(&(txFrame.data[3]), data, length);
+   // return sendFrame(true);  // only if bus is free
+   
+   uint8_t result = sendFrame(true, 1);  // only if bus is free, only 1 try
+   if ( result == BUS_BUSY)  // bus busy and queuing allowed
+      return sendBufferAddMessage(4);  // add to queue, try to send 4 times
+      //return sendBufferAddMessage(txTargetAddress, txFrameControlByte, &(txFrameData[0]), txFrameDataLength, 2);  // add to queue, try to send 2 times
+   else
+      return result;
 };
+
 // InfoEvent senden, inklusive peers etc.
 uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data) {
-	if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
     if(linkSender)
         linkSender->sendInfoEvent(this, srcChan, length, data);
-	return 0;  // return always success... can't send anything different //TODO: maybe linkSender->sendInfoEvent() should not be void...?
+	return SUCCESS;  // return always success... can't send anything different //TODO: maybe linkSender->sendInfoEvent() should not be void...?
 };
 #endif
 
 
 // key-Event senden, inklusive peers etc.
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {
-	if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
-    if(linkSender)
+    uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, NOT_ENQUEUE);  // only if bus is free //TODO: Ok to not add to sendBuffer? this would stop further peering messages, if bus was busy. But queing (repeated) broadcasts is not really useful...?
+	// Other option: only queue new keyPressNum? e.g. add "queue" parameter to sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress)?
+    if(linkSender && result == SUCCESS)
         linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress);
-    return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0);  // only if bus is free
+    return result;
 };
 
 
 // key-Event senden an bestimmtes Target
-uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, uint32_t targetAddr, uint8_t targetChan) {
-   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
-   txTargetAddress = targetAddr;  // target address
-   txFrameControlByte = 0xF8;     // control byte
-   txFrameDataLength = 0x04;      // Length
-   txFrameData[0] = 0x4B;         // 'K'
-   txFrameData[1] = srcChan;      // Sensornummer
-   txFrameData[2] = targetChan;   // Zielaktor
-   txFrameData[3] = (longPress ? 3 : 2) + (keyPressNum << 2);
-   return sendFrame(true);  // only if bus is free
+uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, uint32_t targetAddr, uint8_t targetChan, boolean enqueue) {
+   if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   txFrame.targetAddress = targetAddr;  // target address
+   txFrame.controlByte = 0xF8;     // control byte
+   txFrame.dataLength = 0x04;      // Length
+   txFrame.data[0] = 0x4B;         // 'K'
+   txFrame.data[1] = srcChan;      // Sensornummer
+   txFrame.data[2] = targetChan;   // Zielaktor
+   txFrame.data[3] = (longPress ? 3 : 2) + (keyPressNum << 2);
+   //return sendFrame(true);  // only if bus is free
+   
+   uint8_t result = sendFrame(true, enqueue ? 1 : 3);  // only 1 try if queuing is allowed, 3 otherwise
+   if ( result == BUS_BUSY && enqueue)  // bus busy and queuing allowed
+      return sendBufferAddMessage(3);  // add to queue, try to send 3 times
+   else
+      return result;
 };
+
+// simple buffer to save frames that could not be send (mainly for peering send in a very short time)
+uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
+{
+	if (txFrame.dataLength > MAX_TX_BUFFER_FRAME_LENGTH)  return BUS_BUSY;  // message too big (retun some other error code? no use to try again...)
+	uint8_t index = getNextSendBufferSlot(RETURN_FREE);	// get next free slot
+	if (index == 0xFF)  return BUS_BUSY;  // no empty slot (buffer full)
+	
+	sendBuffer[index].reSendCounter = reSendCounter;
+	// sendBuffer[index].targetAddress = txTargetAddress;
+	// sendBuffer[index].frameControlByte = txFrameControlByte;
+	// sendBuffer[index].frameDataLength = txFrameDataLength;
+	// memcpy(&(sendBuffer[index].frameData), txFrameData, txFrameDataLength);
+	
+	memcpy(&(sendBuffer[index]), &(txFrame), txFrame.dataLength +(sizeof(s_SendBuffer) - MAX_TX_BUFFER_FRAME_LENGTH));
+	
+	sendBufferLastTryTime = millis();	// reset retry timer
+	
+	#ifdef DEBUG
+	hbwdebug(F("sendQ in: ")); hbwdebug(index); hbwdebug(F(" retry: ")); hbwdebug(reSendCounter);
+	hbwdebug("\n");
+	#endif
+	
+	return SUCCESS;
+}
+// mark all slots as free. Elements of the sendBuffer struct may contain data
+void HBWDevice::sendBufferInit()
+{
+	for(byte i = 0; i < SEND_BUFFER_SIZE; i++) {
+		sendBuffer[i].reSendCounter = 0;
+	}
+}
+// return index number of next free or used slot
+uint8_t HBWDevice::getNextSendBufferSlot(boolean free, uint8_t index)
+{
+	// start searching from previously used index number
+	if (index >= SEND_BUFFER_SIZE) index = 0;
+	for(byte i = index; i < SEND_BUFFER_SIZE; i++) {
+		if (free) {
+			if (sendBuffer[i].reSendCounter == 0)  return i;  // return free index number
+		}
+		else {
+			if (sendBuffer[i].reSendCounter > 0)  return i;  // return used index number
+		}
+	}
+	return 0xFF;
+}
+// try to send message stored in the buffer, only if bus is idle for now - remove messages that stay in the queue
+// for too long (simple counter, not individual timestamp - so save space)
+void HBWDevice::sendBufferTransmitMessage()
+{
+	sendBufferIndex = getNextSendBufferSlot(RETURN_USED, sendBufferIndex);	// get next used slot, try previously used slot first
+	if (sendBufferIndex == 0xFF)  return;  // nothing to send
+	
+	if (!busIsIdle())	// we have a message in the buffer, but bus is still not idle
+	{
+		if (millis() - sendBufferLastTryTime > DIFS_CONSTANT + DIFS_RANDOM + 20) // TODO: what values to use? 330 ms ok? (210 + 100 + 20)
+		{
+			sendBuffer[sendBufferIndex].reSendCounter--;	// reduce the reSendCounter to expire this message
+			sendBufferLastTryTime = millis();
+		}
+		return;
+	}
+	
+	#ifdef DEBUG
+	hbwdebug(F("sendQ out: ")); hbwdebug(sendBufferIndex); hbwdebug(F(" retry: ")); hbwdebug(sendBuffer[sendBufferIndex].reSendCounter);
+	hbwdebug("\n");
+	#endif
+	
+	// prepare frame from buffered data
+	// txTargetAddress = sendBuffer[index].targetAddress;  // target address
+	// txFrameControlByte = sendBuffer[index].frameControlByte;     // control byte
+	// txFrameDataLength = sendBuffer[index].frameDataLength;      // Length
+	// memcpy(&(txFrameData[0]), sendBuffer[index].frameData, txFrameDataLength);
+	
+	memcpy(&(txFrame), &(sendBuffer[sendBufferIndex]), txFrame.dataLength +(sizeof(s_SendBuffer) - MAX_TX_BUFFER_FRAME_LENGTH));
+
+	uint8_t result = sendFrame(true);  // only if bus is free  // try to send
+	// uint8_t result = sendFrame(sendBuffer[index].onlyIfIdle);  // try to send
+
+	if (result == SUCCESS)
+		sendBuffer[sendBufferIndex].reSendCounter = 0;	// successful send, free up this slot
+	else
+		sendBuffer[sendBufferIndex].reSendCounter--;
+}
 
 
 // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
    if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
-   txTargetAddress = 0xFFFFFFFF;  // target address
-   txFrameControlByte = 0xF8;     // control byte
-   txFrameDataLength = 3 + length;      // Length
-   txFrameData[0] = 0x4B;         // 'K'
-   txFrameData[1] = srcChan;      // Sensornummer
-   txFrameData[2] = 0;   // Zielaktor
-   memcpy(&(txFrameData[3]), data, length);
+   txFrame.targetAddress = 0xFFFFFFFF;  // target address
+   txFrame.controlByte = 0xF8;     // control byte
+   txFrame.dataLength = 3 + length;      // Length
+   txFrame.data[0] = 0x4B;         // 'K'
+   txFrame.data[1] = srcChan;      // Sensornummer
+   txFrame.data[2] = 0;   // Zielaktor
+   memcpy(&(txFrame.data[3]), data, length);
    return sendFrame(true);  // only if bus is free
 };
 
@@ -718,6 +838,8 @@ void HBWDevice::readAddressFromEEPROM(){
    if(address == 0xFFFFFFFF)
       address = 0x42FFFFFF;
    setOwnAddress(address);
+   
+   sendBufferInit();	// reset send queue
 }
 
 
@@ -764,13 +886,19 @@ void HBWDevice::readEEPROM(void* dst, uint16_t address, uint16_t length,
 // broadcast announce message once at the beginning
 // this might need to "wait" until the bus is free
 void HBWDevice::handleBroadcastAnnounce() {
+   if(pendingActions.announced) return;
    // avoid sending broadcast in the first second
    if(millis() < 1000) return;
-   if(pendingActions.announced) return;
    // send methods return 0 if everything is ok
    pendingActions.announced = (broadcastAnnounce(0) == 0);
 }
 
+
+// return true, if bus was idle for minIdleTime (means nothing was received on the device)
+boolean HBWDevice::busIsIdle()
+{
+  return (millis() - lastReceivedTime > minIdleTime);
+}
 
 /*
 ********************************
@@ -847,12 +975,12 @@ void HBWDevice::setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin) {
 
 #ifdef Support_HBWLink_InfoEvent
 void HBWDevice::setInfo(uint8_t channel, uint8_t length, uint8_t const * const data) {
-	if(hbwdebugstream) {
+	#ifdef DEBUG
 	    hbwdebug(F("Si: ")); hbwdebughex(channel); hbwdebug(F(" "));
 		for(uint8_t i = 0; i < length; i++)
 			hbwdebughex(data[i]); 
 		hbwdebug("\n");
-	};
+	#endif
 	// to avoid crashes, do not try to set any channels, which do not exist
 	if(channel < numChannels)
         channels[channel]->setInfo(this, length, data);
@@ -860,12 +988,12 @@ void HBWDevice::setInfo(uint8_t channel, uint8_t length, uint8_t const * const d
 #endif
 
 void HBWDevice::set(uint8_t channel, uint8_t length, uint8_t const * const data) {
-	if(hbwdebugstream) {
+	#ifdef DEBUG
 	    hbwdebug(F("S: ")); hbwdebughex(channel); hbwdebug(F(" "));
 		for(uint8_t i = 0; i < length; i++)
 			hbwdebughex(data[i]); 
 		hbwdebug("\n");
-	};
+	#endif
 	// to avoid crashes, do not try to set any channels, which do not exist
 	if(channel < numChannels)
         channels[channel]->set(this, length, data);
@@ -917,6 +1045,8 @@ void HBWDevice::loop()
    handleConfigButton();
 // Rx & Tx LEDs
    handleStatusLEDs();
+// check and try to send one message from the queue
+   sendBufferTransmitMessage();
 };
 
 

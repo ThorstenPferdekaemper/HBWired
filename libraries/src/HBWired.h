@@ -11,9 +11,12 @@
 #include "Arduino.h"
 #include "hardware.h"
 
+#define DEBUG  // reduce code size, if no serial output is needed (_debugstream can still be used for other channels or set to NULL)
+
 /* enable the below to allow peering with HBWLinkInfoEventActuator/HBWLinkInfoEventSensor
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
 //#define Support_HBWLink_InfoEvent
+
 
 class HBWDevice;
 
@@ -109,7 +112,7 @@ class HBWDevice {
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress);
 	// Key Event Routine mit Target fuer LinkSender 
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress,
-								 uint32_t target_address, uint8_t target_channel);
+								 uint32_t target_address, uint8_t target_channel, boolean enqueue = true);
     // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
     virtual uint8_t sendKeyEvent(uint8_t srcChan, uint8_t length, void* data);
  								 
@@ -121,11 +124,19 @@ class HBWDevice {
 	void readEEPROM(void* dst, uint16_t address, uint16_t length, 
                            boolean lowByteFirst = false);
 	uint32_t getOwnAddress();
+	boolean busIsIdle();
+	
+	enum sendFrame_Status
+	{
+		SUCCESS = 0,	//   0 -> ok
+		BUS_BUSY,	//   1 -> bus not idle (only if onlyIfIdle)
+		NO_ACK		//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
+	};
 
   private:							 
 	uint8_t numChannels;    // number of channels
 	HBWChannel** channels;  // channels
-    HBWLinkSender* linkSender;
+	HBWLinkSender* linkSender;
 	HBWLinkReceiver* linkReceiver;
 	
 	// pins of config button and config LED
@@ -140,7 +151,7 @@ class HBWDevice {
 	//   0 -> ok
 	//   1 -> bus not idle (only if onlyIfIdle)
 	//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-	uint8_t sendFrame(boolean onlyIfIdle = false);
+	uint8_t sendFrame(boolean onlyIfIdle = false, uint8_t retries = 3);
 	void sendAck();  // ACK fuer gerade verarbeitete Message senden
 
 	// eigene Adresse setzen und damit auch random seed
@@ -154,11 +165,10 @@ class HBWDevice {
     // Senderadresse beim Empfangen
 	uint32_t senderAddress;
 	// Senden
-	uint32_t txTargetAddress;        // Adresse des Moduls, zu dem gesendet wird
-	
-	uint8_t txFrameControlByte;
-    uint8_t txFrameDataLength;              // Laenge der Daten + Checksum
-	uint8_t txFrameData[MAX_RX_FRAME_LENGTH];
+	// uint32_t txTargetAddress;        // Adresse des Moduls, zu dem gesendet wird
+	// uint8_t txFrameControlByte;
+    // uint8_t txFrameDataLength;              // Laenge der Daten + Checksum
+	// uint8_t txFrameData[MAX_RX_FRAME_LENGTH];
 
 
 	// the broadcast methods return...
@@ -213,9 +223,9 @@ class HBWDevice {
 	void processEmessage(uint8_t const * const frameData);
 	
     void factoryReset();
-	void handleConfigButton();
+	void handleConfigButton();	// handle config button and config LED
 	uint8_t configButtonStatus;
-	void handleStatusLEDs();
+	void handleStatusLEDs();	// handle Tx and Rx LEDs
 	boolean txLEDStatus;
 	boolean rxLEDStatus;
 	
@@ -231,6 +241,42 @@ class HBWDevice {
 	static s_PendingActions pendingActions;
 	
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
+	
+	// s_txFrame and s_SendBuffer have to use the same layout (to use memcpy)
+	struct s_txFrame
+	{
+		uint32_t targetAddress;
+		uint8_t controlByte;
+		uint8_t dataLength;              // Laenge der Daten
+		uint8_t data[MAX_RX_FRAME_LENGTH];
+	};
+	s_txFrame txFrame;
+	
+	// simple send queue, to buffer messages that will be send in a short period of time
+	static const uint8_t SEND_BUFFER_SIZE = 4;	// amount of messages to store //TODO: what's a good size? (vs memory consumption?)
+	static const uint8_t MAX_TX_BUFFER_FRAME_LENGTH = 8;	// max frame size for the buffer //TODO: what's a good size? (vs memory consumption?)
+	struct s_SendBuffer
+	{
+		uint32_t targetAddress;
+		uint8_t frameControlByte;
+		uint8_t frameDataLength;              // Laenge der Daten
+		uint8_t frameData[MAX_TX_BUFFER_FRAME_LENGTH];	// don't buffer large frames; frameDataLength < MAX_TX_BUFFER_FRAME_LENGTH
+		uint8_t reSendCounter;
+		// boolean onlyIfIdle; add?
+	};
+	s_SendBuffer sendBuffer[SEND_BUFFER_SIZE];
+	void sendBufferInit();
+	uint32_t sendBufferLastTryTime;	// gets set in sendBufferAddMessage, not relevant if queue is emtpy
+	uint8_t sendBufferIndex;
+	uint8_t sendBufferAddMessage(uint8_t reSendCounter = 3);
+	//uint8_t sendBufferAddMessage(uint32_t targetAddress, uint8_t frameControlByte, uint8_t* frameData, uint8_t frameDataLength, uint8_t reSendCounter = 3);
+	//??????? uint8_t sendOrBufferMessage(uint32_t targetAddress, uint8_t frameControlByte, uint8_t* frameData, uint8_t frameDataLength, uint8_t reSendCounter = 3, uint8_t onlyIfIdle = true, uint8_t enqueue = true);	// send message/frame directly or add to buffer (enqueue == true)
+	void sendBufferTransmitMessage();
+	uint8_t getNextSendBufferSlot(boolean free, uint8_t index = 0xFF);
+	static const boolean RETURN_FREE = true;
+	static const boolean RETURN_USED = false;
+	static const boolean ENQUEUE = true;
+	static const boolean NOT_ENQUEUE = false;
 };
 
 
