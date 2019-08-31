@@ -75,11 +75,11 @@ class HBSenKey : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void afterReadConfig();
   private:
+    hbw_config_key* config;
     uint8_t pin;   // Pin
     uint32_t lastSentLong;      // Zeit, zu der das letzte Mal longPress gesendet wurde
     uint8_t keyPressNum;
-    int8_t keyState;   
-    hbw_config_key* config;    
+    int8_t keyState;
     ClickButton button;
 };
 
@@ -90,7 +90,8 @@ HBWDevice* device = NULL;
 
 
 HBSenKey::HBSenKey(uint8_t _pin, hbw_config_key* _config) 
-              : config(_config), pin(_pin), 
+              : config(_config),
+                pin(_pin),
                 button(_pin,LOW,HIGH) { 
 };
 
@@ -131,16 +132,14 @@ void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
         if (button.depressed) {  // ist noch immer gedrueckt --> alle 300ms senden
           if(now - lastSentLong >= 300){ // alle 300ms erneut senden
             lastSentLong = lastSentLong + 300;
-            device->sendKeyEvent(channel,keyPressNum, true);  // long press
+            device->sendKeyEvent(channel,keyPressNum, true, NOT_ENQUEUE);  // long press
           }
         } else {    // "Losgelassen" senden
             data = keyPressNum << 2; // + 0
             device->sendKeyEvent(channel, 1, &data);
             keyState = 0;
         }
-
   }
-
 }
 
 
@@ -174,4 +173,3 @@ void loop()
 {
   device->loop();
 };
-

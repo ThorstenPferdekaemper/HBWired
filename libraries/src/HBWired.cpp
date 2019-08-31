@@ -393,7 +393,7 @@ void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};
 void HBWChannel::afterReadConfig() {};
 
 
-void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {};
+void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue) {};
 void HBWLinkReceiver::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                       uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {};
 #ifdef Support_HBWLink_InfoEvent
@@ -688,11 +688,11 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const 
 
 
 // key-Event senden, inklusive peers etc.
-uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {
-    uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, NOT_ENQUEUE);  // only if bus is free //TODO: Ok to not add to sendBuffer? this would stop further peering messages, if bus was busy. But queing (repeated) broadcasts is not really useful...?
-	// Other option: only queue new keyPressNum? e.g. add "queue" parameter to sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress)?
+uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue) {
+    uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free
+	//TODO: Ok to not add to sendBuffer? this would stop further peering messages, if bus was busy...
     if(linkSender && result == SUCCESS)
-        linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress);
+        linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress, enqueue);
     return result;
 };
 
@@ -711,7 +711,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
    
    uint8_t result = sendFrame(true, enqueue ? 1 : 3);  // only 1 try if queuing is allowed, 3 otherwise
    if ( result == BUS_BUSY && enqueue)  // bus busy and queuing allowed
-      return sendBufferAddMessage(3);  // add to queue, try to send 3 times
+      return sendBufferAddMessage(2);  // add to queue, try to send 2 times
    else
       return result;
 };
@@ -724,11 +724,6 @@ uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
 	if (index == 0xFF)  return BUS_BUSY;  // no empty slot (buffer full)
 	
 	sendBuffer[index].reSendCounter = reSendCounter;
-	// sendBuffer[index].targetAddress = txTargetAddress;
-	// sendBuffer[index].frameControlByte = txFrameControlByte;
-	// sendBuffer[index].frameDataLength = txFrameDataLength;
-	// memcpy(&(sendBuffer[index].frameData), txFrameData, txFrameDataLength);
-	
 	memcpy(&(sendBuffer[index]), &(txFrame), txFrame.dataLength +(sizeof(s_SendBuffer) - MAX_TX_BUFFER_FRAME_LENGTH));
 	
 	sendBufferLastTryTime = millis();	// reset retry timer
@@ -784,15 +779,10 @@ void HBWDevice::sendBufferTransmitMessage()
 	hbwdebug("\n");
 	#endif
 	
-	// prepare frame from buffered data
-	// txTargetAddress = sendBuffer[index].targetAddress;  // target address
-	// txFrameControlByte = sendBuffer[index].frameControlByte;     // control byte
-	// txFrameDataLength = sendBuffer[index].frameDataLength;      // Length
-	// memcpy(&(txFrameData[0]), sendBuffer[index].frameData, txFrameDataLength);
-	
+	// get frame from buffer
 	memcpy(&(txFrame), &(sendBuffer[sendBufferIndex]), txFrame.dataLength +(sizeof(s_SendBuffer) - MAX_TX_BUFFER_FRAME_LENGTH));
 
-	uint8_t result = sendFrame(true);  // only if bus is free  // try to send
+	uint8_t result = sendFrame(true, 1);  // only if bus is free  // try to send, one try
 	// uint8_t result = sendFrame(sendBuffer[index].onlyIfIdle);  // try to send
 
 	if (result == SUCCESS)

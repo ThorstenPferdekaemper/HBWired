@@ -17,6 +17,9 @@
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
 //#define Support_HBWLink_InfoEvent
 
+#define ENQUEUE true
+#define NOT_ENQUEUE false
+
 
 class HBWDevice;
 
@@ -35,7 +38,7 @@ class HBWChannel {
 
 class HBWLinkSender {
   public:
-    virtual void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress);
+    virtual void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue = true);
   #ifdef Support_HBWLink_InfoEvent
 	virtual void sendInfoEvent(HBWDevice* device, uint8_t srcChan, uint8_t length, uint8_t const * const data);
   #endif
@@ -109,7 +112,7 @@ class HBWDevice {
 	virtual void receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan, uint8_t dstChan, uint8_t length, uint8_t const * const data);
   #endif
 	// Allgemeiner "Key Event"
-    virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress);
+    virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress, boolean enqueue = true);
 	// Key Event Routine mit Target fuer LinkSender 
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress,
 								 uint32_t target_address, uint8_t target_channel, boolean enqueue = true);
@@ -269,14 +272,10 @@ class HBWDevice {
 	uint32_t sendBufferLastTryTime;	// gets set in sendBufferAddMessage, not relevant if queue is emtpy
 	uint8_t sendBufferIndex;
 	uint8_t sendBufferAddMessage(uint8_t reSendCounter = 3);
-	//uint8_t sendBufferAddMessage(uint32_t targetAddress, uint8_t frameControlByte, uint8_t* frameData, uint8_t frameDataLength, uint8_t reSendCounter = 3);
-	//??????? uint8_t sendOrBufferMessage(uint32_t targetAddress, uint8_t frameControlByte, uint8_t* frameData, uint8_t frameDataLength, uint8_t reSendCounter = 3, uint8_t onlyIfIdle = true, uint8_t enqueue = true);	// send message/frame directly or add to buffer (enqueue == true)
 	void sendBufferTransmitMessage();
 	uint8_t getNextSendBufferSlot(boolean free, uint8_t index = 0xFF);
 	static const boolean RETURN_FREE = true;
 	static const boolean RETURN_USED = false;
-	static const boolean ENQUEUE = true;
-	static const boolean NOT_ENQUEUE = false;
 };
 
 

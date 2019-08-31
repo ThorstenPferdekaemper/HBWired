@@ -30,7 +30,6 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
   uint8_t value;
   device->get(mappedChan, &value);  // check length?
 
-//    if (value <= config->threshold) {
   if (value == 0) {
     sendLong = true ^ !config->n_inverted;
   }
@@ -42,8 +41,6 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
   if (lastSentLong != sendLong || forceUpdate) {
     // send short key event immediately, delay long key event (off delay)
     if (millis() - keyPressedMillis > OFF_DELAY_TIME || !sendLong) {
-      if (!device->busIsIdle())
-        return; // don't continue if bus is not idle. sendKeyEvent would probably fail
         
   #ifdef DEBUG_OUTPUT
     hbwdebug(F("VKey_ch:"));
