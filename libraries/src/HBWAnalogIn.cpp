@@ -22,9 +22,9 @@ HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
 
 
 // channel specific settings or defaults
-//void HBWAnalogIn::afterReadConfig() {
-//
-//};
+void HBWAnalogIn::afterReadConfig() {
+  if (config->update_interval == 0xFF || config->update_interval == 0)  config->update_interval = 30; // default 300 seconds
+};
 
 
 /* standard public function - returns length of data array. Data array contains current channel reading */
@@ -65,7 +65,7 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
     while (i);
     
     currentValue = sum / MAX_SAMPLES;
-    nextActionDelay = UPDATE_INTERVAL;	// "sleep" until next update
+    nextActionDelay = config->update_interval;	// "sleep" until next update
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("adc-ch:"));
