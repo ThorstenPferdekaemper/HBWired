@@ -13,6 +13,7 @@
 
 #include "HBWired.h"
 
+//#define DEBUG	// define/overwrite here or use DEBUG defined in "HBWired.h"
 
 /********************************/
 /* Config der Rollo-Steuerung:  */
