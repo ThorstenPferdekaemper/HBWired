@@ -17,8 +17,8 @@ HBWOneWireTemp::HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, u
   currentTemp = DEFAULT_TEMP;
   lastSentTemp = DEFAULT_TEMP;
   lastSentTime = 0;
-  state.errorCount = 3;
-  state.errorWasSend = true;
+  errorCount = 3;
+  errorWasSend = true;
 }
 
 
@@ -30,7 +30,7 @@ void HBWOneWireTemp::afterReadConfig() {
       if (config->send_max_interval == 0xFFFF) config->send_max_interval = 150;
       if (config->send_min_interval == 0xFFFF) config->send_min_interval = 10;
       
-      state.action = ACTION_START_CONVERSION; // start with new conversion, maybe the previous sensor was removed...
+      action = ACTION_START_CONVERSION; // start with new conversion, maybe the previous sensor was removed...
       
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("conf_OW addr: "));  m_hbwdebug_ow_address(&config->address[0]);  hbwdebug(F("\n"));
@@ -139,7 +139,7 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 	  return DEFAULT_TEMP;  // ignore channels without valid sensor
 
 	uint8_t data[12];
-	state.isAllZeros = true;
+	isAllZeros = true;
 
 	ow->reset();
 	ow->select(config->address);
@@ -147,22 +147,22 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 
 	for (uint8_t i = 0; i < 9; i++) {      // we need 9 bytes
 		data[i] = ow->read();
-		if (data[i] != 0) state.isAllZeros = false;
+		if (data[i] != 0) isAllZeros = false;
 	}
 	// error for failed CRC check and if all bytes of scratchPad are zero (disconnected device)
-	if (ow->crc8(data, 8) != data[8] || state.isAllZeros) {
-	  if (state.errorCount == 0) {
+	if (ow->crc8(data, 8) != data[8] || isAllZeros) {
+	  if (errorCount == 0) {
 	    return ERROR_TEMP;  //return ERROR temp for CRC error and disconnected devices - after 3 retries
 	  }
     else {
-	    if (state.errorCount == 1)
-	      state.errorWasSend = false;
-	    state.errorCount--;
+	    if (errorCount == 1)
+	      errorWasSend = false;
+	    errorCount--;
 		  return currentTemp;
 	  }
 	}
-	if (state.errorCount < 3) {
-	  state.errorCount = 3;	// reset error counter
+	if (errorCount < 3) {
+	  errorCount = 3;	// reset error counter
 	  return ERROR_TEMP;	// skip first measure (could be incomplete)
 	}
 	
@@ -210,14 +210,14 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   
   // read onewire sensor every n seconds (OW_POLL_FREQUENCY/1000)
   if (now - *owLastReadTime >= OW_POLL_FREQUENCY && *owCurrentChannel == channel) {
-    if (state.action == ACTION_START_CONVERSION) {
+    if (action == ACTION_START_CONVERSION) {
       *owLastReadTime = now;
       oneWireStartConversion();   // start next measurement
-      state.action = ACTION_READ_TEMP;  // next action
+      action = ACTION_READ_TEMP;  // next action
     }
-    else if (state.action == ACTION_READ_TEMP) {
+    else if (action == ACTION_READ_TEMP) {
       currentTemp = oneWireReadTemp();   // read temperature
-      state.action = ACTION_START_CONVERSION;  // next action
+      action = ACTION_START_CONVERSION;  // next action
       *owCurrentChannel = OW_CHAN_INIT;    // 'reset' current channel. Next call to loop will point to next channel
       
   #ifdef EXTRA_DEBUG_OUTPUT
@@ -227,16 +227,16 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
     }
   }
   
-  #ifdef Support_HBWLink_InfoEvent
-  if (state.sendInfoEvent && now - lastSentTime > SEND_INFO_EVENT_DELAY) {
-    get(level);
-    device->sendInfoEvent(channel, 2, level);
-    state.sendInfoEvent = false;
-  }
-  #endif
+  // #ifdef Support_HBWLink_InfoEvent
+  // if (sendInfoEvent && now - lastSentTime > SEND_INFO_EVENT_DELAY) {
+    // get(level);
+    // device->sendInfoEvent(channel, 2, level);
+    // sendInfoEvent = false;
+  // }
+  // #endif
   	
   // check if we have a valid temp
-  if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && state.errorWasSend))  return; // send ERROR_TEMP in error state just once
+  if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && errorWasSend))  return; // send ERROR_TEMP in error state just once
 
   // check if some temperatures needed to be send
   // do not send before min interval
@@ -245,16 +245,20 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
       (config->send_delta_temp && abs( currentTemp - lastSentTemp ) >= (unsigned int)(config->send_delta_temp) * 10)) {
     // send temperature
     get(level);
-    device->sendInfoMessage(channel, 2, level);    // level has always 2 byte here
-
-    #ifdef Support_HBWLink_InfoEvent
-    state.sendInfoEvent = true;
-    #endif
+    if (device->sendInfoMessage(channel, 2, level) == HBWDevice::SUCCESS)    // level has always 2 byte here
+{
+    // #ifdef Support_HBWLink_InfoEvent
+    // sendInfoEvent = true;
+    // #endif
     
     lastSentTemp = currentTemp;
     lastSentTime = now;
-    state.errorWasSend = true;
- 
+    errorWasSend = true;
+ }
+ #ifdef Support_HBWLink_InfoEvent
+ device->sendInfoEvent(channel, 2, level);
+ #endif
+
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
   hbwdebug(F(" sent temp, m°C: "));  hbwdebug(lastSentTemp);  hbwdebug(F("\n"));

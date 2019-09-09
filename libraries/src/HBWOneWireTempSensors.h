@@ -63,13 +63,11 @@ class HBWOneWireTemp : public HBWChannel {
     int16_t currentTemp;	// temperatures in m°C
     int16_t lastSentTemp;	// temperature measured on last send
     uint32_t lastSentTime;		// time of last send
-    struct s_state {
-      byte errorCount:3;         // channel in error state if counted down to 0
-      byte errorWasSend:1;       // flag to indicate if ERROR_TEMP was send
-      byte isAllZeros:1;    // indicate that current device read was blank (usually happens when device gets disconnected)
-      byte action:2;        // current action: measure, read temp
-      byte sendInfoEvent:1;	// send flag for the peered channel event
-    } state;
+    uint8_t errorCount;    // channel in error state if counted down to 0
+    uint8_t action;        // current action: measure, read temp
+    boolean errorWasSend;  // flag to indicate if ERROR_TEMP was send
+    boolean isAllZeros;    // indicate that current device read was blank (usually happens when device gets disconnected)
+	
     static bool deviceInvalidOrEmptyID(uint8_t deviceType);
     static const uint8_t DS18S20_ID = 0x10;
     static const uint8_t DS1822_ID = 0x22;
