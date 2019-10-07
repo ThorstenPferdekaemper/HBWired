@@ -98,11 +98,9 @@ class HBWValve : public HBWChannel {
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
     
-    struct valve_config {
-      uint8_t initDone :1;
-      uint8_t firstState:1;
-      uint8_t nextState :1;
-    } valveConf;
+    bool initDone;
+    bool isFirstState;
+    bool nextState;
 
     union tag_state_flags {
       struct state_flags {

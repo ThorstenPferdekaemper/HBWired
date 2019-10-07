@@ -21,7 +21,7 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
   offTimer = 200;
   lastSentTime = 0;
   stateFlags.byte = 0;
-  valveConf.initDone = false;
+  initDone = false;
   
   digitalWrite(pin, LOW);
   pinMode(pin, OUTPUT);
@@ -35,12 +35,12 @@ void HBWValve::afterReadConfig()
   if (config->error_pos == 0xFF)  config->error_pos = 30;   // 15%
   if (config->valveSwitchTime == 0xFF || config->valveSwitchTime == 0)  config->valveSwitchTime = 18; // default 180s (factor 10!)
 
-  if (!valveConf.initDone) {
+  if (!initDone) {
     valveLevel = config->error_pos;
-    valveConf.firstState = true;
-    valveConf.initDone = true;
+    isFirstState = true;
+    initDone = true;
   }
-  valveConf.nextState = init_new_state();
+  nextState = init_new_state();
 }
 
 
@@ -107,8 +107,8 @@ void HBWValve::setNewLevel(uint8_t NewLevel)
   {
     valveLevel < NewLevel ? stateFlags.element.upDown = 1 : stateFlags.element.upDown = 0;
     valveLevel = NewLevel;
-    valveConf.firstState = true;
-    valveConf.nextState = init_new_state();
+    isFirstState = true;
+    nextState = init_new_state();
   }
 }
 
@@ -145,7 +145,7 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
   if (now - outputChangeLastTime >= outputChangeNextDelay)
   {
     //hmwdebug("nextstate: "); hmwdebug(nextState[i]); hmwdebug(" channel: "); hmwdebug(i); hmwdebug("\n");
-    switchstate(valveConf.nextState);
+    switchstate(nextState);
     outputChangeLastTime = now;
   }
 
@@ -188,17 +188,17 @@ void HBWValve::switchstate(byte State)
     case VENTON:
 //        digitalWrite(pin, ON);
       stateFlags.element.status = (false ^ config->n_inverted);
-      outputChangeNextDelay = set_timer(valveConf.firstState, valveConf.nextState);
-      valveConf.nextState = VENTOFF;
-      valveConf.firstState = false;
+      outputChangeNextDelay = set_timer(isFirstState, nextState);
+      nextState = VENTOFF;
+      isFirstState = false;
     break;
 
     case VENTOFF:
 //        digitalWrite(pin, OFF);
       stateFlags.element.status = (true ^ config->n_inverted);
-      outputChangeNextDelay = set_timer(valveConf.firstState, valveConf.nextState);
-      valveConf.nextState = VENTON;
-      valveConf.firstState = false;
+      outputChangeNextDelay = set_timer(isFirstState, nextState);
+      nextState = VENTON;
+      isFirstState = false;
     break;
   }
   digitalWrite(pin, stateFlags.element.status);

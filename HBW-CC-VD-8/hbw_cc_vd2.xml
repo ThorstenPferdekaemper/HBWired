@@ -144,7 +144,7 @@
 				</parameter>
 			</paramset>
 		
-			<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x140" address_step="7"><!--step 28-->
+			<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x140" address_step="7">
 				<parameter id="UI_HINT">
 				  <logical type="string" default="" use_default_on_failure="true"/>
 				  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -210,7 +210,7 @@
 		</channel>
     
     	<channel index="3" physical_index_offset="-1" count="2" type="VALVE">
-			<paramset type="MASTER" id="hmw_input_ch_master" address_start="0x35" address_step="6">
+			<paramset type="MASTER" id="hmw_output_ch_master" address_start="0x35" address_step="6">
 				<parameter id="LOGGING">
 				  <logical type="option">
 					<option id="OFF"/>
@@ -242,7 +242,7 @@
 						<address index="+1"/>
 					</physical>
 					<conversion type="integer_integer_map">
-					 <value_map device_value="0xffff" parameter_value="300" from_device="true" to_device="false"/>
+					 <value_map device_value="0xffff" parameter_value="0" from_device="true" to_device="false"/>
 				   </conversion>
 				</parameter>
 				<parameter id="VALVE_ERROR_POS">
@@ -263,7 +263,8 @@
 				   </conversion>
 				</parameter>
 			</paramset>
-			<!--<link_roles>
+			<!-- no peering to additional switch channels supported
+			<link_roles>
 				<source name="TEST"/>
 			</link_roles>
 			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="18" address_start="0x370" address_step="6">
@@ -285,7 +286,7 @@
 					</physical>
 				</parameter>
 			</paramset>-->
-			<paramset type="VALUES" id="hmw_input_ch_values">
+			<paramset type="VALUES" id="hmw_output_ch_values">
         		<parameter id="VALVE" operations="read,write,event" control="VALVE.LEVEL">
 					<logical type="float" default="0.0" min="0.0" max="1.0" unit="100%"/>
 					<physical type="integer" interface="command" value_id="STATE">
@@ -295,7 +296,7 @@
 					</physical>
 					<conversion type="float_integer_scale" factor="200"/>
         		</parameter>
-        		<parameter id="STATE" operations="read,event" ui_flags="internal">
+        		<parameter id="OUTPUT_STATE" operations="read,event" ui_flags="internal"><!--id="STATE" will show on/off as chan state-->
 					<logical type="option">
 						<option id="OFF"/>
 						<option id="OFF"/>
