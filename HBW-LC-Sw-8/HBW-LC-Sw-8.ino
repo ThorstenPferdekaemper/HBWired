@@ -28,7 +28,7 @@
 
 //#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
 
-#include <HBWSoftwareSerial.h>
+#include <SoftwareSerial.h>
 #include <FreeRam.h>    
 
 // HB Wired protocol and module
@@ -40,8 +40,7 @@
 #define RS485_TXD 2
 #define RS485_TXEN 3  // Transmit-Enable
 
-// HBWSoftwareSerial can only do 19200 baud
-HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+SoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 
 
 // Pins
@@ -97,9 +96,9 @@ HBSwDevice* device = NULL;
 void setup()
 {
 #ifndef NO_DEBUG_OUTPUT
-  Serial.begin(19200);
+  Serial.begin(19200);  // Serial->USB for debug
 #endif
-  rs485.begin();    // RS485 via SoftwareSerial
+  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 
   // create channels
   uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN, SWITCH3_PIN, SWITCH4_PIN, SWITCH5_PIN, SWITCH6_PIN, SWITCH7_PIN, SWITCH8_PIN};
