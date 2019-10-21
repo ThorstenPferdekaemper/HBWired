@@ -1,46 +1,49 @@
 /*
-HBWSoftwareSerial 
-(Forked from SoftwareSerial of the "official" Arduino Library)
+HBWSoftwareSerial, added even parity bit to default SoftwareSerial.h
+SoftwareSerial.cpp (formerly NewSoftSerial.cpp) - 
+Multi-instance software serial library for Arduino/Wiring
+-- Interrupt-driven receive and other improvements by ladyada
+   (http://ladyada.net)
+-- Tuning, circular buffer, derivation from class Print/Stream,
+   multi-instance support, porting to 8MHz processors,
+   various optimizations, PROGMEM delay tables, inverse logic and 
+   direct port writing by Mikal Hart (http://www.arduiniana.org)
+-- Pin change interrupt macros by Paul Stoffregen (http://www.pjrc.com)
+-- 20MHz processor support by Garrett Mace (http://www.macetech.com)
+-- ATmega1280/2560 support by Brett Hagman (http://www.roguerobotics.com/)
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+The latest version of this library can always be found at
+http://arduiniana.org.
 */
 
+// When set, _DEBUG co-opts pins 11 and 13 for debugging with an
+// oscilloscope or logic analyzer.  Beware: it also slightly modifies
+// the bit times, so don't rely on it too much at high baud rates
+#define _DEBUG 0
+#define _DEBUG_PIN1 11
+#define _DEBUG_PIN2 13
 // 
 // Includes
 // 
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <Arduino.h>
 #include <HBWSoftwareSerial.h>
-
-#if F_CPU == 16000000
-
-#define RX_DELAY_CENTER 54
-#define RX_DELAY_INTRA  117
-#define RX_DELAY_STOP   117
-#define TX_DELAY        114
-const int XMIT_START_ADJUSTMENT = 5;
-
-#elif F_CPU == 8000000
-
-#define RX_DELAY_CENTER 20
-#define RX_DELAY_INTRA  55
-#define RX_DELAY_STOP   55
-#define TX_DELAY        52
-const int XMIT_START_ADJUSTMENT = 4;
-
-#elif F_CPU == 20000000
-
-// 20MHz support courtesy of the good people at macegr.com.
-// Thanks, Garrett!
-#define RX_DELAY_CENTER 71
-#define RX_DELAY_INTRA  148
-#define RX_DELAY_STOP   148
-#define TX_DELAY        145
-const int XMIT_START_ADJUSTMENT = 6;
-
-#else
-
-#error This version of SoftwareSerial supports only 20, 16 and 8MHz processors
-
-#endif
+#include <util/delay_basic.h>
 
 //
 // Statics
@@ -51,38 +54,67 @@ volatile uint8_t HBWSoftwareSerial::_receive_buffer_tail = 0;
 volatile uint8_t HBWSoftwareSerial::_receive_buffer_head = 0;
 
 //
+// Debugging
+//
+// This function generates a brief pulse
+// for debugging or measuring on an oscilloscope.
+#if _DEBUG
+inline void DebugPulse(uint8_t pin, uint8_t count)
+{
+  volatile uint8_t *pport = portOutputRegister(digitalPinToPort(pin));
+
+  uint8_t val = *pport;
+  while (count--)
+  {
+    *pport = val | digitalPinToBitMask(pin);
+    *pport = val;
+  }
+}
+#else
+inline void DebugPulse(uint8_t, uint8_t) {}
+#endif
+
+//
 // Private methods
 //
 
 /* static */ 
 inline void HBWSoftwareSerial::tunedDelay(uint16_t delay) { 
-  uint8_t tmp=0;
-
-  asm volatile("sbiw    %0, 0x01 \n\t"
-    "ldi %1, 0xFF \n\t"
-    "cpi %A0, 0xFF \n\t"
-    "cpc %B0, %1 \n\t"
-    "brne .-10 \n\t"
-    : "+w" (delay), "+a" (tmp)
-    : "0" (delay)
-    );
+  _delay_loop_2(delay);
 }
 
 // This function sets the current object as the "listening"
 // one and returns true if it replaces another 
 bool HBWSoftwareSerial::listen()
 {
+  if (!_rx_delay_stopbit)
+    return false;
+
   if (active_object != this)
   {
+    if (active_object)
+      active_object->stopListening();
+
     _buffer_overflow = false;
-    uint8_t oldSREG = SREG;
-    cli();
     _receive_buffer_head = _receive_buffer_tail = 0;
     active_object = this;
-    SREG = oldSREG;
+
+    setRxIntMsk(true);
     return true;
   }
 
+  return false;
+}
+
+// Stop listening. Returns true if we were actually listening.
+bool HBWSoftwareSerial::stopListening()
+{
+  if (active_object == this)
+  {
+    setRxIntMsk(false);
+    active_object = NULL;
+    return true;
+  }
   return false;
 }
 
@@ -112,39 +144,54 @@ void HBWSoftwareSerial::recv()
 
   // If RX line is high, then we don't see any start bit
   // so interrupt is probably not for us
-  if (!rx_pin_read())
+  if (_inverse_logic ? rx_pin_read() : !rx_pin_read())
   {
+    // Disable further interrupts during reception, this prevents
+    // triggering another interrupt directly after we return, which can
+    // cause problems at higher baudrates.
+    setRxIntMsk(false);
+
     // Wait approximately 1/2 of a bit width to "center" the sample
-    tunedDelay(RX_DELAY_CENTER);
+    tunedDelay(_rx_delay_centering);
+    DebugPulse(_DEBUG_PIN2, 1);
 
     // Read each of the 8 bits
-    for (uint8_t i=0x1; i; i <<= 1)
+    for (uint8_t i=8; i > 0; --i)
     {
-      tunedDelay(RX_DELAY_INTRA);
-      uint8_t noti = ~i;
+      tunedDelay(_rx_delay_intrabit);
+      d >>= 1;
+      DebugPulse(_DEBUG_PIN2, 1);
       if (rx_pin_read())
-        d |= i;
-      else // else clause added to ensure function timing is ~balanced
-        d &= noti;
+        d |= 0x80;
     }
 
-	// PFE skip parity bit
-	tunedDelay(RX_DELAY_STOP);
-	
-    // skip the stop bit
-    tunedDelay(RX_DELAY_STOP);
+    if (_inverse_logic)
+      d = ~d;
 
     // if buffer full, set the overflow flag and return
-    if ((_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF != _receive_buffer_head) 
+    uint8_t next = (_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF;
+    if (next != _receive_buffer_head)
     {
       // save new data in buffer: tail points to where byte goes
       _receive_buffer[_receive_buffer_tail] = d; // save new byte
-      _receive_buffer_tail = (_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF;
+      _receive_buffer_tail = next;
     } 
     else 
     {
+      DebugPulse(_DEBUG_PIN1, 1);
       _buffer_overflow = true;
     }
+
+	// PFE skip parity bit
+	tunedDelay(_rx_delay_stopbit);
+	
+    // skip the stop bit
+    tunedDelay(_rx_delay_stopbit);
+    DebugPulse(_DEBUG_PIN1, 1);
+
+    // Re-enable interrupts when we're sure to be inside the stop bit
+    setRxIntMsk(true);
+
   }
 
 #if GCC_VERSION < 40302
@@ -161,14 +208,6 @@ void HBWSoftwareSerial::recv()
     "pop r18 \n\t"
     ::);
 #endif
-}
-
-void HBWSoftwareSerial::tx_pin_write(uint8_t pin_state)
-{
-  if (pin_state == LOW)
-    *_transmitPortRegister &= ~_transmitBitMask;
-  else
-    *_transmitPortRegister |= _transmitBitMask;
 }
 
 uint8_t HBWSoftwareSerial::rx_pin_read()
@@ -197,31 +236,27 @@ ISR(PCINT0_vect)
 #endif
 
 #if defined(PCINT1_vect)
-ISR(PCINT1_vect)
-{
-  HBWSoftwareSerial::handle_interrupt();
-}
+ISR(PCINT1_vect, ISR_ALIASOF(PCINT0_vect));
 #endif
 
 #if defined(PCINT2_vect)
-ISR(PCINT2_vect)
-{
-  HBWSoftwareSerial::handle_interrupt();
-}
+ISR(PCINT2_vect, ISR_ALIASOF(PCINT0_vect));
 #endif
 
 #if defined(PCINT3_vect)
-ISR(PCINT3_vect)
-{
-  HBWSoftwareSerial::handle_interrupt();
-}
+ISR(PCINT3_vect, ISR_ALIASOF(PCINT0_vect));
 #endif
 
 //
 // Constructor
 //
-HBWSoftwareSerial::HBWSoftwareSerial(uint8_t receivePin, uint8_t transmitPin) : 
-  _buffer_overflow(false)
+HBWSoftwareSerial::HBWSoftwareSerial(uint8_t receivePin, uint8_t transmitPin) ://, bool inverse_logic /* = false */) : 
+  _rx_delay_centering(0),
+  _rx_delay_intrabit(0),
+  _rx_delay_stopbit(0),
+  _tx_delay(0),
+  _buffer_overflow(false),
+  _inverse_logic(false)
 {
   setTX(transmitPin);
   setRX(receivePin);
@@ -237,8 +272,12 @@ HBWSoftwareSerial::~HBWSoftwareSerial()
 
 void HBWSoftwareSerial::setTX(uint8_t tx)
 {
+  // First write, then set output. If we do this the other way around,
+  // the pin would be output low for a short while before switching to
+  // output high. Now, it is input with pullup for a short while, which
+  // is fine. With inverse logic, either order is fine.
+  digitalWrite(tx, _inverse_logic ? LOW : HIGH);
   pinMode(tx, OUTPUT);
-  digitalWrite(tx, HIGH);
   _transmitBitMask = digitalPinToBitMask(tx);
   uint8_t port = digitalPinToPort(tx);
   _transmitPortRegister = portOutputRegister(port);
@@ -247,32 +286,109 @@ void HBWSoftwareSerial::setTX(uint8_t tx)
 void HBWSoftwareSerial::setRX(uint8_t rx)
 {
   pinMode(rx, INPUT);
-  digitalWrite(rx, HIGH);  // pullup for normal logic!
+  if (!_inverse_logic)
+    digitalWrite(rx, HIGH);  // pullup for normal logic!
   _receivePin = rx;
   _receiveBitMask = digitalPinToBitMask(rx);
   uint8_t port = digitalPinToPort(rx);
   _receivePortRegister = portInputRegister(port);
 }
 
+uint16_t HBWSoftwareSerial::subtract_cap(uint16_t num, uint16_t sub) {
+  if (num > sub)
+    return num - sub;
+  else
+    return 1;
+}
+
 //
 // Public methods
 //
 
-void HBWSoftwareSerial::begin()
+void HBWSoftwareSerial::begin(long speed)
 {
-  // Set up RX interrupts
-  if (digitalPinToPCICR(_receivePin)){
-      *digitalPinToPCICR(_receivePin) |= _BV(digitalPinToPCICRbit(_receivePin));
-      *digitalPinToPCMSK(_receivePin) |= _BV(digitalPinToPCMSKbit(_receivePin));
+  _rx_delay_centering = _rx_delay_intrabit = _rx_delay_stopbit = _tx_delay = 0;
+
+  // Precalculate the various delays, in number of 4-cycle delays
+  uint16_t bit_delay = (F_CPU / speed) / 4;
+
+  // 12 (gcc 4.8.2) or 13 (gcc 4.3.2) cycles from start bit to first bit,
+  // 15 (gcc 4.8.2) or 16 (gcc 4.3.2) cycles between bits,
+  // 12 (gcc 4.8.2) or 14 (gcc 4.3.2) cycles from last bit to stop bit
+  // These are all close enough to just use 15 cycles, since the inter-bit
+  // timings are the most critical (deviations stack 8 times)
+  _tx_delay = subtract_cap(bit_delay, 15 / 4);
+
+  // Only setup rx when we have a valid PCINT for this pin
+  if (digitalPinToPCICR(_receivePin)) {
+    #if GCC_VERSION > 40800
+    // Timings counted from gcc 4.8.2 output. This works up to 115200 on
+    // 16Mhz and 57600 on 8Mhz.
+    //
+    // When the start bit occurs, there are 3 or 4 cycles before the
+    // interrupt flag is set, 4 cycles before the PC is set to the right
+    // interrupt vector address and the old PC is pushed on the stack,
+    // and then 75 cycles of instructions (including the RJMP in the
+    // ISR vector table) until the first delay. After the delay, there
+    // are 17 more cycles until the pin value is read (excluding the
+    // delay in the loop).
+    // We want to have a total delay of 1.5 bit time. Inside the loop,
+    // we already wait for 1 bit time - 23 cycles, so here we wait for
+    // 0.5 bit time - (71 + 18 - 22) cycles.
+    _rx_delay_centering = subtract_cap(bit_delay / 2, (4 + 4 + 75 + 17 - 23) / 4);
+
+    // There are 23 cycles in each loop iteration (excluding the delay)
+    _rx_delay_intrabit = subtract_cap(bit_delay, 23 / 4);
+
+    // There are 37 cycles from the last bit read to the start of
+    // stopbit delay and 11 cycles from the delay until the interrupt
+    // mask is enabled again (which _must_ happen during the stopbit).
+    // This delay aims at 3/4 of a bit time, meaning the end of the
+    // delay will be at 1/4th of the stopbit. This allows some extra
+    // time for ISR cleanup, which makes 115200 baud at 16Mhz work more
+    // reliably
+    _rx_delay_stopbit = subtract_cap(bit_delay * 3 / 4, (37 + 11) / 4);
+    #else // Timings counted from gcc 4.3.2 output
+    // Note that this code is a _lot_ slower, mostly due to bad register
+    // allocation choices of gcc. This works up to 57600 on 16Mhz and
+    // 38400 on 8Mhz.
+    _rx_delay_centering = subtract_cap(bit_delay / 2, (4 + 4 + 97 + 29 - 11) / 4);
+    _rx_delay_intrabit = subtract_cap(bit_delay, 11 / 4);
+    _rx_delay_stopbit = subtract_cap(bit_delay * 3 / 4, (44 + 17) / 4);
+    #endif
+
+
+    // Enable the PCINT for the entire port here, but never disable it
+    // (others might also need it, so we disable the interrupt by using
+    // the per-pin PCMSK register).
+    *digitalPinToPCICR(_receivePin) |= _BV(digitalPinToPCICRbit(_receivePin));
+    // Precalculate the pcint mask register and value, so setRxIntMask
+    // can be used inside the ISR without costing too much time.
+    _pcint_maskreg = digitalPinToPCMSK(_receivePin);
+    _pcint_maskvalue = _BV(digitalPinToPCMSKbit(_receivePin));
+
+    tunedDelay(_tx_delay); // if we were low this establishes the end
   }
-  tunedDelay(TX_DELAY); // if we were low this establishes the end
+
+#if _DEBUG
+  pinMode(_DEBUG_PIN1, OUTPUT);
+  pinMode(_DEBUG_PIN2, OUTPUT);
+#endif
+
   listen();
+}
+
+void HBWSoftwareSerial::setRxIntMsk(bool enable)
+{
+    if (enable)
+      *_pcint_maskreg |= _pcint_maskvalue;
+    else
+      *_pcint_maskreg &= ~_pcint_maskvalue;
 }
 
 void HBWSoftwareSerial::end()
 {
-  if (digitalPinToPCMSK(_receivePin))
-    *digitalPinToPCMSK(_receivePin) &= ~_BV(digitalPinToPCMSKbit(_receivePin));
+  stopListening();
 }
 
 
@@ -302,54 +418,76 @@ int HBWSoftwareSerial::available()
 
 size_t HBWSoftwareSerial::write(uint8_t b)
 {
+  if (_tx_delay == 0) {
+    setWriteError();
+    return 0;
+  }
 
-  // PFE Parity handling
+  // By declaring these as local variables, the compiler will put them
+  // in registers _before_ disabling interrupts and entering the
+  // critical timing sections below, which makes it a lot easier to
+  // verify the cycle timings
+  volatile uint8_t *reg = _transmitPortRegister;
+  uint8_t reg_mask = _transmitBitMask;
+  uint8_t inv_mask = ~_transmitBitMask;
   uint8_t oldSREG = SREG;
-  cli();  // turn off interrupts for a clean txmit
+  bool inv = _inverse_logic;
+  uint16_t delay = _tx_delay;
 
-  // Write the start bit
-  tx_pin_write(LOW);
-  tunedDelay(TX_DELAY + XMIT_START_ADJUSTMENT);
+  if (inv)
+    b = ~b;
 
+// PFE Parity handling
+// - before or after inv?
    uint8_t p = 0;
    uint8_t t;
    for (t = 0x80; t; t >>= 1)
      if (b & t) p++;
 
+  cli();  // turn off interrupts for a clean txmit
+
+  // Write the start bit
+  if (inv)
+    *reg |= reg_mask;
+  else
+    *reg &= inv_mask;
+
+  tunedDelay(delay);
+
   // Write each of the 8 bits
-	for (byte mask = 0x01; mask; mask <<= 1)
-    {
-      if (b & mask) // choose bit
-        tx_pin_write(HIGH); // send 1
-      else
-        tx_pin_write(LOW); // send 0
-      tunedDelay(TX_DELAY);
-    }
+  for (uint8_t i = 8; i > 0; --i)
+  {
+    if (b & 1) // choose bit
+      *reg |= reg_mask; // send 1
+    else
+      *reg &= inv_mask; // send 0
 
-	// parity
-	if (p & 0x01)
-	   tx_pin_write(HIGH); // send 1
-	else
-	   tx_pin_write(LOW); // send 0
-	tunedDelay(TX_DELAY);
+    tunedDelay(delay);
+    b >>= 1;
+  }
 
-    tx_pin_write(HIGH); // restore pin to natural state
+  // parity
+  if (p & 0x01)
+    *reg |= reg_mask; // send 1
+  else
+    *reg &= inv_mask; // send 0
+  tunedDelay(delay);
+
+  // restore pin to natural state
+  if (inv)
+    *reg &= inv_mask;
+  else
+    *reg |= reg_mask;
 
   SREG = oldSREG; // turn interrupts back on
-  tunedDelay(TX_DELAY);
+  tunedDelay(_tx_delay);
   
   return 1;
 }
 
 void HBWSoftwareSerial::flush()
 {
-  if (!isListening())
-    return;
-
-  uint8_t oldSREG = SREG;
-  cli();
-  _receive_buffer_head = _receive_buffer_tail = 0;
-  SREG = oldSREG;
+  // There is no tx buffering, simply return
 }
 
 int HBWSoftwareSerial::peek()

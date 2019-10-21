@@ -23,6 +23,7 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0003
+#define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 10   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
@@ -30,9 +31,9 @@
 #define LINKADDRESSSTART_TEMP 0xE6   // step 6
 
 
-#define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
-
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+ * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
 // HB Wired protocol and module
@@ -59,8 +60,7 @@
   #define ONEWIRE_PIN	10 // Onewire Bus
 
   #include "FreeRam.h"
-  #include "HBWSoftwareSerial.h"
-  // HBWSoftwareSerial can only do 19200 baud
+  #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif  //USE_HARDWARE_SERIAL
 
@@ -149,8 +149,8 @@ void setup()
   //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
   
 #else
-  Serial.begin(19200);
-  rs485.begin();    // RS485 via SoftwareSerial
+  Serial.begin(19200);  // Serial->USB for debug
+  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
   device = new HBTempOWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,

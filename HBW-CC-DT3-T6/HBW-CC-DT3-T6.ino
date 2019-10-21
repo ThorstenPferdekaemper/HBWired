@@ -17,6 +17,7 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0002
+#define HMW_DEVICETYPE 0x71 //device ID (make sure to import .xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
@@ -29,9 +30,10 @@
 //#define NUM_LINKS_KEY 12    // 3 DELTA_T KEY[, 9 for pushbutton/switch]
 //#define LINKADDRESSSTART_KEY 0x100 //0x1A2, only one start address possible for all sensor type peers  // step 6
 
-#define HMW_DEVICETYPE 0x71 //device ID (make sure to import .xml into FHEM)
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+ * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
 // HB Wired protocol and module
@@ -79,9 +81,8 @@
 //  #define BUTTON_3 NOT_A_PIN
 
   #include "FreeRam.h"
-  #include "HBWSoftwareSerial.h"
-  // HBWSoftwareSerial can only do 19200 baud
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+  #include <SoftwareSerial.h>
+  SoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif  //USE_HARDWARE_SERIAL
 
 #define LED LED_BUILTIN        // Signal-LED
@@ -115,8 +116,8 @@ class HBDTControlDevice : public HBWDevice {
                uint8_t _configSize, void* _config, 
                uint8_t _numChannels, HBWChannel** _channels,
                Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL,
-               OneWire* oneWire = NULL, hbw_config_onewire_temp** _tempSensorconfig = NULL,
-               HBWLinkSender* _linkSenderTemp = NULL, HBWLinkReceiver* _linkReceiverTemp = NULL) :
+               OneWire* oneWire = NULL, hbw_config_onewire_temp** _tempSensorconfig = NULL) :
+               //,HBWLinkSender* _linkSenderTemp = NULL, HBWLinkReceiver* _linkReceiverTemp = NULL) :
     HBWDevice(_devicetype, _hardware_version, _firmware_version,
               _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
               _debugstream, linksender, linkreceiver)
@@ -209,8 +210,8 @@ void setup()
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
 #else
-  Serial.begin(19200);
-  rs485.begin();    // RS485 via SoftwareSerial
+  Serial.begin(19200);  // Serial->USB for debug
+  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
   device = new HBDTControlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,

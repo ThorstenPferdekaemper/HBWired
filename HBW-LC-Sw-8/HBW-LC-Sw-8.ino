@@ -17,18 +17,21 @@
 // - fix: initConfigPins() in afterReadConfig() geändert.
 
 
-#define HMW_DEVICETYPE 0x83
 #define HARDWARE_VERSION 0x00
 #define FIRMWARE_VERSION 0x0066
+#define HMW_DEVICETYPE 0x83
 
 #define NUM_CHANNELS 8
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x40
 
 
-//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+ * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
+ 
 
-#include <SoftwareSerial.h>
+#include <HBWSoftwareSerial.h>
 #include <FreeRam.h>    
 
 // HB Wired protocol and module
@@ -40,7 +43,7 @@
 #define RS485_TXD 2
 #define RS485_TXEN 3  // Transmit-Enable
 
-SoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 
 
 // Pins
@@ -98,7 +101,7 @@ void setup()
 #ifndef NO_DEBUG_OUTPUT
   Serial.begin(19200);  // Serial->USB for debug
 #endif
-  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
+  rs485.begin();   // RS485 via SoftwareSerial, uses 19200 baud!
 
   // create channels
   uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN, SWITCH3_PIN, SWITCH4_PIN, SWITCH5_PIN, SWITCH6_PIN, SWITCH7_PIN, SWITCH8_PIN};
