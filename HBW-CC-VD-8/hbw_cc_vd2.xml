@@ -137,7 +137,7 @@
 				   <logical type="integer" min="2" max="10000" unit="s"/>
 				   <physical type="integer" size="2.0" interface="eeprom" endian="little">
 					  <address index="+7"/>
-				   </physical>		
+				   </physical>
 				   <conversion type="integer_integer_map">
 					 <value_map device_value="0xffff" parameter_value="600" from_device="true" to_device="false"/>
 				   </conversion>
@@ -237,14 +237,14 @@
 				<parameter id="VALVE_ERROR_POS">
 					<logical type="integer" default="15" min="0" max="100" unit="%"/>
 					<physical type="integer" size="1.0" interface="eeprom">
-						<address index="+3"/>
+						<address index="+1"/>
 					</physical>
 					<conversion type="float_integer_scale" factor="2"/>
 				</parameter>
 				<parameter id="SWITCH_TIME">
 					<logical type="integer" min="10" max="2540" unit="s"/>
 					<physical type="integer" size="1.0" interface="eeprom" endian="little">
-						<address index="+4"/>
+						<address index="+2"/>
 					</physical>
 					<conversion type="float_integer_scale" factor="0.1"/>
 					<conversion type="integer_integer_map">
