@@ -17,7 +17,7 @@ HBWOneWireTemp::HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, u
   currentTemp = DEFAULT_TEMP;
   lastSentTemp = DEFAULT_TEMP;
   lastSentTime = 0;
-  errorCount = 3;
+  errorCount = OW_DEVICE_ERROR_COUNT;
   errorWasSend = true;
 }
 
@@ -161,8 +161,8 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 		  return currentTemp;
 	  }
 	}
-	if (errorCount < 3) {
-	  errorCount = 3;	// reset error counter
+	if (errorCount < OW_DEVICE_ERROR_COUNT) {
+	  errorCount = OW_DEVICE_ERROR_COUNT;	// reset error counter
 	  return ERROR_TEMP;	// skip first measure (could be incomplete)
 	}
 	
@@ -227,41 +227,28 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
     }
   }
   
-  // #ifdef Support_HBWLink_InfoEvent
-  // if (sendInfoEvent && now - lastSentTime > SEND_INFO_EVENT_DELAY) {
-    // get(level);
-    // device->sendInfoEvent(channel, 2, level);
-    // sendInfoEvent = false;
-  // }
-  // #endif
-  	
   // check if we have a valid temp
   if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && errorWasSend))  return; // send ERROR_TEMP in error state just once
 
   // check if some temperatures needed to be send
   // do not send before min interval
-  if (config->send_min_interval && now - lastSentTime < (long)config->send_min_interval * 1000)  return;
+  if (config->send_min_interval && now - lastSentTime <= (long)config->send_min_interval * 1000)  return;
   if ((config->send_max_interval && now - lastSentTime >= (long)config->send_max_interval * 1000) ||
       (config->send_delta_temp && abs( currentTemp - lastSentTemp ) >= (unsigned int)(config->send_delta_temp) * 10)) {
     // send temperature
     get(level);
-    if (device->sendInfoMessage(channel, 2, level) == HBWDevice::SUCCESS)    // level has always 2 byte here
-{
-    // #ifdef Support_HBWLink_InfoEvent
-    // sendInfoEvent = true;
-    // #endif
-    
+    // if send failed, next try will be on send_max_interval or send_min_interval in case the value changed (send_delta_temp)
+    device->sendInfoMessage(channel, 2, level);    // level has always 2 byte here
     lastSentTemp = currentTemp;
     lastSentTime = now;
     errorWasSend = true;
- }
- #ifdef Support_HBWLink_InfoEvent
- device->sendInfoEvent(channel, 2, level);
- #endif
+   #ifdef Support_HBWLink_InfoEvent
+    device->sendInfoEvent(channel, 2, level);
+   #endif
 
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
-  hbwdebug(F(" sent temp, m°C: "));  hbwdebug(lastSentTemp);  hbwdebug(F("\n"));
+  hbwdebug(F(" sent temp, c°C: "));  hbwdebug(lastSentTemp); hbwdebug(F("\n"));
   #endif
   }
 };

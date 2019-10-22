@@ -17,7 +17,7 @@
 #include "HBWired.h"
 #include <OneWire.h>
 
-//#define DEBUG_OUTPUT   // extra debug output on serial/USB
+#define DEBUG_OUTPUT   // extra debug output on serial/USB
 //#define EXTRA_DEBUG_OUTPUT   // even more debug output
 
 #define OW_POLL_FREQUENCY 1200  // read temperature every X milli seconds (not less than 900 ms! -> 750 ms conversion time @12 bit resolution)
@@ -25,12 +25,10 @@
 #define ERROR_TEMP -27314     // CRC or read error
 #define OW_DEVICE_ADDRESS_SIZE 8   // fixed length for temp sensors address
 
+#define OW_DEVICE_ERROR_COUNT 3  // sensor in error state if counted down to 0. Decremented on every failed read
 
 #define ACTION_READ_TEMP 1
 #define ACTION_START_CONVERSION 0
-
-#define SEND_INFO_EVENT_DELAY 450
-
 #define OW_CHAN_INIT 0xFF
 
 // config of each sensor, address step 14
@@ -63,7 +61,7 @@ class HBWOneWireTemp : public HBWChannel {
     int16_t currentTemp;	// temperatures in m°C
     int16_t lastSentTemp;	// temperature measured on last send
     uint32_t lastSentTime;		// time of last send
-    uint8_t errorCount;    // channel in error state if counted down to 0
+    uint8_t errorCount;    // channel/sensor in error state if counted down to 0. Decremented on every failed read
     uint8_t action;        // current action: measure, read temp
     boolean errorWasSend;  // flag to indicate if ERROR_TEMP was send
     boolean isAllZeros;    // indicate that current device read was blank (usually happens when device gets disconnected)
