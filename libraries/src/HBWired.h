@@ -11,11 +11,11 @@
 #include "Arduino.h"
 #include "hardware.h"
 
-#define DEBUG  // reduce code size, if no serial output is needed (_debugstream can still be used for other channels or set to NULL)
+#define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
 
 /* enable the below to allow peering with HBWLinkInfoEventActuator/HBWLinkInfoEventSensor
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
-//#define Support_HBWLink_InfoEvent
+#define Support_HBWLink_InfoEvent
 
 #define ENQUEUE true
 #define NOT_ENQUEUE false
@@ -257,7 +257,7 @@ class HBWDevice {
 	
 	// simple send queue, to buffer messages that will be send in a short period of time
 	static const uint8_t SEND_BUFFER_SIZE = 4;	// amount of messages to store //TODO: what's a good size? (vs memory consumption?)
-	static const uint8_t MAX_TX_BUFFER_FRAME_LENGTH = 8;	// max frame size for the buffer //TODO: what's a good size? (vs memory consumption?)
+	static const uint8_t MAX_TX_BUFFER_FRAME_LENGTH = 6;	// max frame size for the buffer //TODO: what's a good size? (vs memory consumption?)
 	struct s_SendBuffer
 	{
 		uint32_t targetAddress;
@@ -290,9 +290,17 @@ extern Stream* hbwdebugstream;
 void hbwdebughex(uint8_t b);
 
 template <typename T>
+#ifdef HBW_DEBUG
 void hbwdebug(T msg) { if(hbwdebugstream) hbwdebugstream->print(msg); };
+#else
+void hbwdebug(T msg) { };
+#endif
 
 template <typename T>
+#ifdef HBW_DEBUG
 void hbwdebug(T msg, int base) { if(hbwdebugstream) hbwdebugstream->print(msg,base); };
+#else
+void hbwdebug(T msg, int base) { };
+#endif
 
 #endif /* HBWired_h */

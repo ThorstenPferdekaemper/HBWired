@@ -67,7 +67,7 @@ boolean HBWDevice::parseFrame () { // returns true, if event needs to be process
     // Absenderadresse mus stimmen
     if(seqNumReceived == seqNumSent && senderAddress == txFrame.targetAddress) {
       // "ackwait" zuruecksetzen (ansonsten wird auf den Timeout vertraut)
-      #ifdef DEBUG
+      #ifdef HBW_DEBUG
         hbwdebug(F("R: ACK\n"));
       #endif
       frameStatus &= ~FRAME_SENTACKWAIT;
@@ -176,7 +176,7 @@ void HBWDevice::sendFrameSingle() {
         txFrame.controlByte |= (txSeqNum << 5);
       };
 
-      #ifdef DEBUG
+      #ifdef HBW_DEBUG
         hbwdebug(F("T: ")); hbwdebughex(FRAME_STARTBYTE);
       #endif
       digitalWrite(txEnablePin, HIGH);
@@ -219,7 +219,7 @@ void HBWDevice::sendFrameSingle() {
       digitalWrite(txEnablePin, LOW);
 
       frameStatus |= FRAME_SENTACKWAIT;
-      #ifdef DEBUG  
+      #ifdef HBW_DEBUG  
         hbwdebug(F("\n"));
       #endif
 } // sendFrameSingle
@@ -230,7 +230,7 @@ void HBWDevice::sendFrameSingle() {
 // TX-Pin needs to be HIGH before calling this
 void HBWDevice::sendFrameByte(byte sendByte, uint16_t* checksum) {
   // Debug
-  #ifdef DEBUG
+  #ifdef HBW_DEBUG
     hbwdebug(":"); hbwdebughex(sendByte);
   #endif
   // calculate checksum, if needed
@@ -300,7 +300,7 @@ void HBWDevice::receive(){
     byte rxByte = serial->read();    // von Serial oder SoftSerial
 
     // Debug
-   #ifdef DEBUG
+   #ifdef HBW_DEBUG
     if( rxByte == FRAME_STARTBYTE ){
 		hbwdebug(F("R: "));
 	}else{
@@ -347,7 +347,7 @@ void HBWDevice::receive(){
             if(frameDataLength > MAX_RX_FRAME_LENGTH) // Maximale Puffergöße checken.
             {
                 frameStatus &= ~FRAME_START;
-              #ifdef DEBUG
+              #ifdef HBW_DEBUG
                 hbwdebug(F("E: MsgTooLong\n"));
               #endif
             }
@@ -363,14 +363,14 @@ void HBWDevice::receive(){
                   frameDataLength -= 2;
                   // es liegt eine neue Nachricht vor
                   frameComplete = 1;
-                  #ifdef DEBUG
+                  #ifdef HBW_DEBUG
                     hbwdebug(F("\n"));
                   #endif
                   // auch wenn noch Daten im Puffer sind, muessen wir erst einmal
                   // die gerade gefundene Nachricht verarbeiten
                   return;
                }else{
-                 #ifdef DEBUG
+                 #ifdef HBW_DEBUG
                    hbwdebug(F("E: CRC\n"));
                  #endif
                }
@@ -422,6 +422,9 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
           case 'z':                                              // start discovery mode
             pendingActions.zeroCommunicationActive = true;
             break;
+            //case 'K':  // 0x4B Key-Event
+            // broadcast key events sind für long_press interressant
+            //  if (frameDataLength == 4) {...}
         }
         return;
       };
@@ -478,7 +481,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
         	// TODO: Check requested length...
             if(frameDataLength == 4) {                                // Length of incoming data must be 4
                onlyAck = false;
-               #ifdef DEBUG
+               #ifdef HBW_DEBUG
                  hbwdebug(F("C: Read EEPROM\n"));
                #endif
                adrStart = ((uint16_t)(frameData[1]) << 8) | frameData[2];  // start adress of eeprom
@@ -495,7 +498,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 'W':                                                               // Write EEPROM
             if(frameDataLength == frameData[3] + 4) {
-              #ifdef DEBUG
+              #ifdef HBW_DEBUG
                 hbwdebug(F("C: Write EEPROM\n"));
               #endif
                adrStart = ((uint16_t)(frameData[1]) << 8) | frameData[2];  // start adress of eeprom
@@ -514,7 +517,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
        #endif
          case 'h':                                 // 0x68 get Module type and hardware version
-            #ifdef DEBUG
+            #ifdef HBW_DEBUG
               hbwdebug(F("T: HWVer,Typ\n"));
             #endif
             onlyAck = false;
@@ -534,7 +537,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             // TODO: ???
         	break; */
          case 'v':                                                               // get firmware version
-            #ifdef DEBUG
+            #ifdef HBW_DEBUG
               hbwdebug(F("T: FWVer\n")); 
             #endif
             onlyAck = false;
@@ -673,15 +676,13 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const 
    uint8_t result = sendFrame(true, 1);  // only if bus is free, only 1 try
    if ( result == BUS_BUSY)  // bus busy and queuing allowed
       return sendBufferAddMessage(4);  // add to queue, try to send 4 times
-      //return sendBufferAddMessage(txTargetAddress, txFrameControlByte, &(txFrameData[0]), txFrameDataLength, 2);  // add to queue, try to send 2 times
    else
       return result;
 };
 
 // InfoEvent senden, inklusive peers etc.
 uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data) {
-    if(linkSender)
-        linkSender->sendInfoEvent(this, srcChan, length, data);
+    if(linkSender)  linkSender->sendInfoEvent(this, srcChan, length, data);
 	return SUCCESS;  // return always success... can't send anything different //TODO: maybe linkSender->sendInfoEvent() should not be void...?
 };
 #endif
@@ -689,11 +690,11 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const 
 
 // key-Event senden, inklusive peers etc.
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue) {
-    uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free
+    // uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free
 	//TODO: Ok to not add to sendBuffer? this would stop further peering messages, if bus was busy...
-    if(linkSender && result == SUCCESS)
-        linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress, enqueue);
-    return result;
+    // if(linkSender && result == SUCCESS)
+    if(linkSender)  linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress, enqueue);
+    return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free;
 };
 
 
@@ -728,7 +729,7 @@ uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
 	
 	sendBufferLastTryTime = millis();	// reset retry timer
 	
-	#ifdef DEBUG
+	#ifdef HBW_DEBUG
 	hbwdebug(F("sendQ in: ")); hbwdebug(index); hbwdebug(F(" retry: ")); hbwdebug(reSendCounter);
 	hbwdebug("\n");
 	#endif
@@ -774,7 +775,7 @@ void HBWDevice::sendBufferTransmitMessage()
 		return;
 	}
 	
-	#ifdef DEBUG
+	#ifdef HBW_DEBUG
 	hbwdebug(F("sendQ out: ")); hbwdebug(sendBufferIndex); hbwdebug(F(" retry: ")); hbwdebug(sendBuffer[sendBufferIndex].reSendCounter);
 	hbwdebug("\n");
 	#endif
@@ -965,7 +966,7 @@ void HBWDevice::setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin) {
 
 #ifdef Support_HBWLink_InfoEvent
 void HBWDevice::setInfo(uint8_t channel, uint8_t length, uint8_t const * const data) {
-	#ifdef DEBUG
+	#ifdef HBW_DEBUG
 	    hbwdebug(F("Si: ")); hbwdebughex(channel); hbwdebug(F(" "));
 		for(uint8_t i = 0; i < length; i++)
 			hbwdebughex(data[i]); 
@@ -978,7 +979,7 @@ void HBWDevice::setInfo(uint8_t channel, uint8_t length, uint8_t const * const d
 #endif
 
 void HBWDevice::set(uint8_t channel, uint8_t length, uint8_t const * const data) {
-	#ifdef DEBUG
+	#ifdef HBW_DEBUG
 	    hbwdebug(F("S: ")); hbwdebughex(channel); hbwdebug(F(" "));
 		for(uint8_t i = 0; i < length; i++)
 			hbwdebughex(data[i]); 
@@ -1194,8 +1195,12 @@ void HBWDevice::handleStatusLEDs() {
 /****************************************
 ** DEBUG
 ****************************************/
+#ifdef HBW_DEBUG
 void hbwdebughex(uint8_t b) {
    if(!hbwdebugstream) return;
    hbwdebugstream->print(b >> 4, HEX);
    hbwdebugstream->print(b & 15, HEX);
 };
+#else
+void hbwdebughex(uint8_t b) { };
+#endif
