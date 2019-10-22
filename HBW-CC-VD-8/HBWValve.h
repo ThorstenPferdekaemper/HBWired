@@ -46,17 +46,16 @@
 #define SET_AUTOMATIC 205
 
 
-// config of one valve channel, address step 6
+// config of one valve channel, address step 4
 struct hbw_config_valve {
   uint8_t logging:1;      // +0.0   1=on 0=off
-  uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED
+  uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED; locked channels will retain level/error_pos. Set error_pos to 0 to disable a channel completely
   uint8_t n_inverted:1;   // +0.2   inverted logic (use NO valves, NC is default)
   uint8_t :5;     //fillup //0x..:3-8
-  // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
-  uint16_t send_max_interval;   // Maximum-Sendeintervall // TODO: keep? or only use logging/notify?
   uint8_t error_pos;
   uint8_t valveSwitchTime;   // (factor 10!) Time the valve needs to reach 100% (NC:open or NO:closed state)
   uint8_t dummy :8;
+  // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
 };
 
 
@@ -79,7 +78,7 @@ class HBWValve : public HBWChannel {
     uint8_t pin;
 
     uint8_t valveLevel;
-    void setNewLevel(uint8_t NewLevel);
+    void setNewLevel(HBWDevice* device, uint8_t NewLevel);
     
     // output control
     inline void switchstate(byte State);
@@ -93,7 +92,6 @@ class HBWValve : public HBWChannel {
     uint32_t outputChangeLastTime;    // last time output state was changed
     uint32_t outputChangeNextDelay;    // time until next state change
     uint32_t onTimer, offTimer;     // current calculated on and of duration
-    uint32_t lastSentTime;   // time of last send
 
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
@@ -112,7 +110,7 @@ class HBWValve : public HBWChannel {
       uint8_t byte:8;
     } stateFlags;
     
-    
+    static const uint32_t OUTPUT_STARTUP_DELAY = 4300;
 };
 
 #endif /* HBWVAVLE_H_ */

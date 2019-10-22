@@ -210,7 +210,7 @@
 		</channel>
     
     	<channel index="3" physical_index_offset="-1" count="2" type="VALVE">
-			<paramset type="MASTER" id="hmw_output_ch_master" address_start="0x35" address_step="6">
+			<paramset type="MASTER" id="hmw_output_ch_master" address_start="0x35" address_step="4">
 				<parameter id="LOGGING">
 				  <logical type="option">
 					<option id="OFF"/>
@@ -220,7 +220,7 @@
 					<address index="0.0"/>
 				  </physical>
 				</parameter>
-				<parameter id="OUTPUT_LOCKED">
+				<parameter id="LOCKED">
 					<logical type="boolean" default="false"/>
 					<physical size="0.1" type="integer" interface="eeprom">
 						<address index="+0.1"/>
@@ -233,17 +233,6 @@
 						<address index="+0.2"/>
 					</physical>
 					<conversion type="boolean_integer" invert="true"/>
-				</parameter>
-				<parameter id="SEND_MAX_INTERVALL">
-					<logical type="integer" min="5" max="3600" unit="s">
-						<special_value id="NOT_USED" value="0"/>
-					</logical>
-					<physical type="integer" size="2.0" interface="eeprom" endian="little">
-						<address index="+1"/>
-					</physical>
-					<conversion type="integer_integer_map">
-					 <value_map device_value="0xffff" parameter_value="0" from_device="true" to_device="false"/>
-				   </conversion>
 				</parameter>
 				<parameter id="VALVE_ERROR_POS">
 					<logical type="integer" default="15" min="0" max="100" unit="%"/>

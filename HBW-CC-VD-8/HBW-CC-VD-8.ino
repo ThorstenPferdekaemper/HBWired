@@ -21,10 +21,11 @@
 
 #define HARDWARE_VERSION 0x02
 #define FIRMWARE_VERSION 0x0003
+#define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
 #define NUMBER_OF_VD_CHAN NUMBER_OF_PID_CHAN   // output channels - valve actuator (has to be same amount as PIDs)
-#define NUMBER_OF_TEMP_CHAN 8  // input channels - 1-wire temperature sensors
+#define NUMBER_OF_TEMP_CHAN 6  // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 
 #define NUM_LINKS_PID 20    // address step 7
@@ -33,9 +34,9 @@
 #define LINKADDRESSSTART_TEMP 0x270   // ends @0x323
 
 
-#define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
-
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+ * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
 // HB Wired protocol and modules
@@ -53,15 +54,15 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
-  #define ONEWIRE_PIN	10 // Onewire Bus
-  #define VD1  3
-  #define VD2  4
-  #define VD3  5
-  #define VD4  6
-  #define VD5  7
-  #define VD6  8
-  #define VD7  9
-  #define VD8  A5
+  #define ONEWIRE_PIN	12 // Onewire Bus
+  #define VD1  A4
+  #define VD2  8
+  #define VD3  7
+  #define VD4  4
+  #define VD5  A0
+  #define VD6  A1
+  #define VD7  A2
+  #define VD8  A3
 
 #else
   #define RS485_RXD 4
@@ -81,8 +82,7 @@
   #define VD8  A5
   
   #include "FreeRam.h"
-  #include "HBWSoftwareSerial.h"
-  // HBWSoftwareSerial can only do 19200 baud
+  #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif  //USE_HARDWARE_SERIAL
 
@@ -98,7 +98,7 @@ struct hbw_config {
   uint8_t              :7;   // 0x06:1-7
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x76 (8* address step 14)
   hbw_config_pid pidCfg[NUMBER_OF_PID_CHAN];          // 0x77 - 0xBE (8* address step 9)
-  hbw_config_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0xBF - 0xEE (8* address step 6) - Max. 0xFF!
+  hbw_config_valve pidValveCfg[NUMBER_OF_VD_CHAN];   // 0xBF - 0xEE (8* address step 4) - Max. 0xFF!
 } hbwconfig;
 
 
@@ -171,22 +171,22 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoEventActuator(NUM_LINKS_PID,LINKADDRESSSTART_PID),
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP),
+                             new HBWLinkInfoEventActuator(NUM_LINKS_PID, LINKADDRESSSTART_PID),
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
 #else
-  Serial.begin(19200);
-  rs485.begin();    // RS485 via SoftwareSerial
+  Serial.begin(19200);  // Serial->USB for debug
+  rs485.begin();   // RS485 via SoftwareSerial, must use 19200 baud!
   
   device = new HBVdDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoEventActuator(NUM_LINKS_PID,LINKADDRESSSTART_PID),
+                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP),
+                             new HBWLinkInfoEventActuator(NUM_LINKS_PID, LINKADDRESSSTART_PID),
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default

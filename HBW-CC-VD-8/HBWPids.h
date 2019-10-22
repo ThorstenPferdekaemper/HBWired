@@ -49,13 +49,13 @@ class HBWPids : public HBWChannel {
     HBWValve* valve {NULL};  // linked valve channel
 
     uint8_t desiredValveLevel;
-
+    bool initDone;
+    bool autoTuneRunning; // Todo 0 = off ; 1 = autotune running
+    bool inErrorState;
+    
     struct pid_config {
       uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
       uint8_t oldInAuto :1; // auto or manual stored here, when in error pos.
-      uint8_t autoTune  :1; // Todo 0 = off ; 1 = autotune running
-      uint8_t error :1;
-      uint8_t initDone :1;
       int16_t setPoint; // temperatures in m°C
       uint32_t windowStartTime;
       

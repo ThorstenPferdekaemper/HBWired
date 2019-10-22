@@ -1,4 +1,4 @@
-/*
+  /*
  * HBWPids.cpp
  *
  * Created on: 15.04.2019
@@ -19,14 +19,14 @@ HBWPids::HBWPids(HBWValve* _valve, hbw_config_pid* _config)
   
   pidConf.windowStartTime = 0;
   pidConf.oldInAuto = 0; // we switch to MANUAL in error Position. Store the old value here
-  pidConf.initDone = false;
-  pidConf.error = 0;
+  initDone = false;
+  inErrorState = 0;
   //pid lib
   pidConf.Input = DEFAULT_TEMP; // force channel to manual, of no input temperature is received
   pidConf.Output = 0;
   pidConf.ITerm = 0;
   pidConf.sampleTime = 2000; // pid compute every 2 sec
-  pidConf.setPoint = 2200; // default? 22.00°C
+  pidConf.setPoint = 2200; // what default? 22.00°C
 }
 
 
@@ -44,11 +44,11 @@ void HBWPids::afterReadConfig()
 	setOutputLimits((uint32_t) config->windowSize * 1000);
 	setTunings((float) config->kp, (float) config->ki / 100, (float) config->kd / 100);
 
-  if (!pidConf.initDone)  // only on device start - avoid to overwrite current output or inAuto mode
+  if (!initDone)  // only on device start - avoid to overwrite current output or inAuto mode
   {
     pidConf.inAuto = config->startMode; // 1 automatic ; 0 manual
     valve->setPidsInAuto(pidConf.inAuto);
-    pidConf.initDone = true;
+    initDone = true;
   }
   setMode(pidConf.inAuto);
 }
@@ -73,7 +73,7 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
   if (length == 1)
   {
     // toogle autotune
-    pidConf.autoTune = !pidConf.autoTune;
+    autoTuneRunning = !autoTuneRunning;
     //TODO, toggle with specific value? e.g. 255?
     // TODO: reply with INFO_AUTOTUNE & AUTOTUNE_FLAGS message
     
@@ -125,8 +125,8 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 	// can't sending everything at once to the bus.
 	// so make a delay between channels
 	if (pidConf.windowStartTime == 0) {
-	  pidConf.windowStartTime = now - ((channel + 1) * 3000);
-    pidConf.lastPidTime = now - pidConf.sampleTime;
+	  pidConf.windowStartTime = (uint32_t) now - ((channel + 1) * 3000);
+    pidConf.lastPidTime = (uint32_t) now - pidConf.sampleTime;
     
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("PID ch: ")); hbwdebug(channel);
@@ -142,9 +142,9 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   }
 
   // error temp values comes back again
-  if (pidConf.error) {
+  if (inErrorState) {
   	if (pidConf.Input > ERROR_TEMP) {
-  		pidConf.error = 0;
+  		inErrorState = 0;
   		setMode(pidConf.oldInAuto);
       
       uint8_t newMode = pidConf.inAuto ? SET_AUTOMATIC : SET_MANUAL;
@@ -155,7 +155,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   // check if we had a temperature and in automatic mode
   // in manual mode we can ignore the temp
   if (pidConf.inAuto == AUTOMATIC && (pidConf.Input == DEFAULT_TEMP || pidConf.Input == ERROR_TEMP)) {
-  	pidConf.error = 1;
+  	inErrorState = 1;
   	pidConf.oldInAuto = pidConf.inAuto;
     setMode(MANUAL);
     
