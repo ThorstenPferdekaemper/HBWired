@@ -184,6 +184,7 @@ void HBWSoftwareSerial::recv()
 
 	// PFE skip parity bit
 	tunedDelay(_rx_delay_stopbit);
+    DebugPulse(_DEBUG_PIN1, 1);
 	
     // skip the stop bit
     tunedDelay(_rx_delay_stopbit);
@@ -250,13 +251,13 @@ ISR(PCINT3_vect, ISR_ALIASOF(PCINT0_vect));
 //
 // Constructor
 //
-HBWSoftwareSerial::HBWSoftwareSerial(uint8_t receivePin, uint8_t transmitPin) ://, bool inverse_logic /* = false */) : 
+HBWSoftwareSerial::HBWSoftwareSerial(uint8_t receivePin, uint8_t transmitPin, bool inverse_logic /* = false */) : 
   _rx_delay_centering(0),
   _rx_delay_intrabit(0),
   _rx_delay_stopbit(0),
   _tx_delay(0),
-  _buffer_overflow(false),
-  _inverse_logic(false)
+  _buffer_overflow(false)
+  // _inverse_logic(inverse_logic)
 {
   setTX(transmitPin);
   setRX(receivePin);
@@ -437,8 +438,7 @@ size_t HBWSoftwareSerial::write(uint8_t b)
   if (inv)
     b = ~b;
 
-// PFE Parity handling
-// - before or after inv?
+   // PFE Parity handling
    uint8_t p = 0;
    uint8_t t;
    for (t = 0x80; t; t >>= 1)

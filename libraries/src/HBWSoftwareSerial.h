@@ -67,7 +67,8 @@ private:
   uint16_t _tx_delay;
 
   uint16_t _buffer_overflow:1;
-  uint16_t _inverse_logic:1;
+  // uint16_t _inverse_logic:1;
+  static const uint16_t _inverse_logic = false;  // inverse_logic option not needed
 
   // static data
   static uint8_t _receive_buffer[_SS_MAX_RX_BUFF]; 
@@ -90,7 +91,7 @@ private:
 
 public:
   // public methods
-  HBWSoftwareSerial(uint8_t receivePin, uint8_t transmitPin);//, bool inverse_logic = false);
+  HBWSoftwareSerial(uint8_t receivePin, uint8_t transmitPin, bool inverse_logic = false);
   ~HBWSoftwareSerial();
   void begin(long speed = 19200);
   bool listen();
