@@ -34,7 +34,7 @@
 #define LINKADDRESSSTART_TEMP 0x270   // ends @0x323
 
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
@@ -54,7 +54,7 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
-  #define ONEWIRE_PIN	12 // Onewire Bus
+  #define ONEWIRE_PIN	A5 // Onewire Bus
   #define VD1  A4
   #define VD2  8
   #define VD3  7

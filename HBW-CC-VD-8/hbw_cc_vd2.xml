@@ -285,7 +285,7 @@
 					</physical>
 					<conversion type="float_integer_scale" factor="200"/>
         		</parameter>
-        		<parameter id="OUTPUT_STATE" operations="read,event" ui_flags="internal"><!--id="STATE" will show on/off as chan state-->
+        		<parameter id="OUTPUT" operations="read,event" ui_flags="internal"><!--id="STATE" will show on/off as chan state-->
 					<logical type="option">
 						<option id="OFF"/>
 						<option id="OFF"/>

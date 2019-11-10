@@ -1,9 +1,6 @@
 Homematic Wired Homebrew 8-channel PID Valve actuator
 =====================================================
 
-*** In Entwicklung! *** Work in progress! ***
-
-
 Das Modul HBW-CC-VD-8 bietet die Möglichkeit, bis zu 8 auf einem Thermoelement basierende Ventile individuell zu steuern. Mit den Ventilstellern sind 8 PID Regler fest verknüpft. Des weiteren können bis zu 8 OneWire Temperatursensoren angeschlossen werden.
 Basis ist ein Arduino NANO mit RS485-Interface.
 (Hinweis Hex Dateien: Geeignet für Atmel ATMEGA328p! *with_bootloader* ist ebenfalls für ATMEGA328p, aber inkl. dem Arduino NANO Bootloader!)
@@ -28,7 +25,6 @@ Valve/Ventil, Kanäle:
 	LOGGING
 	OUTPUT_LOCKED
 	INVERTED
-	SEND_MAX_INTERVALL
 	VALVE_ERROR_POS
 	SWITCH_TIME (Zeit die zum vollständigen öffnen benötigt wird)
 
@@ -47,15 +43,15 @@ Standard-Pinbelegung:
 2  - RS485 Enable
 13 - Status LED
 A6 - Bedientaster (Reset)
-10 - Onewire Bus
-3  - VD1
-4  - VD2
-5  - VD3
-6  - VD4
-7  - VD5
-8  - VD6
-9  - VD7
-A5 - VD8
+A5 - Onewire Bus
+A4 - VD1
+8  - VD2
+7  - VD3
+4  - VD4
+A0 - VD5
+A1 - VD6
+A2 - VD7
+A3 - VD8
 
 
 "Debug"-Pinbelegung:

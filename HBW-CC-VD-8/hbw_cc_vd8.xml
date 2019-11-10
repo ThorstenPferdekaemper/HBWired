@@ -94,6 +94,9 @@
 		</channel>
 		
 		<channel index="1" physical_index_offset="-1" count="8" type="PID">
+			<link_roles>
+				<target name="TEST"/>
+			</link_roles>
 			<paramset type="MASTER" id="hmw_pid_ch_master" address_start="0x77" address_step="9">
 				<parameter id="POWERON_MODE">
 				  <logical type="option">
@@ -287,7 +290,7 @@
 					</physical>
 					<conversion type="float_integer_scale" factor="200"/>
         		</parameter>
-        		<parameter id="OUTPUT_STATE" operations="read,event" ui_flags="internal"><!--id="STATE" will show on/off as chan state-->
+        		<parameter id="OUTPUT" operations="read,event" ui_flags="internal"><!--id="STATE" will show on/off as chan state-->
 					<logical type="option">
 						<option id="OFF"/>
 						<option id="OFF"/>
