@@ -711,7 +711,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
    //return sendFrame(true);  // only if bus is free
    
    uint8_t result = sendFrame(true, enqueue ? 1 : 3);  // only 1 try if queuing is allowed, 3 otherwise
-   if ( result == BUS_BUSY && enqueue)  // bus busy and queuing allowed
+   if ( result == BUS_BUSY && enqueue)  // bus was busy and queuing is allowed, so
       return sendBufferAddMessage(2);  // add to queue, try to send 2 times
    else
       return result;
@@ -725,7 +725,7 @@ uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
 	if (index == 0xFF)  return BUS_BUSY;  // no empty slot (buffer full)
 	
 	sendBuffer[index].reSendCounter = reSendCounter;
-	memcpy(&(sendBuffer[index]), &(txFrame), txFrame.dataLength +(sizeof(s_SendBuffer) - MAX_TX_BUFFER_FRAME_LENGTH));
+	memcpy(&(sendBuffer[index]), &(txFrame), txFrame.dataLength +((sizeof(s_SendBuffer) -1) - MAX_TX_BUFFER_FRAME_LENGTH)); // only consider size up to "frameData"
 	
 	sendBufferLastTryTime = millis();	// reset retry timer
 	
@@ -781,7 +781,7 @@ void HBWDevice::sendBufferTransmitMessage()
 	#endif
 	
 	// get frame from buffer
-	memcpy(&(txFrame), &(sendBuffer[sendBufferIndex]), txFrame.dataLength +(sizeof(s_SendBuffer) - MAX_TX_BUFFER_FRAME_LENGTH));
+	memcpy(&(txFrame), &(sendBuffer[sendBufferIndex]), txFrame.dataLength +((sizeof(s_SendBuffer) -1) - MAX_TX_BUFFER_FRAME_LENGTH));
 
 	uint8_t result = sendFrame(true, 1);  // only if bus is free  // try to send, one try
 	// uint8_t result = sendFrame(sendBuffer[index].onlyIfIdle);  // try to send

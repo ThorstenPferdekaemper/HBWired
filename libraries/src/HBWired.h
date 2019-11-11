@@ -15,7 +15,7 @@
 
 /* enable the below to allow peering with HBWLinkInfoEventActuator/HBWLinkInfoEventSensor
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
-#define Support_HBWLink_InfoEvent
+// #define Support_HBWLink_InfoEvent
 
 #define ENQUEUE true
 #define NOT_ENQUEUE false

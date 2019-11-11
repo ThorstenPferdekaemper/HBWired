@@ -92,7 +92,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
               if (now - lastSentLong >= 300) {  // alle 300ms wiederholen
                 // keyPressNum nicht erhoehen
                 lastSentLong = now ? now : 1; // der Teufel ist ein Eichhoernchen
-                device->sendKeyEvent(channel, keyPressNum, true);  // long press
+                device->sendKeyEvent(channel, keyPressNum, true, NOT_ENQUEUE);  // long press
               }
             }
             else if (now - keyPressedMillis >= long(config->long_press_time) * 100) {
@@ -141,7 +141,6 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
             keyPressNum++;
             oldButtonState = buttonState;
-			// TODO: if bus is not idle, retry next time (sendKeyEvent must retun correct state before this is possible to implement!!)
             device->sendKeyEvent(channel, keyPressNum, !buttonState);
           }
         }
