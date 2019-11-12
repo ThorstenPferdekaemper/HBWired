@@ -148,7 +148,7 @@
 					<option id="DS18B20"/>
 					<option id="DS18S20"/>
 					<option id="DS1822"/>
-					<option id="REMOVE_DEVICE"/>
+					<option id="REMOVE_SENSOR"/>
 				</logical>
 				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+6.0"/>

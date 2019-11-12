@@ -99,8 +99,7 @@
 					<value_map to_device="false" from_device="true" parameter_value="150" device_value="0xffff"/>
 				</conversion>
 			</parameter>
-			<!-- the below ONEWIRE_TYPE section would only work with this fix https://github.com/kc-GitHub/FHEM-HM485/issues/64-->
-			<!--<parameter id="ONEWIRE_TYPE">
+			<parameter id="ONEWIRE_TYPE">
 				<logical type="option">
 					<option id="NOT_USED" default="true"/>
 					<option id="DS18B20"/>
@@ -118,17 +117,6 @@
 					<value_map to_device="true" from_device="true" parameter_value="3" device_value="0x22"/>
 					<value_map to_device="true" from_device="false" parameter_value="4" device_value="0xFF"/>
 				</conversion>
-			</parameter>-->
-			<parameter id="ONEWIRE_TYPE"><!-- temporarily, until the above can be used... -->
-				<logical type="integer" min="0" max="254">
-					<special_value id="NOT_USED" value="255"/>
-					<!--<special_value id="DS18B20" value="40"/>
-					<special_value id="DS18S20" value="16"/>
-					<special_value id="DS1822" value="34"/> -->
-				</logical>
-				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+6.0"/>
-				</physical>
 			</parameter>
 		</paramset>
 		<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0xE6" address_step="6">

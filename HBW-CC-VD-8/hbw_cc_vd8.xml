@@ -450,15 +450,23 @@
 					</conversion>
 				</parameter>
 				<parameter id="ONEWIRE_TYPE">
-					<logical type="integer" min="0" max="254">
-						<special_value id="NOT_USED" value="255"/>
-						<!--<special_value id="DS18B20" value="40"/>
-						<special_value id="DS18S20" value="16"/>
-						<special_value id="DS1822" value="34"/>-->
+					<logical type="option">
+						<option id="NOT_USED" default="true"/>
+						<option id="DS18B20"/>
+						<option id="DS18S20"/>
+						<option id="DS1822"/>
+						<option id="REMOVE_SENSOR"/>
 					</logical>
-					<physical type="integer" size="1.0" interface="eeprom">
+					<physical size="1.0" type="integer" interface="eeprom">
 						<address index="+6.0"/>
 					</physical>
+					<conversion type="option_integer">
+						<value_map to_device="true" from_device="true" parameter_value="0" device_value="0xFF"/>
+						<value_map to_device="true" from_device="true" parameter_value="1" device_value="0x28"/>
+						<value_map to_device="true" from_device="true" parameter_value="2" device_value="0x10"/>
+						<value_map to_device="true" from_device="true" parameter_value="3" device_value="0x22"/>
+						<value_map to_device="true" from_device="false" parameter_value="4" device_value="0xFF"/>
+					</conversion>
 				</parameter>
 			</paramset>
 			<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0x270" address_step="6">
