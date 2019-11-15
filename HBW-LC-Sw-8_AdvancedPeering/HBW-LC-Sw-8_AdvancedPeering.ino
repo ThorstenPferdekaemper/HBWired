@@ -33,7 +33,7 @@
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
-#include <SoftwareSerial.h>
+#include <HBWSoftwareSerial.h>
 #include <FreeRam.h>
 
 
@@ -46,7 +46,7 @@
 #define RS485_TXD 2
 #define RS485_TXEN 3  // Transmit-Enable
 
-SoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 
 
 // Pins
