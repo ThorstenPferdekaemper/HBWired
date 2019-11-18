@@ -249,7 +249,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
 
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
-  hbwdebug(F(" sent temp, c°C: "));  hbwdebug(lastSentTemp); hbwdebug(F("\n"));
+  hbwdebug(F(" sent temp, c°C: "));  hbwdebug(lastSentTemp); lastSentTemp == currentTemp ? hbwdebug(F(" SUCCESS!\n")) : hbwdebug(F(" FAILED!\n"));
   #endif
   }
 };

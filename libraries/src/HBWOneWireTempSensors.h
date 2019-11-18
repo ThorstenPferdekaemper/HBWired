@@ -25,7 +25,7 @@
 #define ERROR_TEMP -27314     // CRC or read error
 #define OW_DEVICE_ADDRESS_SIZE 8   // fixed length for temp sensors address
 
-#define OW_DEVICE_ERROR_COUNT 3  // sensor in error state if counted down to 0. Decremented on every failed read
+#define OW_DEVICE_ERROR_COUNT 3  // sensor in error state if counted down to 0. Decremented on every failed read or CRC error
 
 #define ACTION_READ_TEMP 1
 #define ACTION_START_CONVERSION 0
