@@ -167,12 +167,6 @@ class HBWDevice {
 	
     // Senderadresse beim Empfangen
 	uint32_t senderAddress;
-	// Senden
-	// uint32_t txTargetAddress;        // Adresse des Moduls, zu dem gesendet wird
-	// uint8_t txFrameControlByte;
-    // uint8_t txFrameDataLength;              // Laenge der Daten + Checksum
-	// uint8_t txFrameData[MAX_RX_FRAME_LENGTH];
-
 
 	// the broadcast methods return...
 	// 0 -> everything ok
@@ -245,9 +239,10 @@ class HBWDevice {
 	
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
 	
-	// s_txFrame and s_SendBuffer have to use the same layout (to use memcpy)
+	// Senden
 	struct s_txFrame
 	{
+	// s_txFrame and s_SendBuffer have to have the same layout (to use memcpy)
 		uint32_t targetAddress;
 		uint8_t controlByte;
 		uint8_t dataLength;              // Laenge der Daten
@@ -269,11 +264,11 @@ class HBWDevice {
 	};
 	s_SendBuffer sendBuffer[SEND_BUFFER_SIZE];
 	void sendBufferInit();
-	uint32_t sendBufferLastTryTime;	// gets set in sendBufferAddMessage, not relevant if queue is emtpy
+	uint32_t sendBufferLastTryTime;	// getting set in sendBufferAddMessage, not relevant if queue is emtpy
 	uint8_t sendBufferIndex;
 	uint8_t sendBufferAddMessage(uint8_t reSendCounter = 3);
 	void sendBufferTransmitMessage();
-	uint8_t getNextSendBufferSlot(boolean free, uint8_t index = 0xFF);
+	uint8_t getNextSendBufferSlot(boolean free, uint8_t index = 0);
 	static const boolean RETURN_FREE = true;
 	static const boolean RETURN_USED = false;
 };
