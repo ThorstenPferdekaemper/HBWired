@@ -1,0 +1,20 @@
+{
+  "name": "HBWired",
+  "version": "0.1.0",
+  "frameworks": "arduino",
+  "platforms" : "atmelavr",
+  "keywords": "bus, homeautomation",
+  "description": "Build your own Homematic Wired bus Devices.",
+  "authors": [
+    {
+      "name": "Loetmeister",
+      "email": "no@gmail.com",
+      "url": "https://github.com/loetmeister",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loetmeister/HBWired/tree/master/libraries"
+  }
+}
