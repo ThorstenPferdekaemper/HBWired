@@ -90,12 +90,6 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
   #endif
     }
   }
-//  // Logging
-//  // TODO: remove here? only keep in setNewLevel? (reduce messages on the bus)
-//  if(!nextFeedbackDelay && config->logging) {
-//    lastFeedbackTime = millis();
-//    nextFeedbackDelay = device->getLoggingTime() * 100;
-//  }
 }
 
 void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
@@ -106,6 +100,7 @@ void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
     valveLevel = NewLevel;
     isFirstState = true;
     nextState = init_new_state();
+	//TODO: Add timestamp here, to keep track of updated valve position for anti-stick?
 
     // Logging
     if(!nextFeedbackDelay && config->logging) {

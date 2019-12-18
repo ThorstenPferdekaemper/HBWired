@@ -31,6 +31,7 @@ struct hbw_config_pid {
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
   uint16_t windowSize;  // TODO: reduce to 1byte? (10 seconds steps? = max 2540 seconds)
+  //TODO: add default setPoint 0...25.5°C
 };
 
 

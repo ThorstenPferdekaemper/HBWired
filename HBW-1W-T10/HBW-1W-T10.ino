@@ -46,7 +46,6 @@
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
   #define ONEWIRE_PIN	10 // Onewire Bus
   
@@ -55,7 +54,6 @@
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
   #define BUTTON 8  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
   #define ONEWIRE_PIN	10 // Onewire Bus
 
@@ -80,8 +78,7 @@ struct hbw_config {
 
 HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the device
 
-// global pointer for OneWire channels
-hbw_config_onewire_temp* tempConfig[NUMBER_OF_TEMP_CHAN]; // pointer for config
+hbw_config_onewire_temp* tempConfig[NUMBER_OF_TEMP_CHAN]; // global pointer for OneWire channels config
 
 
 class HBTempOWDevice : public HBWDevice {

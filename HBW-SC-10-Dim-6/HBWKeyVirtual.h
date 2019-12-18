@@ -35,7 +35,7 @@ class HBWKeyVirtual : public HBWChannel {
     uint32_t keyPressedMillis;  // Zeit, zu der die Taste gedrueckt wurde (fuer's Entprellen)
     boolean sendLong;
     boolean lastSentLong;      // Zuletzt gesender "Tastendruck" long oder short
-    boolean forceUpdate;
+    //boolean forceUpdate;
 };
 
 #endif

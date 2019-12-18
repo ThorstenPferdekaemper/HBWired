@@ -1,7 +1,6 @@
 Homematic Wired Homebrew PWM/0-10V Master Dimmer + 10 digital Eingänge
 ======================================================================
 
-*** In Entwicklung! *** Work in progress! ***
 // TODO: Implement dim peering params: RAMP_START_STEP
 
 
