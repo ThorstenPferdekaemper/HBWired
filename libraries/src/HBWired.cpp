@@ -34,7 +34,19 @@
 #define FRAME_ESCAPE 2   // Escape-Zeichen gefunden
 #define FRAME_SENTACKWAIT 8  // Nachricht wurde gesendet, warte auf ACK
 
+// Statics
+Stream* HBWDevice::serial;
 HBWDevice::s_PendingActions HBWDevice::pendingActions;
+uint32_t HBWDevice::senderAddress;
+unsigned long HBWDevice::lastReceivedTime;
+boolean HBWDevice::frameComplete;
+uint8_t HBWDevice::frameStatus;
+uint32_t HBWDevice::targetAddress;
+uint8_t HBWDevice::frameDataLength;                 // Laenge der Daten
+uint8_t HBWDevice::frameData[MAX_RX_FRAME_LENGTH];
+uint8_t HBWDevice::frameControlByte;
+HBWDevice::s_txFrame HBWDevice::txFrame;
+uint8_t HBWDevice::configButtonStatus;
 
 // Methods
 
@@ -136,7 +148,7 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle, uint8_t retries){
 //       (Pruefen, welche das sein koennten.)
       if(frameComplete) {
         if(targetAddress == ownAddress){
-          frameComplete = 0;
+          frameComplete = false;
           parseFrame();
           if(!(frameStatus & FRAME_SENTACKWAIT))  // ACK empfangen
             return SUCCESS;  // we have an ACK, i.e. ok
@@ -362,7 +374,7 @@ void HBWDevice::receive(){
                   frameControlByte = rxFrameControlByte;
                   frameDataLength -= 2;
                   // es liegt eine neue Nachricht vor
-                  frameComplete = 1;
+                  frameComplete = true;
                   #ifdef HBW_DEBUG
                     hbwdebug(F("\n"));
                   #endif
@@ -674,7 +686,7 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const 
    // return sendFrame(true);  // only if bus is free
    
    uint8_t result = sendFrame(true, 1);  // only if bus is free, only 1 try
-   if ( result == BUS_BUSY)  // bus busy and queuing allowed
+   if ( result == BUS_BUSY)  // bus busy
       return sendBufferAddMessage(4);  // add to queue, try to send 4 times
    else
       return result;
@@ -682,6 +694,7 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const 
 
 // InfoEvent senden, inklusive peers etc.
 uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data) {
+	// TODO: instead of sendQueue, check if bus is free HERE, then send all peering messages with onlyIfIdel=false?
     if(linkSender)  linkSender->sendInfoEvent(this, srcChan, length, data);
 	return SUCCESS;  // return always success... can't send anything different //TODO: maybe linkSender->sendInfoEvent() should not be void...?
 };
@@ -693,8 +706,12 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
     // uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free
 	//TODO: Ok to not add to sendBuffer? this would stop further peering messages, if bus was busy...
     // if(linkSender && result == SUCCESS)
+	//TODO: remove buffer, use:
+	//uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, BUS_FREE);  // only if bus is free
+	// if(linkSender && result == SUCCESS)
+		//return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, !BUS_FREE, 1);  // send all peer events, don't retry, don't wait for idle bus
     if(linkSender)  linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress, enqueue);
-    return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free;
+    return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free
 };
 
 
@@ -720,8 +737,8 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
 // simple buffer to save frames that could not be send (mainly for peering send in a very short time)
 uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
 {
-	if (sendBufferIndex == 0xFF)  sendBufferInit();  // reset send queue on first call
-	if (txFrame.dataLength > MAX_TX_BUFFER_FRAME_LENGTH)  return BUS_BUSY;  // message too big (retun some other error code? no use to try again...)
+	if (txFrame.dataLength > MAX_TX_BUFFER_FRAME_LENGTH)  return BUS_BUSY;  // message too big
+	
 	uint8_t index = getNextSendBufferSlot(RETURN_FREE);	// get next free slot
 	if (index >= SEND_BUFFER_SIZE)  return BUS_BUSY;  // no empty slot (buffer full)
 	
@@ -731,7 +748,7 @@ uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
 	sendBufferLastTryTime = millis();	// reset retry timer
 	
 	#ifdef HBW_DEBUG
-	hbwdebug(F("sendQ in: ")); hbwdebug(index); hbwdebug(F(" retry: ")); hbwdebug(reSendCounter);
+	hbwdebug(F("sendQ in: ")); hbwdebug(index); hbwdebug(F(" retry: ")); hbwdebug(reSendCounter); hbwdebug(F(" len: ")); hbwdebug(txFrame.dataLength);
 	hbwdebug("\n");
 	#endif
 	
@@ -747,6 +764,8 @@ void HBWDevice::sendBufferInit()
 // return index number of next free or used slot
 uint8_t HBWDevice::getNextSendBufferSlot(boolean free, uint8_t index)
 {
+	if (sendBufferIndex == 0xFF)  sendBufferInit();  // reset send queue on first call
+	
 	// start searching from previously used index number
 	if (index >= SEND_BUFFER_SIZE) index = 0;
 	for(byte i = index; i < SEND_BUFFER_SIZE; i++) {
@@ -754,7 +773,7 @@ uint8_t HBWDevice::getNextSendBufferSlot(boolean free, uint8_t index)
 			if (sendBuffer[i].reSendCounter == 0)  return i;  // return free index number
 		}
 		else {
-			if (sendBuffer[i].reSendCounter > 0)  return i;  // return used index number
+			if (sendBuffer[i].reSendCounter > 0 && sendBuffer[i].reSendCounter < 6)  return i;  // return used index number
 		}
 	}
 	return SEND_BUFFER_SIZE;
@@ -777,12 +796,12 @@ void HBWDevice::sendBufferTransmitMessage()
 	}
 	
 	#ifdef HBW_DEBUG
-	hbwdebug(F("sendQ out: ")); hbwdebug(sendBufferIndex); hbwdebug(F(" retry: ")); hbwdebug(sendBuffer[sendBufferIndex].reSendCounter);
+	hbwdebug(F("sendQ out: ")); hbwdebug(sendBufferIndex); hbwdebug(F(" retry: ")); hbwdebug(sendBuffer[sendBufferIndex].reSendCounter); hbwdebug(F(" len: ")); hbwdebug(sendBuffer[sendBufferIndex].frameDataLength);
 	hbwdebug("\n");
 	#endif
 	
 	// get frame from buffer
-	memcpy(&(txFrame), &(sendBuffer[sendBufferIndex]), txFrame.dataLength +6);  // add 6 bytes for address, controlByte and dataLength to copy the needed part of the struct
+	memcpy(&(txFrame), &(sendBuffer[sendBufferIndex]), sendBuffer[sendBufferIndex].frameDataLength +6);  // add 6 bytes for address, controlByte and dataLength to copy the needed part of the struct
 
 	uint8_t result = sendFrame(true, 1);  // only if bus is free  // try to send, one try
 	// uint8_t result = sendFrame(sendBuffer[index].onlyIfIdle);  // try to send
@@ -923,7 +942,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    txEnablePin = _txen;
    pinMode(txEnablePin, OUTPUT);
    digitalWrite(txEnablePin, LOW);
-   frameComplete = 0;
+   frameComplete = false;
    lastReceivedTime = 0;
    minIdleTime = DIFS_CONSTANT;  // changes in setOwnAddress
    sendBufferIndex = 0xFF;
@@ -1018,7 +1037,7 @@ void HBWDevice::loop()
   receive();
   // Check
   if(frameComplete) {
-	frameComplete = 0;   // only once
+	frameComplete = false;   // only once
 	if(targetAddress == ownAddress || targetAddress == 0xFFFFFFFF){
 	  if(parseFrame()) {
 	    processEvent(frameData, frameDataLength, (targetAddress == 0xFFFFFFFF));

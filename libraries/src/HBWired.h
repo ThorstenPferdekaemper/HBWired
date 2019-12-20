@@ -15,7 +15,7 @@
 
 /* enable the below to allow peering with HBWLinkInfoEventActuator/HBWLinkInfoEventSensor
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
-// #define Support_HBWLink_InfoEvent
+//#define Support_HBWLink_InfoEvent
 
 #define ENQUEUE true
 #define NOT_ENQUEUE false
@@ -165,9 +165,6 @@ class HBWDevice {
     uint32_t getCentralAddress();
     void handleBroadcastAnnounce();
 	
-    // Senderadresse beim Empfangen
-	uint32_t senderAddress;
-
 	// the broadcast methods return...
 	// 0 -> everything ok
 	// 1 -> nothing sent because bus busy
@@ -186,31 +183,34 @@ class HBWDevice {
   uint16_t firmware_version;
   
 // Das eigentliche RS485-Interface, kann z.B. HBWSoftwareSerial oder (Hardware)Serial sein
-	Stream* serial;
+	static Stream* serial;
 // Pin-Nummer fuer "TX-Enable"
 	uint8_t txEnablePin;
 	// Empfangs-Status
-	uint8_t frameStatus;
+	static uint8_t frameStatus;
 // eigene Adresse
 	unsigned long ownAddress;
 // Empfangene Daten
 	// Empfangen
-	uint8_t frameComplete;
-    uint32_t targetAddress;
-	uint8_t frameDataLength;                 // Laenge der Daten
-	uint8_t frameData[MAX_RX_FRAME_LENGTH];
-	uint8_t frameControlByte;
+	static boolean frameComplete;
+    static uint32_t targetAddress;
+	static uint8_t frameDataLength;                 // Laenge der Daten
+	static uint8_t frameData[MAX_RX_FRAME_LENGTH];
+	static uint8_t frameControlByte;
+    // Senderadresse beim Empfangen
+	static uint32_t senderAddress;
+
 // carrier sense
 //  last time we have received anything
-    unsigned long lastReceivedTime;
+    static unsigned long lastReceivedTime;
 //  current minimum idle time
 //  will be initialized in constructor
     unsigned int minIdleTime;
-	void receive();  // wird zyklisch aufgerufen
+	static void receive();  // wird zyklisch aufgerufen
 	boolean parseFrame();
 	void sendFrameSingle();
 	void sendFrameByte(uint8_t, uint16_t* crc = NULL);
-	void crc16Shift(uint8_t, uint16_t*);
+	static void crc16Shift(uint8_t, uint16_t*);
 
 	void readAddressFromEEPROM();
 	void determineSerial(uint8_t*);
@@ -221,7 +221,7 @@ class HBWDevice {
 	
     void factoryReset();
 	void handleConfigButton();	// handle config button and config LED
-	uint8_t configButtonStatus;
+	static uint8_t configButtonStatus;
 	void handleStatusLEDs();	// handle Tx and Rx LEDs
 	boolean txLEDStatus;
 	boolean rxLEDStatus;
@@ -248,11 +248,12 @@ class HBWDevice {
 		uint8_t dataLength;              // Laenge der Daten
 		uint8_t data[MAX_RX_FRAME_LENGTH];
 	};
-	s_txFrame txFrame;
+	static s_txFrame txFrame;
+	// s_txFrame txFrame;
 	
 	// simple send queue, to buffer messages that will be send in a short period of time
-	static const uint8_t SEND_BUFFER_SIZE = 4;	// amount of messages to store //TODO: what's a good size? (vs memory consumption?)
-	static const uint8_t MAX_TX_BUFFER_FRAME_LENGTH = 6;	// max frame size for the buffer //TODO: what's a good size? (vs memory consumption?)
+	static const uint8_t SEND_BUFFER_SIZE = 4;	//4 amount of messages to store //TODO: what's a good size? (vs memory consumption?)
+	static const uint8_t MAX_TX_BUFFER_FRAME_LENGTH = 6;	//6 max frame size for the buffer //TODO: what's a good size? (vs memory consumption?)
 	struct s_SendBuffer
 	{
 		uint32_t targetAddress;
@@ -262,6 +263,7 @@ class HBWDevice {
 		uint8_t reSendCounter;
 		// boolean onlyIfIdle; add?
 	};
+	// static s_SendBuffer sendBuffer[SEND_BUFFER_SIZE];
 	s_SendBuffer sendBuffer[SEND_BUFFER_SIZE];
 	void sendBufferInit();
 	uint32_t sendBufferLastTryTime;	// getting set in sendBufferAddMessage, not relevant if queue is emtpy
