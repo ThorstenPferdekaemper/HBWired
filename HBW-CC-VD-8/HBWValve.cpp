@@ -227,7 +227,7 @@ bool HBWValve::first_on_or_off(uint32_t ontimer, uint32_t offtimer)
 }
 
 
-int HBWValve::init_new_state()
+bool HBWValve::init_new_state()
 {
   onTimer = set_ontimer(valveLevel);
   offTimer = set_offtimer(onTimer);

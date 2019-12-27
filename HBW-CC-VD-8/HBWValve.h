@@ -37,8 +37,6 @@
 #define VENTON true
 #define VENTOFF false
 
-#define MANUAL 0
-#define AUTOMATIC 1
 
 // need to match frame definition in XML:
 #define SET_TOGGLE_AUTOMATIC  201
@@ -53,7 +51,7 @@ struct hbw_config_valve {
   uint8_t n_inverted:1;   // +0.2   inverted logic (use NO valves, NC is default)
   uint8_t :5;     //fillup //0x..:3-8
   uint8_t error_pos;
-  uint8_t valveSwitchTime;   // (factor 10!) Time the valve needs to reach 100% (NC:open or NO:closed state)
+  uint8_t valveSwitchTime;   // (factor 10! max 2540 seconds) Time the valve needs to reach 100% (NC:open or NO:closed state)
   uint8_t dummy :8;
   // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
 };
@@ -85,13 +83,13 @@ class HBWValve : public HBWChannel {
     uint32_t set_timer(bool firstState, byte status);
     uint32_t set_peakmiddle(uint32_t ontimer, uint32_t offtimer);
     inline bool first_on_or_off(uint32_t ontimer, uint32_t offtimer);
-    int init_new_state();
+    bool init_new_state();
     uint32_t set_ontimer(uint8_t VentPositionRequested);
     uint32_t set_offtimer(uint32_t ontimer);
     
     uint32_t outputChangeLastTime;    // last time output state was changed
-    uint32_t outputChangeNextDelay;    // time until next state change
-    uint32_t onTimer, offTimer;     // current calculated on and of duration
+    uint32_t outputChangeNextDelay;    // time until next state change  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
+    uint32_t onTimer, offTimer;     // current calculated on and of duration  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
 
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
@@ -110,7 +108,9 @@ class HBWValve : public HBWChannel {
       uint8_t byte:8;
     } stateFlags;
     
-    static const uint32_t OUTPUT_STARTUP_DELAY = 4300;
+    static const uint32_t OUTPUT_STARTUP_DELAY = 4300;  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
+    static const bool MANUAL = false;
+    static const bool AUTOMATIC = true;
 };
 
 #endif /* HBWVAVLE_H_ */
