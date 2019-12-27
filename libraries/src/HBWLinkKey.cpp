@@ -25,7 +25,7 @@ HBWLinkKey::HBWLinkKey(uint8_t _numLinks, uint16_t _eepromStart) {
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
 void HBWLinkKey::sendKeyEvent(HBWDevice* device, uint8_t srcChan, 
-                                    uint8_t keyPressNum, boolean longPress, boolean enqueue) {
+                                    uint8_t keyPressNum, boolean longPress) {
 	uint8_t channelEEPROM;
 	uint32_t addrEEPROM;
     // care for peerings
@@ -47,7 +47,7 @@ void HBWLinkKey::sendKeyEvent(HBWDevice* device, uint8_t srcChan,
 			// external peering
 			// TODO: If bus busy, then try to repeat. ...aber zuerst feststellen, wie das die Original-Module machen (bzw. hier einfach so lassen)
 			/* byte result = */ 
-			device->sendKeyEvent(srcChan, keyPressNum, longPress, addrEEPROM, channelEEPROM, enqueue);
+			device->sendKeyEvent(srcChan, keyPressNum, longPress, addrEEPROM, channelEEPROM, !NEED_IDLE_BUS, 1);  // free bus was checked before calling sendKeyEvent - by broadcast, send to peer only once
 		};
 	}; 
 }

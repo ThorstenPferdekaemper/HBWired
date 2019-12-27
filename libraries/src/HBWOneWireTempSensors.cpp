@@ -209,7 +209,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
       *owCurrentChannel = channel;
   
   // read onewire sensor every n seconds (OW_POLL_FREQUENCY/1000)
-  if (now - *owLastReadTime >= OW_POLL_FREQUENCY && *owCurrentChannel == channel) {
+  if ((now - *owLastReadTime >= OW_POLL_FREQUENCY) && *owCurrentChannel == channel) {
     if (action == ACTION_START_CONVERSION) {
       *owLastReadTime = now;
       oneWireStartConversion();   // start next measurement
@@ -238,13 +238,17 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
     // send temperature
     get(level);
     if (device->sendInfoMessage(channel, 2, level) == HBWDevice::SUCCESS) {    // level has always 2 byte here
+     #ifdef Support_HBWLink_InfoEvent
+      device->sendInfoEvent(channel, 2, level, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
+     #endif
+
       lastSentTemp = currentTemp;   // store last value only on success
       errorWasSend = true;
     }
     lastSentTime = now;   // if send failed, next try will be on send_max_interval or send_min_interval in case the value changed (send_delta_temp)
 
    #ifdef Support_HBWLink_InfoEvent
-    device->sendInfoEvent(channel, 2, level);
+   // device->sendInfoEvent(channel, 2, level);
    #endif
 
   #ifdef DEBUG_OUTPUT

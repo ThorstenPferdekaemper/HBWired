@@ -16,7 +16,7 @@
 class HBWLinkKey : public HBWLinkSender {
   public:
       HBWLinkKey(uint8_t _numLinks, uint16_t _eepromStart);
-	  void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue = true);
+	  void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress);
   private:
       uint8_t numLinks;         // number of links of this type  
       uint16_t eepromStart;     //size sollte konstant sein -> als define in .cpp

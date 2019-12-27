@@ -17,8 +17,9 @@
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
 //#define Support_HBWLink_InfoEvent
 
-#define ENQUEUE true
-#define NOT_ENQUEUE false
+//#define ENQUEUE true
+//#define NOT_ENQUEUE false
+static const boolean NEED_IDLE_BUS = true;  // use for sendFrame
 
 
 class HBWDevice;
@@ -38,7 +39,7 @@ class HBWChannel {
 
 class HBWLinkSender {
   public:
-    virtual void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue = true);
+    virtual void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress);
   #ifdef Support_HBWLink_InfoEvent
 	virtual void sendInfoEvent(HBWDevice* device, uint8_t srcChan, uint8_t length, uint8_t const * const data);
   #endif
@@ -107,15 +108,15 @@ class HBWDevice {
 	virtual uint8_t sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address = 0);
   #ifdef Support_HBWLink_InfoEvent
 	// link/peer via i-message
-	virtual uint8_t sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data);
-	virtual uint8_t sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel);
+	virtual uint8_t sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data, boolean busState = NEED_IDLE_BUS);
+	virtual uint8_t sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = 2);
 	virtual void receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan, uint8_t dstChan, uint8_t length, uint8_t const * const data);
   #endif
 	// Allgemeiner "Key Event"
-    virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress, boolean enqueue = true);
+    virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress);
 	// Key Event Routine mit Target fuer LinkSender 
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress,
-								 uint32_t target_address, uint8_t target_channel, boolean enqueue = true);
+				uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = 3);
     // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
     virtual uint8_t sendKeyEvent(uint8_t srcChan, uint8_t length, void* data);
  								 
@@ -183,34 +184,34 @@ class HBWDevice {
   uint16_t firmware_version;
   
 // Das eigentliche RS485-Interface, kann z.B. HBWSoftwareSerial oder (Hardware)Serial sein
-	static Stream* serial;
+	Stream* serial;
 // Pin-Nummer fuer "TX-Enable"
 	uint8_t txEnablePin;
 	// Empfangs-Status
-	static uint8_t frameStatus;
+	uint8_t frameStatus;
 // eigene Adresse
 	unsigned long ownAddress;
 // Empfangene Daten
 	// Empfangen
-	static boolean frameComplete;
-    static uint32_t targetAddress;
-	static uint8_t frameDataLength;                 // Laenge der Daten
-	static uint8_t frameData[MAX_RX_FRAME_LENGTH];
-	static uint8_t frameControlByte;
+	boolean frameComplete;
+    uint32_t targetAddress;
+	uint8_t frameDataLength;                 // Laenge der Daten
+	uint8_t frameData[MAX_RX_FRAME_LENGTH];
+	uint8_t frameControlByte;
     // Senderadresse beim Empfangen
-	static uint32_t senderAddress;
+	uint32_t senderAddress;
 
 // carrier sense
 //  last time we have received anything
-    static unsigned long lastReceivedTime;
+    unsigned long lastReceivedTime;
 //  current minimum idle time
 //  will be initialized in constructor
     unsigned int minIdleTime;
-	static void receive();  // wird zyklisch aufgerufen
+	void receive();  // wird zyklisch aufgerufen
 	boolean parseFrame();
 	void sendFrameSingle();
 	void sendFrameByte(uint8_t, uint16_t* crc = NULL);
-	static void crc16Shift(uint8_t, uint16_t*);
+	void crc16Shift(uint8_t, uint16_t*);
 
 	void readAddressFromEEPROM();
 	void determineSerial(uint8_t*);
@@ -225,6 +226,7 @@ class HBWDevice {
 	void handleStatusLEDs();	// handle Tx and Rx LEDs
 	boolean txLEDStatus;
 	boolean rxLEDStatus;
+
 	
 	struct s_PendingActions
 	{
@@ -238,6 +240,8 @@ class HBWDevice {
 	static s_PendingActions pendingActions;
 	
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
+	// Arduino Reset via Software function declaration, point to zero register
+	void (* resetSoftware)(void) = 0;
 	
 	// Senden
 	struct s_txFrame
@@ -248,9 +252,11 @@ class HBWDevice {
 		uint8_t dataLength;              // Laenge der Daten
 		uint8_t data[MAX_RX_FRAME_LENGTH];
 	};
-	static s_txFrame txFrame;
-	// s_txFrame txFrame;
+	//static s_txFrame txFrame;
+	s_txFrame txFrame;
+
 	
+/*
 	// simple send queue, to buffer messages that will be send in a short period of time
 	static const uint8_t SEND_BUFFER_SIZE = 4;	//4 amount of messages to store //TODO: what's a good size? (vs memory consumption?)
 	static const uint8_t MAX_TX_BUFFER_FRAME_LENGTH = 6;	//6 max frame size for the buffer //TODO: what's a good size? (vs memory consumption?)
@@ -273,6 +279,7 @@ class HBWDevice {
 	uint8_t getNextSendBufferSlot(boolean free, uint8_t index = 0);
 	static const boolean RETURN_FREE = true;
 	static const boolean RETURN_USED = false;
+*/
 };
 
 

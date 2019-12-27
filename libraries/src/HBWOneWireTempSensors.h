@@ -20,15 +20,13 @@
 #define DEBUG_OUTPUT   // extra debug output on serial/USB
 //#define EXTRA_DEBUG_OUTPUT   // even more debug output
 
-#define OW_POLL_FREQUENCY 1200  // read temperature every X milli seconds (not less than 900 ms! -> 750 ms conversion time @12 bit resolution)
-#define DEFAULT_TEMP -27315   // for unused channels
-#define ERROR_TEMP -27314     // CRC or read error
+static const uint32_t OW_POLL_FREQUENCY = 1200;  // read temperature every X milli seconds (not less than 900 ms! -> 750 ms conversion time @12 bit resolution)
+static const int16_t DEFAULT_TEMP = -27315;   // for unused channels
+static const int16_t ERROR_TEMP = -27314;     // CRC or read error
 #define OW_DEVICE_ADDRESS_SIZE 8   // fixed length for temp sensors address
 
 #define OW_DEVICE_ERROR_COUNT 3  // sensor in error state if counted down to 0. Decremented on every failed read or CRC error
 
-#define ACTION_READ_TEMP 1
-#define ACTION_START_CONVERSION 0
 #define OW_CHAN_INIT 0xFF
 
 // config of each sensor, address step 14
@@ -50,6 +48,12 @@ class HBWOneWireTemp : public HBWChannel {
     virtual uint8_t get(uint8_t* data);
     virtual void afterReadConfig();
     static void sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config, uint8_t channels, uint8_t address_start);
+
+    enum TempSensor_State {
+      ACTION_START_CONVERSION = 0,
+      ACTION_READ_TEMP
+    };
+
 
   private:
     int16_t oneWireReadTemp();

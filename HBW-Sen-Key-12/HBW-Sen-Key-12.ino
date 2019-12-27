@@ -131,7 +131,7 @@ void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
         if (button.depressed) {  // ist noch immer gedrueckt --> alle 300ms senden
           if(now - lastSentLong >= 300){ // alle 300ms erneut senden
             lastSentLong = lastSentLong + 300;
-            device->sendKeyEvent(channel,keyPressNum, true, NOT_ENQUEUE);  // long press
+            device->sendKeyEvent(channel,keyPressNum, true);  // long press
           }
         } else {    // "Losgelassen" senden
             data = keyPressNum << 2; // + 0

@@ -35,17 +35,7 @@
 #define FRAME_SENTACKWAIT 8  // Nachricht wurde gesendet, warte auf ACK
 
 // Statics
-Stream* HBWDevice::serial;
 HBWDevice::s_PendingActions HBWDevice::pendingActions;
-uint32_t HBWDevice::senderAddress;
-unsigned long HBWDevice::lastReceivedTime;
-boolean HBWDevice::frameComplete;
-uint8_t HBWDevice::frameStatus;
-uint32_t HBWDevice::targetAddress;
-uint8_t HBWDevice::frameDataLength;                 // Laenge der Daten
-uint8_t HBWDevice::frameData[MAX_RX_FRAME_LENGTH];
-uint8_t HBWDevice::frameControlByte;
-HBWDevice::s_txFrame HBWDevice::txFrame;
 uint8_t HBWDevice::configButtonStatus;
 
 // Methods
@@ -405,7 +395,7 @@ void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};
 void HBWChannel::afterReadConfig() {};
 
 
-void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue) {};
+void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {};
 void HBWLinkReceiver::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                       uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {};
 #ifdef Support_HBWLink_InfoEvent
@@ -472,7 +462,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             // reset the Module jump after the bootloader
         	// Nur wenn das zweite Zeichen auch ein "!" ist
         	// TODO: Wirklich machen, aber wie geht das?
-            // if(frameData[1] == '!') { };   //  then goto 0
+            // if(frameData[1] == '!') { resetSoftware(); };   //  then goto 0
             break;  */
          case 'A':                                                             // Announce
         	txFrame.data[0] = 'i';
@@ -523,7 +513,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             // TODO: ???
             break;  */
        #ifdef Support_HBWLink_InfoEvent
-         case 0xB4:                                                               // received 'Info Event' (peering with data)
+         case 0xB4:                                                               // received 'Info Event' (peering with data) - custom HomeBrew
             if (frameDataLength > 3)
               receiveInfoEvent(senderAddress, frameData[1], frameData[2], frameDataLength-3, &(frameData[3]));
             break;
@@ -674,7 +664,7 @@ uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t cons
 
 #ifdef Support_HBWLink_InfoEvent
 // link "InfoEvent Message" senden
-uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel) {
+uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel, boolean busState, uint8_t retries) {
    if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
    txFrame.targetAddress = target_address;
    txFrame.controlByte = 0xF8;          // control byte
@@ -683,40 +673,45 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const 
    txFrame.data[1] = channel;           // Sensornummer
    txFrame.data[2] = target_channel;    // Zielaktor
    memcpy(&(txFrame.data[3]), data, length);
-   // return sendFrame(true);  // only if bus is free
+   return sendFrame(busState, retries);  // only if bus is free
    
+/*
    uint8_t result = sendFrame(true, 1);  // only if bus is free, only 1 try
    if ( result == BUS_BUSY)  // bus busy
       return sendBufferAddMessage(4);  // add to queue, try to send 4 times
    else
       return result;
+*/
 };
 
 // InfoEvent senden, inklusive peers etc.
-uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data) {
-	// TODO: instead of sendQueue, check if bus is free HERE, then send all peering messages with onlyIfIdel=false?
-    if(linkSender)  linkSender->sendInfoEvent(this, srcChan, length, data);
-	return SUCCESS;  // return always success... can't send anything different //TODO: maybe linkSender->sendInfoEvent() should not be void...?
+uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data, boolean busState) {
+  if(linkSender) {
+    if ((busIsIdle() && busState == NEED_IDLE_BUS ) || busState != NEED_IDLE_BUS) {
+      linkSender->sendInfoEvent(this, srcChan, length, data);
+    }
+    else {
+      return BUS_BUSY;
+    }
+  }
+  return SUCCESS;   //TODO: maybe linkSender->sendInfoEvent() should not be void...? if it would return sendFrame status, "no ACK" result must be ignored (dead peering?)
 };
 #endif
 
 
 // key-Event senden, inklusive peers etc.
-uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, boolean enqueue) {
-    // uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free
-	//TODO: Ok to not add to sendBuffer? this would stop further peering messages, if bus was busy...
-    // if(linkSender && result == SUCCESS)
-	//TODO: remove buffer, use:
-	//uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, BUS_FREE);  // only if bus is free
-	// if(linkSender && result == SUCCESS)
-		//return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, !BUS_FREE, 1);  // send all peer events, don't retry, don't wait for idle bus
-    if(linkSender)  linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress, enqueue);
-    return sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, enqueue);  // only if bus is free
+uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {
+  uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, NEED_IDLE_BUS);  // only if bus is free
+  if(linkSender && result == SUCCESS)
+    // send all peer events, don't retry, don't wait for idle bus (initial broadcast was send only on idle/free bus)
+    // TODO: if linkSender->sendKeyEvent would return sendFrame status, "no ACK" result must be ignored (dead peering?)
+    linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress);
+  return result;
 };
 
 
 // key-Event senden an bestimmtes Target
-uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, uint32_t targetAddr, uint8_t targetChan, boolean enqueue) {
+uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean longPress, uint32_t targetAddr, uint8_t targetChan, boolean busState, uint8_t retries) {
    if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
    txFrame.targetAddress = targetAddr;  // target address
    txFrame.controlByte = 0xF8;     // control byte
@@ -725,15 +720,18 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
    txFrame.data[1] = srcChan;      // Sensornummer
    txFrame.data[2] = targetChan;   // Zielaktor
    txFrame.data[3] = (longPress ? 3 : 2) + (keyPressNum << 2);
-   //return sendFrame(true);  // only if bus is free
+   return sendFrame(busState, retries);  // only if bus is free, default true. Retries, default 3
    
+/*
    uint8_t result = sendFrame(true, enqueue ? 1 : 3);  // only 1 try if queuing is allowed, 3 otherwise
    if ( result == BUS_BUSY && enqueue)  // bus was busy and queuing is allowed, so
       return sendBufferAddMessage(2);  // add to queue, try to send 2 times
    else
       return result;
+*/
 };
 
+/*
 // simple buffer to save frames that could not be send (mainly for peering send in a very short time)
 uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
 {
@@ -811,7 +809,7 @@ void HBWDevice::sendBufferTransmitMessage()
 	else
 		sendBuffer[sendBufferIndex].reSendCounter--;
 }
-
+*/
 
 // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
@@ -945,7 +943,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    frameComplete = false;
    lastReceivedTime = 0;
    minIdleTime = DIFS_CONSTANT;  // changes in setOwnAddress
-   sendBufferIndex = 0xFF;
+//   sendBufferIndex = 0xFF;
    ledPin = NOT_A_PIN;     // inactive by default
    txLedPin = NOT_A_PIN;     // inactive by default
    rxLedPin = NOT_A_PIN;     // inactive by default
@@ -1056,7 +1054,7 @@ void HBWDevice::loop()
 // Rx & Tx LEDs
    handleStatusLEDs();
 // check and try to send one message from the queue
-   sendBufferTransmitMessage();
+   //sendBufferTransmitMessage();
 };
 
 
