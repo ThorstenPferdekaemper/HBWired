@@ -99,7 +99,7 @@ HBSwDevice* device = NULL;
 void setup()
 {
 #ifndef NO_DEBUG_OUTPUT
-  Serial.begin(19200);  // Serial->USB for debug
+  Serial.begin(115200);  // Serial->USB for debug
 #endif
   rs485.begin();   // RS485 via SoftwareSerial, uses 19200 baud!
 

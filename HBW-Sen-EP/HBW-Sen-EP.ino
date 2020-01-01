@@ -34,6 +34,7 @@
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
+//#include "HBW_interrupt.h"  // TODO: Add interrupt support (only possible when not using SoftwareSerial)
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
@@ -86,6 +87,7 @@ HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the devic
 HBWDevice* device = NULL;
 
 
+
 void setup()
 {
   // create channels
@@ -108,7 +110,7 @@ void setup()
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
 #else
-  Serial.begin(19200);  // Serial->USB for debug
+  Serial.begin(115200);  // Serial->USB for debug
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
   device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,

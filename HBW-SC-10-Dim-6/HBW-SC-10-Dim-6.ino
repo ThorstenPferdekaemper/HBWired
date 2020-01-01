@@ -203,7 +203,7 @@ void setup()
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
 #else
-  Serial.begin(19200);  // Serial->USB for debug
+  Serial.begin(115200);  // Serial->USB for debug
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
   device = new HBDimIODevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,

@@ -118,7 +118,7 @@ void setup()
 {
   analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
 #ifndef NO_DEBUG_OUTPUT
-  Serial.begin(19200);  // Serial->USB for debug
+  Serial.begin(115200);  // Serial->USB for debug
 #endif
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 

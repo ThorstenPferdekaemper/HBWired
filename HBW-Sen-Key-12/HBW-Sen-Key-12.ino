@@ -144,7 +144,7 @@ void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
 
 void setup()
 {
-  Serial.begin(19200);  // Serial->USB for debug
+  Serial.begin(115200);  // Serial->USB for debug
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 
   // create channels
