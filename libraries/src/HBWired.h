@@ -244,40 +244,13 @@ class HBWDevice {
 	// Senden
 	struct s_txFrame
 	{
-	// s_txFrame and s_SendBuffer have to have the same layout (to use memcpy)
 		uint32_t targetAddress;
 		uint8_t controlByte;
 		uint8_t dataLength;              // Laenge der Daten
 		uint8_t data[MAX_RX_FRAME_LENGTH];
 	};
-	//static s_txFrame txFrame;
 	s_txFrame txFrame;
 
-	
-/*
-	// simple send queue, to buffer messages that will be send in a short period of time
-	static const uint8_t SEND_BUFFER_SIZE = 4;	//4 amount of messages to store //TODO: what's a good size? (vs memory consumption?)
-	static const uint8_t MAX_TX_BUFFER_FRAME_LENGTH = 6;	//6 max frame size for the buffer //TODO: what's a good size? (vs memory consumption?)
-	struct s_SendBuffer
-	{
-		uint32_t targetAddress;
-		uint8_t frameControlByte;
-		uint8_t frameDataLength;              // Laenge der Daten
-		uint8_t frameData[MAX_TX_BUFFER_FRAME_LENGTH];	// don't buffer large frames; frameDataLength < MAX_TX_BUFFER_FRAME_LENGTH
-		uint8_t reSendCounter;
-		// boolean onlyIfIdle; add?
-	};
-	// static s_SendBuffer sendBuffer[SEND_BUFFER_SIZE];
-	s_SendBuffer sendBuffer[SEND_BUFFER_SIZE];
-	void sendBufferInit();
-	uint32_t sendBufferLastTryTime;	// getting set in sendBufferAddMessage, not relevant if queue is emtpy
-	uint8_t sendBufferIndex;
-	uint8_t sendBufferAddMessage(uint8_t reSendCounter = 3);
-	void sendBufferTransmitMessage();
-	uint8_t getNextSendBufferSlot(boolean free, uint8_t index = 0);
-	static const boolean RETURN_FREE = true;
-	static const boolean RETURN_USED = false;
-*/
 };
 
 
