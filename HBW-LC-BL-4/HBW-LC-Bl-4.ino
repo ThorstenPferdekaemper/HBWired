@@ -117,7 +117,7 @@ HBBlDevice* device = NULL;
 void setup()
 {
   analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
-#ifndef NO_DEBUG_OUTPUT
+#ifndef USE_HARDWARE_SERIAL
   Serial.begin(115200);  // Serial->USB for debug
 #endif
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
@@ -137,7 +137,7 @@ void setup()
   device = new HBBlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUMBER_OF_CHAN,(HBWChannel**)channels,
-  #ifdef NO_DEBUG_OUTPUT
+  #ifdef USE_HARDWARE_SERIAL
                          NULL,
   #else
                          &Serial,
@@ -146,7 +146,7 @@ void setup()
    
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
 
-#ifndef NO_DEBUG_OUTPUT
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
   hbwdebug(F("\n"));
