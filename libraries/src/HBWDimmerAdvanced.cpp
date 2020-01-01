@@ -597,7 +597,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
   static uint8_t level[2];	
   get(level);
-  if(device->sendInfoMessage(channel, 2, level) == 1) {  // bus busy
+  if(device->sendInfoMessage(channel, 2, level) == HBWDevice::BUS_BUSY) {  // bus busy
   	nextFeedbackDelay = 250;  // try again later, but insert a small delay
   }
   else {

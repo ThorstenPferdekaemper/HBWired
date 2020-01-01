@@ -138,7 +138,7 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
   // we know that the level has 2 byte here (value & state)
   get(level);
-  if (device->sendInfoMessage(channel, sizeof(level), level) == 1) {  // bus busy
+  if (device->sendInfoMessage(channel, sizeof(level), level) == HBWDevice::BUS_BUSY) {  // bus busy
   // try again later, but insert a small delay
     nextFeedbackDelay = 250;
   }

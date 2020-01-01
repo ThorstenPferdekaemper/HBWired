@@ -17,9 +17,6 @@
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
 //#define Support_HBWLink_InfoEvent
 
-//#define ENQUEUE true
-//#define NOT_ENQUEUE false
-static const boolean NEED_IDLE_BUS = true;  // use for sendFrame
 
 
 class HBWDevice;
@@ -74,6 +71,7 @@ class HBWLinkReceiver {
 // - Info-Message 0x69 (Broadcast/Central Address. Peers unclear )
 
 #define MAX_RX_FRAME_LENGTH 64
+static const boolean NEED_IDLE_BUS = true;  // use for sendFrame
 
 
 // The HBWired-Device

@@ -15,6 +15,8 @@
 
 
 #include "HBWired.h"
+#include "HBWOneWireTempSensors.h"
+
 
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
@@ -22,12 +24,8 @@
 #define OFF LOW
 #define ON HIGH
 
-#define MIN_CHANGE_WAIT_TIME 30000  // don't set new output state faster than: 30 seconds // TODO: make it part of config?
-#define DELTA_CALCULATION_WAIT_TIME 3100  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds)
-
-
-#define DEFAULT_TEMP -27315   // for unused channels
-#define ERROR_TEMP -27314     // CRC or read error
+static const uint16_t MIN_CHANGE_WAIT_TIME = 30000;  // don't set new output state faster than: 30 seconds // TODO: make it part of config?
+static const uint16_t  DELTA_CALCULATION_WAIT_TIME = 3100;  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds)
 
 
 // config of one DeltaT channel, address step 6
@@ -57,8 +55,8 @@ class HBWDeltaTx : public HBWChannel {
     HBWDeltaTx(hbw_config_DeltaTx* _config);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
-	  virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
-	  virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);  // allow set() only if not peered?
+    virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
+    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);  // allow set() only if not peered?
 
     int16_t currentTemperature; // temperature in m°C
     

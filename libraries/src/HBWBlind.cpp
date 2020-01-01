@@ -322,7 +322,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
     // we know that the level has 2 byte here
     static uint8_t level[2];
     get(level);
-    if (device->sendInfoMessage(channel, 2, level) == 1) {  // bus busy
+    if (device->sendInfoMessage(channel, 2, level) == HBWDevice::BUS_BUSY) {  // bus busy
     // try again later, but insert a small delay
       nextFeedbackDelay = 250;
     }

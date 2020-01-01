@@ -674,14 +674,6 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const 
    txFrame.data[2] = target_channel;    // Zielaktor
    memcpy(&(txFrame.data[3]), data, length);
    return sendFrame(busState, retries);  // only if bus is free
-   
-/*
-   uint8_t result = sendFrame(true, 1);  // only if bus is free, only 1 try
-   if ( result == BUS_BUSY)  // bus busy
-      return sendBufferAddMessage(4);  // add to queue, try to send 4 times
-   else
-      return result;
-*/
 };
 
 // InfoEvent senden, inklusive peers etc.
@@ -694,7 +686,7 @@ uint8_t HBWDevice::sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const 
       return BUS_BUSY;
     }
   }
-  return SUCCESS;   //TODO: maybe linkSender->sendInfoEvent() should not be void...? if it would return sendFrame status, "no ACK" result must be ignored (dead peering?)
+  return SUCCESS;   //TODO: maybe linkSender->sendInfoEvent() should not be void...? if it would return sendFrame status, "no ACK" result must be ignored? (dead peering)
 };
 #endif
 
@@ -704,7 +696,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
   uint8_t result = sendKeyEvent(srcChan, keyPressNum, longPress, 0xFFFFFFFF, 0, NEED_IDLE_BUS);  // only if bus is free
   if(linkSender && result == SUCCESS)
     // send all peer events, don't retry, don't wait for idle bus (initial broadcast was send only on idle/free bus)
-    // TODO: if linkSender->sendKeyEvent would return sendFrame status, "no ACK" result must be ignored (dead peering?)
+    // TODO: if linkSender->sendKeyEvent would return sendFrame status, "no ACK" result must be ignored? (dead peering)
     linkSender->sendKeyEvent(this, srcChan, keyPressNum, longPress);
   return result;
 };
@@ -721,95 +713,8 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
    txFrame.data[2] = targetChan;   // Zielaktor
    txFrame.data[3] = (longPress ? 3 : 2) + (keyPressNum << 2);
    return sendFrame(busState, retries);  // only if bus is free, default true. Retries, default 3
-   
-/*
-   uint8_t result = sendFrame(true, enqueue ? 1 : 3);  // only 1 try if queuing is allowed, 3 otherwise
-   if ( result == BUS_BUSY && enqueue)  // bus was busy and queuing is allowed, so
-      return sendBufferAddMessage(2);  // add to queue, try to send 2 times
-   else
-      return result;
-*/
 };
 
-/*
-// simple buffer to save frames that could not be send (mainly for peering send in a very short time)
-uint8_t HBWDevice::sendBufferAddMessage(uint8_t reSendCounter)
-{
-	if (txFrame.dataLength > MAX_TX_BUFFER_FRAME_LENGTH)  return BUS_BUSY;  // message too big
-	
-	uint8_t index = getNextSendBufferSlot(RETURN_FREE);	// get next free slot
-	if (index >= SEND_BUFFER_SIZE)  return BUS_BUSY;  // no empty slot (buffer full)
-	
-	sendBuffer[index].reSendCounter = reSendCounter;
-	memcpy(&(sendBuffer[index]), &(txFrame), txFrame.dataLength +6);  // add 6 bytes for address, controlByte and dataLength to copy the needed part of the struct
-	
-	sendBufferLastTryTime = millis();	// reset retry timer
-	
-	#ifdef HBW_DEBUG
-	hbwdebug(F("sendQ in: ")); hbwdebug(index); hbwdebug(F(" retry: ")); hbwdebug(reSendCounter); hbwdebug(F(" len: ")); hbwdebug(txFrame.dataLength);
-	hbwdebug("\n");
-	#endif
-	
-	return SUCCESS;
-}
-// mark all slots as free. Elements of the sendBuffer struct may contain data
-void HBWDevice::sendBufferInit()
-{
-	for(byte i = 0; i < SEND_BUFFER_SIZE; i++) {
-		sendBuffer[i].reSendCounter = 0;
-	}
-}
-// return index number of next free or used slot
-uint8_t HBWDevice::getNextSendBufferSlot(boolean free, uint8_t index)
-{
-	if (sendBufferIndex == 0xFF)  sendBufferInit();  // reset send queue on first call
-	
-	// start searching from previously used index number
-	if (index >= SEND_BUFFER_SIZE) index = 0;
-	for(byte i = index; i < SEND_BUFFER_SIZE; i++) {
-		if (free) {
-			if (sendBuffer[i].reSendCounter == 0)  return i;  // return free index number
-		}
-		else {
-			if (sendBuffer[i].reSendCounter > 0 && sendBuffer[i].reSendCounter < 6)  return i;  // return used index number
-		}
-	}
-	return SEND_BUFFER_SIZE;
-}
-// try to send message stored in the buffer, only if bus is idle for now - remove messages that stay in the queue
-// for too long (simple counter, not individual timestamp - so save space)
-void HBWDevice::sendBufferTransmitMessage()
-{
-	sendBufferIndex = getNextSendBufferSlot(RETURN_USED, sendBufferIndex);	// get next used slot, try previously used slot first
-	if (sendBufferIndex >= SEND_BUFFER_SIZE)  return;  // nothing to send
-	
-	if (!busIsIdle())	// we have a message in the buffer, but bus is still not idle
-	{
-		if (millis() - sendBufferLastTryTime > DIFS_CONSTANT + DIFS_RANDOM + 20) // TODO: what values to use? 330 ms ok? (210 + 100 + 20)
-		{
-			sendBuffer[sendBufferIndex].reSendCounter--;	// reduce the reSendCounter to expire this message
-			sendBufferLastTryTime = millis();
-		}
-		return;
-	}
-	
-	#ifdef HBW_DEBUG
-	hbwdebug(F("sendQ out: ")); hbwdebug(sendBufferIndex); hbwdebug(F(" retry: ")); hbwdebug(sendBuffer[sendBufferIndex].reSendCounter); hbwdebug(F(" len: ")); hbwdebug(sendBuffer[sendBufferIndex].frameDataLength);
-	hbwdebug("\n");
-	#endif
-	
-	// get frame from buffer
-	memcpy(&(txFrame), &(sendBuffer[sendBufferIndex]), sendBuffer[sendBufferIndex].frameDataLength +6);  // add 6 bytes for address, controlByte and dataLength to copy the needed part of the struct
-
-	uint8_t result = sendFrame(true, 1);  // only if bus is free  // try to send, one try
-	// uint8_t result = sendFrame(sendBuffer[index].onlyIfIdle);  // try to send
-
-	if (result == SUCCESS)
-		sendBuffer[sendBufferIndex].reSendCounter = 0;	// successful send, free up this slot
-	else
-		sendBuffer[sendBufferIndex].reSendCounter--;
-}
-*/
 
 // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
@@ -943,7 +848,6 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    frameComplete = false;
    lastReceivedTime = 0;
    minIdleTime = DIFS_CONSTANT;  // changes in setOwnAddress
-//   sendBufferIndex = 0xFF;
    ledPin = NOT_A_PIN;     // inactive by default
    txLedPin = NOT_A_PIN;     // inactive by default
    rxLedPin = NOT_A_PIN;     // inactive by default
@@ -1053,8 +957,6 @@ void HBWDevice::loop()
    handleConfigButton();
 // Rx & Tx LEDs
    handleStatusLEDs();
-// check and try to send one message from the queue
-   //sendBufferTransmitMessage();
 };
 
 

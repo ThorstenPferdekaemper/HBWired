@@ -237,7 +237,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
       (config->send_delta_temp && abs( currentTemp - lastSentTemp ) >= (unsigned int)(config->send_delta_temp) * 10)) {
     // send temperature
     get(level);
-    if (device->sendInfoMessage(channel, 2, level) == HBWDevice::SUCCESS) {    // level has always 2 byte here
+    if (device->sendInfoMessage(channel, 2, level) != HBWDevice::BUS_BUSY) {    // level has always 2 byte here
      #ifdef Support_HBWLink_InfoEvent
       device->sendInfoEvent(channel, 2, level, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
      #endif
@@ -246,10 +246,6 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
       errorWasSend = true;
     }
     lastSentTime = now;   // if send failed, next try will be on send_max_interval or send_min_interval in case the value changed (send_delta_temp)
-
-   #ifdef Support_HBWLink_InfoEvent
-   // device->sendInfoEvent(channel, 2, level);
-   #endif
 
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);

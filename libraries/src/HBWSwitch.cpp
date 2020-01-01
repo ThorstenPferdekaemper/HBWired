@@ -76,7 +76,7 @@ void HBWSwitch::loop(HBWDevice* device, uint8_t channel) {
 	uint8_t level;
     get(&level);	
     uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
-    if(errcode == 1) {  // bus busy
+    if(errcode == HBWDevice::BUS_BUSY) {  // bus busy
     // try again later, but insert a small delay
     	nextFeedbackDelay = 250;
     }else{

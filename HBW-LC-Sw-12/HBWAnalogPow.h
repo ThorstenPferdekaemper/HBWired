@@ -27,6 +27,8 @@ struct hbw_config_analogPow_in {
   uint8_t notify_disabled:1;   // +0:1   1=DISABLED (default), 0=ENABLED
   uint8_t        :6;      // 0x00:2-7
   uint8_t update_interval;
+  //TODO: Add compensation factor? (increase accurrancy)? - replace CENTRE_VALUE?
+  //TODO: Add phase selection (to consider 120°, 240° phase shift from optocoupler input)?
 };
 
 
