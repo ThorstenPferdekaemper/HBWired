@@ -4,9 +4,11 @@
  * Created on: 05.05.2019
  * loetmeister.de
  * 
- * DeltaT channel takes input values from two DeltaTx channels (T1, T2),
- * which are peered with internal or external temperature sensor.
- * DeltaT calculates T2 - T1 and set output state on/off.
+ * A DeltaT channel takes input temperature from two fixed DeltaTx channels (T1, T2),
+ * which are peered with internal or external temperature sensors.
+ * DeltaT calculates T2 - T1 and set output state on/off. Hysteresis is subtracted if
+ * delta is below threshold or added if above. If DeltaTx channels are above maxT1 or 
+ * below minT2, the output is switched off and no delta comparison is performed.
  *
  */
  
