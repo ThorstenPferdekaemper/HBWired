@@ -37,8 +37,6 @@
 #define VENTON true
 #define VENTOFF false
 
-#define MANUAL 0
-#define AUTOMATIC 1
 
 // need to match frame definition in XML:
 #define SET_TOGGLE_AUTOMATIC  201
@@ -46,17 +44,16 @@
 #define SET_AUTOMATIC 205
 
 
-// config of one valve channel, address step 6
+// config of one valve channel, address step 4
 struct hbw_config_valve {
   uint8_t logging:1;      // +0.0   1=on 0=off
-  uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED
+  uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED; locked channels will retain level/error_pos. Set error_pos to 0 to disable a channel completely
   uint8_t n_inverted:1;   // +0.2   inverted logic (use NO valves, NC is default)
   uint8_t :5;     //fillup //0x..:3-8
-  uint16_t send_max_interval;   // Maximum-Sendeintervall // TODO: keep? or only use logging/notify?
   uint8_t error_pos;
-  uint8_t valveSwitchTime;   // (factor 10!) Time the valve needs to reach 100% (NC:open or NO:closed state)
-// TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
+  uint8_t valveSwitchTime;   // (factor 10! max 2540 seconds) Time the valve needs to reach 100% (NC:open or NO:closed state)
   uint8_t dummy :8;
+  // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
 };
 
 
@@ -79,30 +76,27 @@ class HBWValve : public HBWChannel {
     uint8_t pin;
 
     uint8_t valveLevel;
-    void setNewLevel(uint8_t NewLevel);
+    void setNewLevel(HBWDevice* device, uint8_t NewLevel);
     
     // output control
     inline void switchstate(byte State);
     uint32_t set_timer(bool firstState, byte status);
     uint32_t set_peakmiddle(uint32_t ontimer, uint32_t offtimer);
-    bool first_on_or_off(uint32_t ontimer, uint32_t offtimer);
-    int init_new_state();
+    inline bool first_on_or_off(uint32_t ontimer, uint32_t offtimer);
+    bool init_new_state();
     uint32_t set_ontimer(uint8_t VentPositionRequested);
     uint32_t set_offtimer(uint32_t ontimer);
     
     uint32_t outputChangeLastTime;    // last time output state was changed
-    uint32_t outputChangeNextDelay;    // time until next state change
-    uint32_t onTimer, offTimer;     // current calculated on and of duration
-    uint32_t lastSentTime;   // time of last send
+    uint32_t outputChangeNextDelay;    // time until next state change  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
+    uint32_t onTimer, offTimer;     // current calculated on and of duration  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
 
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
     
-    struct valve_config {
-      uint8_t initDone :1;
-      uint8_t firstState:1;
-      uint8_t nextState :1;
-    } valveConf;
+    bool initDone;
+    bool isFirstState;
+    bool nextState;
 
     union tag_state_flags {
       struct state_flags {
@@ -114,7 +108,9 @@ class HBWValve : public HBWChannel {
       uint8_t byte:8;
     } stateFlags;
     
-    
+    static const uint32_t OUTPUT_STARTUP_DELAY = 4300;  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
+    static const bool MANUAL = false;
+    static const bool AUTOMATIC = true;
 };
 
 #endif /* HBWVAVLE_H_ */

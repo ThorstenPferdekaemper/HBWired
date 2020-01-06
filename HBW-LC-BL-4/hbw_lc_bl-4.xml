@@ -263,14 +263,14 @@
 			</parameter>
 		</paramset>
 	</channel>
-	<channel index="5" physical_index_offset="-1" count="1" type="MODULE BUS VOLTAGE">	<!-- module voltage chan (special variant of analog input channel) -->
+	<channel index="5" physical_index_offset="-1" count="1" type="MODULE BUS VOLTAGE">	<!-- module voltage chan (variant of analog input channel) -->
 		<paramset type="MASTER" id="hmw_analog_ch_master" address_start="0x23" address_step="2">
 		    <parameter id="INPUT_ENABLED">
 				<logical type="boolean" default="true"/>
 				<physical size="0.1" type="integer" interface="eeprom">
 					<address index="+0.0"/>
 				</physical>
-				<conversion type="boolean_integer" invert="false"/>
+				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="NOTIFY">
 				<logical type="option">
@@ -281,11 +281,12 @@
 					<address index="+0.1"/>
 				</physical>
 			</parameter>
-			<parameter id="UPDATE_INTERVAL">	<!--TODO: implement-->
-				<logical type="integer" default="180" min="1" max="255" unit="s"/>
+			<parameter id="UPDATE_INTERVAL">
+				<logical type="integer" default="300" min="10" max="2540" unit="s"/>
 				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+1.0"/>
 				</physical>
+				<conversion type="integer_integer_scale" factor="10"/>
 			</parameter>
 		</paramset>
 		<paramset type="VALUES" id="hmw_busvoltage_input_values">
@@ -295,7 +296,7 @@
 					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
 					<event frame="ANALOG_EVENT"/>
 				</physical>
-				<conversion type="float_integer_scale" factor="34.91"/>
+				<conversion type="float_integer_scale" factor="36.66"/>
 			</parameter>
 		</paramset>
 	</channel>

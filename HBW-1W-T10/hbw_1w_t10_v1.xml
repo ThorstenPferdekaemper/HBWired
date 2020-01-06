@@ -105,7 +105,7 @@
 					<option id="DS18B20"/>
 					<option id="DS18S20"/>
 					<option id="DS1822"/>
-					<option id="REMOVE_DEVICE"/>
+					<option id="REMOVE_SENSOR"/>
 				</logical>
 				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+6.0"/>
@@ -118,17 +118,6 @@
 					<value_map to_device="true" from_device="false" parameter_value="4" device_value="0xFF"/>
 				</conversion>
 			</parameter>
-			<!-- not working like this... <parameter id="ONEWIRE_ADDRESS">
-				<logical type="address"/>
-				<physical type="array">
-					<physical type="integer" size="4.0" interface="eeprom">
-						<address index="+6"/>
-					</physical>
-					<physical type="integer" size="4.0" interface="eeprom">
-						<address index="+10"/>
-					</physical>
-				</physical>
-			</parameter>-->
 		</paramset>
 		<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0xE6" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">

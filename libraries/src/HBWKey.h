@@ -17,6 +17,7 @@
 #define IN_PUSHBUTTON   3    // sends a short KeyEvent on short press and (repeated) long KeyEvent on long press
 
 
+// config, address step 2
 struct hbw_config_key {
   uint8_t n_input_locked:1;   // 0x07:0    0=LOCKED, 1=UNLOCKED
   uint8_t n_inverted:1;       // 0x07:1    0=inverted, 1=not inverted

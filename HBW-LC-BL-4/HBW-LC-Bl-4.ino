@@ -30,16 +30,18 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0032
+#define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 4
 #define NUM_LINKS 32
 #define LINKADDRESSSTART 0x48   // address step 9
 #define NUMBER_OF_ANALOG_CHAN 1  // analog input channel (bus voltage)
 
-#define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+ * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
-//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
 
 #include <HBWSoftwareSerial.h>
 #include <FreeRam.h>
@@ -54,9 +56,7 @@
 #define RS485_TXD 2
 #define RS485_TXEN 3  // Transmit-Enable
 
-// HBWSoftwareSerial can only do 19200 baud
 HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-
 
 // Pins
 #define BUTTON 8  // Button fuer Factory-Reset etc.
@@ -117,10 +117,10 @@ HBBlDevice* device = NULL;
 void setup()
 {
   analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
-#ifndef NO_DEBUG_OUTPUT
-  Serial.begin(19200);
+#ifndef USE_HARDWARE_SERIAL
+  Serial.begin(115200);  // Serial->USB for debug
 #endif
-  rs485.begin();    // RS485 via SoftwareSerial
+  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 
   // create channels
   byte blindDir[4] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR};
@@ -137,7 +137,7 @@ void setup()
   device = new HBBlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUMBER_OF_CHAN,(HBWChannel**)channels,
-  #ifdef NO_DEBUG_OUTPUT
+  #ifdef USE_HARDWARE_SERIAL
                          NULL,
   #else
                          &Serial,
@@ -146,7 +146,7 @@ void setup()
    
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
 
-#ifndef NO_DEBUG_OUTPUT
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
   hbwdebug(F("\n"));

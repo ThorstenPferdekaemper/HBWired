@@ -1,8 +1,7 @@
 Homematic Wired Homebrew PWM/0-10V Master Dimmer + 10 digital Eingänge
 ======================================================================
 
-*** In Entwicklung! *** Work in progress! ***
-// TODO: Implement dim peering params: ON_LEVEL_PRIO, RAMP_START_STEP
+// TODO: Implement dim peering params: RAMP_START_STEP
 
 
 Das Modul HBW-SC-10-Dim-6 bietet 6 kombinierte analoge bzw. PMW Ausgänge und 10 digitale Eingänge.
@@ -16,7 +15,7 @@ Statt "0-10V" können die analogen Ausgangskanäle, individuell per Jumper auf "0-
 
 Die 10 Eingänge sind galvanisch getrennt und können mit einer Gleichspannung von ca. 12-24V betrieben werden. Die Eingänge stehen als Sensor oder Schalterkanal gleichzeitig zur Verfügung, d.h. pro Eingang sind zwei Kanäle vorhanden.
 Die Schalterkanäle können normal als Taster/Schalter inkl. Peering genutzt werden. Mögliche Typen: PUSHBUTTON, SWITCH, MOTIONSENSOR, DOORSENSOR. (Weitere Details in HBWKey.h)
-Die Sensor Kanäle müssen abgefragt werden (kein Peering), und liefern dann "sensor_open" oder "sensor_closed" zurück. (Möglichkeit der Invertierung über Kanalkonfiguration)
+Die Sensor Kanäle können abgefragt werden (kein Peering), und liefern dann "sensor_open" oder "sensor_closed" zurück. Eine 'event/notify' broadcast Nachricht kann bei einer Statusänderung versendet werden. Dies ist standardmäßig in der Kanalkonfiguration deaktiviert. Eine Invertierung lässt sich ebenfalls aktivieren.
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_sc-10_dim-6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x96 aus).
 
@@ -32,12 +31,12 @@ Standard-Pinbelegung:
 2  - RS485 Enable
 13 - Status LED
 A6 - Bedientaster (Reset)
-9  - PWM1 out (controlled by timer1)
-5  - PWM2 out (controlled by timer0)
-10 - PWM3 out (controlled by timer1)
-6  - PWM4 out (controlled by timer0)
-11 - PWM5 out (controlled by timer2)
-3  - PWM6 out (controlled by timer2)
+9  - PWM1 out
+5  - PWM2 out
+10 - PWM3 out
+6  - PWM4 out
+11 - PWM5 out
+3  - PWM6 out
 12 - IO1
 8  - IO2
 7  - IO3

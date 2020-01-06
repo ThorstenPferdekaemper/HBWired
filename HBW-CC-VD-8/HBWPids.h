@@ -20,9 +20,6 @@
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
 
-#define MANUAL 0
-#define AUTOMATIC 1
-
 // config of one PID channel, address step 9
 struct hbw_config_pid {
   uint8_t startMode:1;  // 0x..:1 1=automatic 0=manual
@@ -31,6 +28,7 @@ struct hbw_config_pid {
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
   uint16_t windowSize;  // TODO: reduce to 1byte? (10 seconds steps? = max 2540 seconds)
+  //TODO: add default setPoint 0...25.5°C
 };
 
 
@@ -48,30 +46,26 @@ class HBWPids : public HBWChannel {
     hbw_config_pid* config;
     HBWValve* valve {NULL};  // linked valve channel
 
-    uint8_t desiredValveLevel;
-
-    struct pid_config {
-      uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
-      uint8_t oldInAuto :1; // auto or manual stored here, when in error pos.
-      uint8_t autoTune  :1; // Todo 0 = off ; 1 = autotune running
-      uint8_t error :1;
-      uint8_t initDone :1;
-      int16_t setPoint; // temperatures in m°C
-      uint32_t windowStartTime;
-      
-      // pidlib
-      uint32_t outMax;
-      double ITerm;
-      int16_t Input, lastInput;
-      uint16_t sampleTime;
-      uint32_t lastPidTime; // pid computes every sampleTime
-      double Output;
-      double kp, ki, kd;
-    } pidConf;
+    bool initDone;
+    bool autoTuneRunning; // Todo 0 = off ; 1 = autotune running
+    bool inErrorState;
+    
+    bool inAuto; // 1 = automatic ; 0 = manual
+    bool oldInAuto; // auto or manual stored here, when in error pos.
+    int16_t setPoint; // temperatures in m°C
+    uint32_t windowStartTime;
+    
+    // pidlib
+    uint32_t outMax;
+    double ITerm;
+    int16_t Input, lastInput;
+    uint16_t sampleTime;
+    uint32_t lastPidTime; // pid computes every sampleTime
+    double Output;
+    double kp, ki, kd;
 
     void autoTune();
     int32_t mymap(double x, double in_max, double out_max);
-    int8_t computePid(uint8_t channel);
     //pid lib
     void compute();
     void setTunings(double Kp, double Ki, double Kd);
@@ -79,6 +73,10 @@ class HBWPids : public HBWChannel {
     void setOutputLimits(uint32_t Max);
     void setMode(bool Mode);
     void initialize();
+
+    static const bool MANUAL = false;
+    static const bool AUTOMATIC = true;
+    static const bool SET_BY_PID = true;
 };
 
 

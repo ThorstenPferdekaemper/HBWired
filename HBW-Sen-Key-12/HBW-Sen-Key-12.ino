@@ -34,7 +34,6 @@
 #define RS485_TXD 2
 #define RS485_TXEN 3  // Transmit-Enable
 
-// HBWSoftwareSerial can only do 19200 baud
 HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 
 
@@ -49,7 +48,7 @@ HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 
 
 // Config as C++ structure (without direct links)
-struct hbw_config_key {
+struct hbw_config_sen_key {
   uint8_t input_locked:1;      // 0x07:0    0=LOCKED, 1=UNLOCKED
   uint8_t inverted:1;          // 0x07:1
   uint8_t pullup:1;            // 0x07:2
@@ -62,7 +61,7 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_key keysCfg[NUM_CHANNELS]; // 0x07-0x1E
+  hbw_config_sen_key keysCfg[NUM_CHANNELS]; // 0x07-0x1E
 } hbwconfig;
 
 
@@ -71,15 +70,15 @@ struct hbw_config {
 // Class HBSenKey
 class HBSenKey : public HBWChannel {
   public:
-    HBSenKey(uint8_t _pin, hbw_config_key* _config);
+    HBSenKey(uint8_t _pin, hbw_config_sen_key* _config);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void afterReadConfig();
   private:
+    hbw_config_sen_key* config;
     uint8_t pin;   // Pin
     uint32_t lastSentLong;      // Zeit, zu der das letzte Mal longPress gesendet wurde
     uint8_t keyPressNum;
-    int8_t keyState;   
-    hbw_config_key* config;    
+    int8_t keyState;
     ClickButton button;
 };
 
@@ -89,8 +88,9 @@ HBSenKey* keys[NUM_CHANNELS];
 HBWDevice* device = NULL;
 
 
-HBSenKey::HBSenKey(uint8_t _pin, hbw_config_key* _config) 
-              : config(_config), pin(_pin), 
+HBSenKey::HBSenKey(uint8_t _pin, hbw_config_sen_key* _config) 
+              : config(_config),
+                pin(_pin),
                 button(_pin,LOW,HIGH) { 
 };
 
@@ -138,16 +138,14 @@ void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
             device->sendKeyEvent(channel, 1, &data);
             keyState = 0;
         }
-
   }
-
 }
 
 
 void setup()
 {
-  Serial.begin(19200);
-  rs485.begin();    // RS485 via SoftwareSerial
+  Serial.begin(115200);  // Serial->USB for debug
+  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 
   // create channels
   PIN_ARRAY
@@ -174,4 +172,3 @@ void loop()
 {
   device->loop();
 };
-

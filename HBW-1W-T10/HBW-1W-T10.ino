@@ -23,6 +23,7 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0003
+#define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 10   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
@@ -30,9 +31,9 @@
 #define LINKADDRESSSTART_TEMP 0xE6   // step 6
 
 
-#define HMW_DEVICETYPE 0x81 //device ID (make sure to import hbw_1w_t10_v1.xml into FHEM)
-
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+ * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
 // HB Wired protocol and module
@@ -45,7 +46,6 @@
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
   #define ONEWIRE_PIN	10 // Onewire Bus
   
@@ -54,13 +54,11 @@
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
   #define BUTTON 8  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
   #define ONEWIRE_PIN	10 // Onewire Bus
 
   #include "FreeRam.h"
-  #include "HBWSoftwareSerial.h"
-  // HBWSoftwareSerial can only do 19200 baud
+  #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif  //USE_HARDWARE_SERIAL
 
@@ -80,8 +78,7 @@ struct hbw_config {
 
 HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the device
 
-// global pointer for OneWire channels
-hbw_config_onewire_temp* tempConfig[NUMBER_OF_TEMP_CHAN]; // pointer for config
+hbw_config_onewire_temp* tempConfig[NUMBER_OF_TEMP_CHAN]; // global pointer for OneWire channels config
 
 
 class HBTempOWDevice : public HBWDevice {
@@ -121,7 +118,7 @@ void setup()
   // variables for all OneWire channels
   OneWire* g_ow = NULL;
   uint32_t g_owLastReadTime = 0;
-  uint8_t g_owCurrentChannel = 255; // always init with 255! used as trigger/reset in channel loop()
+  uint8_t g_owCurrentChannel = OW_CHAN_INIT; // always init with OW_CHAN_INIT! used as trigger/reset in channel loop()
   g_ow = new OneWire(ONEWIRE_PIN);
 
   // create channels
@@ -149,8 +146,8 @@ void setup()
   //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
   
 #else
-  Serial.begin(19200);
-  rs485.begin();    // RS485 via SoftwareSerial
+  Serial.begin(115200);  // Serial->USB for debug
+  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
   device = new HBTempOWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,

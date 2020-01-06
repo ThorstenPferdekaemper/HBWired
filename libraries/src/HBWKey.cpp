@@ -141,7 +141,6 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
             keyPressNum++;
             oldButtonState = buttonState;
-			// TODO: if bus is not idle, retry next time (sendKeyEvent must retun correct state before this is possible to implement!!)
             device->sendKeyEvent(channel, keyPressNum, !buttonState);
           }
         }

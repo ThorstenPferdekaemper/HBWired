@@ -9,7 +9,6 @@
 
 #include "HBWSenEP.h"
 
-
 HBWSenEP::HBWSenEP(uint8_t _pin, hbw_config_sen_ep* _config, boolean _activeHigh) {
   pin = _pin;
   config = _config;
@@ -53,7 +52,6 @@ uint8_t HBWSenEP::get(uint8_t* data) {
 };
 
 
-
 void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
 
   if (!config->enabled) {  // skip disabled channels, reset counter
@@ -86,7 +84,7 @@ void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
     static uint8_t level[2];
     get(level);
     // if bus is busy, then we try again in the next round
-    if (device->sendInfoMessage(channel, 2, level) != 1) {    // level has always 2 byte here
+    if (device->sendInfoMessage(channel, 2, level) != HBWDevice::BUS_BUSY) {    // level has always 2 byte here
       lastSentCount = currentCount;
       lastSentTime = now;
     

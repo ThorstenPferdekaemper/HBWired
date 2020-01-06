@@ -26,13 +26,12 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x001E
+#define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 8
 #define NUM_LINKS 64
 #define LINKADDRESSSTART 0x48   // address step 9
 #define NUMBER_OF_ANALOG_CHAN 1  // analog input channel (bus voltage)
-
-#define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 
 // HB Wired protocol and module

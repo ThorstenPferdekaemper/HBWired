@@ -16,7 +16,7 @@ to set fuses...
   To preserve EEPROM memory through the Chip Erase cycle; [EESAVE] - use hfuse = 0xD2:
   avrdude.exe -c AVRISPmkII -p m328p -U lfuse:w:0xff:m -U hfuse:w:0xd2:m -U efuse:w:0xfd:m
 
-  -->> this used on https://loetmeister.de/Elektronik/homematic/index.htm#modules <<--
+  -->> this is used on https://loetmeister.de/Elektronik/homematic/index.htm#modules <<--
   To disable bootloader & preserve EEPROM memory:
   avrdude -c AVRISPmkII -p m328p -U lfuse:w:0xff:m -U hfuse:w:0xd3:m -U efuse:w:0xfd:m
   

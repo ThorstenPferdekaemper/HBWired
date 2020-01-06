@@ -14,14 +14,11 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
 {
   config = _config;
   pin = _pin;
-
-  outputChangeNextDelay = 8000;
-  outputChangeLastTime = 600;
-  onTimer = 200;
-  offTimer = 200;
-  lastSentTime = 0;
+  
+  outputChangeNextDelay = OUTPUT_STARTUP_DELAY;
+  outputChangeLastTime = 0;
   stateFlags.byte = 0;
-  valveConf.initDone = false;
+  initDone = false;
   
   digitalWrite(pin, LOW);
   pinMode(pin, OUTPUT);
@@ -31,16 +28,15 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
 // channel specific settings or defaults
 void HBWValve::afterReadConfig()
 {
-  if (config->send_max_interval == 0xFFFF)  config->send_max_interval = 0;
   if (config->error_pos == 0xFF)  config->error_pos = 30;   // 15%
   if (config->valveSwitchTime == 0xFF || config->valveSwitchTime == 0)  config->valveSwitchTime = 18; // default 180s (factor 10!)
 
-  if (!valveConf.initDone) {
+  if (!initDone) {
     valveLevel = config->error_pos;
-    valveConf.firstState = true;
-    valveConf.initDone = true;
+    isFirstState = true;
+    initDone = true;
   }
-  valveConf.nextState = init_new_state();
+  nextState = init_new_state();
 }
 
 
@@ -64,9 +60,9 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
   {
   /* TODO: Check if we allow setting level always (even when inAuto), but use the AUTO flag to fallback to error_pos if no set() was called
    * for some time when inAuto (? switch_time *x?). PIDs should still sync the inAuto flag, to not overwrite manual set levels */
-    if ((*(data) >= 0 && *(data) <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // right limits only if manual or setByPID
+    if ((*data >= 0 && *data <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // right limits only if manual or setByPID
     {
-      setNewLevel(*(data));
+      setNewLevel(device, *data);
       
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("Valve set, level: ")); hbwdebug(valveLevel);
@@ -75,7 +71,7 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
     }
     else
     {
-      switch (*(data))
+      switch (*data)
       {
         case SET_TOGGLE_AUTOMATIC:    // toogle PID mode
           stateFlags.element.inAuto = !stateFlags.element.inAuto;
@@ -87,28 +83,30 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
           stateFlags.element.inAuto = MANUAL;
           break;
       }
-      setNewLevel(stateFlags.element.inAuto ? config->error_pos : valveLevel);
+      setNewLevel(device, stateFlags.element.inAuto ? config->error_pos : valveLevel);
       
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
   #endif
     }
   }
-  // send info/notify message in loop()
-  if(!nextFeedbackDelay && config->logging) {
-    lastFeedbackTime = millis();
-    nextFeedbackDelay = device->getLoggingTime() * 100;
-  }
 }
 
-void HBWValve::setNewLevel(uint8_t NewLevel)
+void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
 {
   if (valveLevel != NewLevel)  // set new state only if different
   {
     valveLevel < NewLevel ? stateFlags.element.upDown = 1 : stateFlags.element.upDown = 0;
     valveLevel = NewLevel;
-    valveConf.firstState = true;
-    valveConf.nextState = init_new_state();
+    isFirstState = true;
+    nextState = init_new_state();
+	//TODO: Add timestamp here, to keep track of updated valve position for anti-stick?
+
+    // Logging
+    if(!nextFeedbackDelay && config->logging) {
+      lastFeedbackTime = millis();
+      nextFeedbackDelay = device->getLoggingTime() * 100;
+    }
   }
 }
 
@@ -142,42 +140,30 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
 	uint32_t now = millis();
   static uint8_t level[2];
 
-  if (now - outputChangeLastTime >= outputChangeNextDelay)
-  {
-    //hmwdebug("nextstate: "); hmwdebug(nextState[i]); hmwdebug(" channel: "); hmwdebug(i); hmwdebug("\n");
-    switchstate(valveConf.nextState);
-    outputChangeLastTime = now;
+  // startup handling. Only relevant if all channel remain at same error pos.
+  if (outputChangeLastTime == 0 && outputChangeNextDelay == OUTPUT_STARTUP_DELAY) {
+    outputChangeNextDelay = OUTPUT_STARTUP_DELAY * (channel + 1);
   }
 
-  // send InfoMessage if state changed, but not faster than send_max_interval
-  // usually this is not used for an actor, as notify will be send on state changes - however if ...????
-  if (config->send_max_interval && now - lastSentTime >= (uint32_t) (config->send_max_interval) * 1000)
+  if (now - outputChangeLastTime >= outputChangeNextDelay)
   {
- #ifdef DEBUG_OUTPUT
- hbwdebug(F("Valve ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(valveLevel/2); hbwdebug(F("%\n"));
- #endif
-    // set variables, to send the InfoMessage by existing feedback/logging code next loop()
-    nextFeedbackDelay = 1;
-    lastFeedbackTime = now;
-    lastSentTime = now;
+    switchstate(nextState);
+    outputChangeLastTime = now;
   }
   
   // feedback trigger set?
-  if (!nextFeedbackDelay)
-    return;
-  if (now - lastFeedbackTime < nextFeedbackDelay)
-    return;
+  if (!nextFeedbackDelay)  return;
+  if (now - lastFeedbackTime < nextFeedbackDelay)  return;
   lastFeedbackTime = now;  // at least last time of trying
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
   // we know that the level has 2 byte here (value & state)
   get(level);
-  if (device->sendInfoMessage(channel, 2, level) == 1) {  // bus busy
+  if (device->sendInfoMessage(channel, 2, level) == HBWDevice::BUS_BUSY) {  // bus busy
   // try again later, but insert a small delay
     nextFeedbackDelay = 250;
   }
   else {
     nextFeedbackDelay = 0;
-    lastSentTime = now; // reset lastSentTime (for send_max_interval), as we just send an InfoMessage
   }
 }
 
@@ -190,17 +176,17 @@ void HBWValve::switchstate(byte State)
     case VENTON:
 //        digitalWrite(pin, ON);
       stateFlags.element.status = (false ^ config->n_inverted);
-      outputChangeNextDelay = set_timer(valveConf.firstState, valveConf.nextState);
-      valveConf.nextState = VENTOFF;
-      valveConf.firstState = false;
+      outputChangeNextDelay = set_timer(isFirstState, nextState);
+      nextState = VENTOFF;
+      isFirstState = false;
     break;
 
     case VENTOFF:
 //        digitalWrite(pin, OFF);
       stateFlags.element.status = (true ^ config->n_inverted);
-      outputChangeNextDelay = set_timer(valveConf.firstState, valveConf.nextState);
-      valveConf.nextState = VENTON;
-      valveConf.firstState = false;
+      outputChangeNextDelay = set_timer(isFirstState, nextState);
+      nextState = VENTON;
+      isFirstState = false;
     break;
   }
   digitalWrite(pin, stateFlags.element.status);
@@ -228,8 +214,6 @@ uint32_t HBWValve::set_timer(bool firstState, byte Status)
 /* bisect the timer the first time */
 uint32_t HBWValve::set_peakmiddle (uint32_t ontimer, uint32_t offtimer)
 {
-//  return first_on_or_off(ontimer, offtimer) ? (ontimer / 2) : (offtimer / 2);
-  
   if (first_on_or_off(ontimer, offtimer))
     return ontimer / 2;
   else
@@ -243,7 +227,7 @@ bool HBWValve::first_on_or_off(uint32_t ontimer, uint32_t offtimer)
 }
 
 
-int HBWValve::init_new_state()
+bool HBWValve::init_new_state()
 {
   onTimer = set_ontimer(valveLevel);
   offTimer = set_offtimer(onTimer);

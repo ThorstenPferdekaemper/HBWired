@@ -18,7 +18,7 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define DEBOUNCE_TIME 885  // ms
+#define DEBOUNCE_TIME 88  // ms/10
 
 
 struct hbw_config_senSC {
@@ -45,7 +45,7 @@ class HBWSenSC : public HBWChannel {
     boolean currentState;
     boolean activeHigh;    // activeHigh=true -> input active high, else active low
 
-    uint16_t nextFeedbackDelay;
+    uint8_t nextFeedbackDelay;  // use 10th of ms here, to save memory
     uint32_t lastFeedbackTime;
     
     inline boolean readScInput() {

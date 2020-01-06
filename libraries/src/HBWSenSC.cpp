@@ -74,7 +74,7 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
   
         if (!config->notify_disabled) {  // notify/i-message enabled
           lastFeedbackTime = now;   // rapid state changes would reset the counter and not flood the bus with messages
-          nextFeedbackDelay = DEBOUNCE_TIME +300;
+          nextFeedbackDelay = DEBOUNCE_TIME +30;
         }
         
     #ifdef DEBUG_OUTPUT
@@ -91,7 +91,7 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
     }
     // feedback trigger set?
     if(!nextFeedbackDelay) return;
-    if(millis() - lastFeedbackTime < nextFeedbackDelay) return;
+    if(millis() - lastFeedbackTime < nextFeedbackDelay *10) return;
     lastFeedbackTime = millis();  // at least last time of trying
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
     // we know that the level has only 1 byte here

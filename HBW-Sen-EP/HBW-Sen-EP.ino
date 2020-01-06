@@ -17,22 +17,24 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0001
+#define HMW_DEVICETYPE 0x84    //device ID (make sure to import hbw-sen-ep.xml into FHEM)
 
 #define NUMBER_OF_SEN_CHAN 8   // input channels
 
-#define HMW_DEVICETYPE 0x84 //device ID (make sure to import hbw_ .xml into FHEM)
 
-
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) - this disables debug output
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+ * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
 // HB Wired protocol and modules
 #include <HBWired.h>
-#include "HBWSenEP.h"
+#include <HBWSenEP.h>
 
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
+//#include "HBW_interrupt.h"  // TODO: Add interrupt support (only possible when not using SoftwareSerial)
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
@@ -63,8 +65,7 @@
   #define Sen8 7
   
   #include "FreeRam.h"
-  #include "HBWSoftwareSerial.h"
-  // HBWSoftwareSerial can only do 19200 baud
+  #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif  //USE_HARDWARE_SERIAL
 
@@ -84,6 +85,7 @@ struct hbw_config {
 
 HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the device
 HBWDevice* device = NULL;
+
 
 
 void setup()
@@ -108,8 +110,8 @@ void setup()
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
 #else
-  Serial.begin(19200);
-  rs485.begin();    // RS485 via SoftwareSerial
+  Serial.begin(115200);  // Serial->USB for debug
+  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
   device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,

@@ -11,9 +11,13 @@
 #include "Arduino.h"
 #include "hardware.h"
 
+#define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
+
 /* enable the below to allow peering with HBWLinkInfoEventActuator/HBWLinkInfoEventSensor
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
 //#define Support_HBWLink_InfoEvent
+
+
 
 class HBWDevice;
 
@@ -67,6 +71,7 @@ class HBWLinkReceiver {
 // - Info-Message 0x69 (Broadcast/Central Address. Peers unclear )
 
 #define MAX_RX_FRAME_LENGTH 64
+static const boolean NEED_IDLE_BUS = true;  // use for sendFrame
 
 
 // The HBWired-Device
@@ -101,15 +106,15 @@ class HBWDevice {
 	virtual uint8_t sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address = 0);
   #ifdef Support_HBWLink_InfoEvent
 	// link/peer via i-message
-	virtual uint8_t sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data);
-	virtual uint8_t sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel);
+	virtual uint8_t sendInfoEvent(uint8_t srcChan, uint8_t length, uint8_t const * const data, boolean busState = NEED_IDLE_BUS);
+	virtual uint8_t sendInfoEvent(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = 2);
 	virtual void receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan, uint8_t dstChan, uint8_t length, uint8_t const * const data);
   #endif
 	// Allgemeiner "Key Event"
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress);
 	// Key Event Routine mit Target fuer LinkSender 
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress,
-								 uint32_t target_address, uint8_t target_channel);
+				uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = 3);
     // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
     virtual uint8_t sendKeyEvent(uint8_t srcChan, uint8_t length, void* data);
  								 
@@ -121,11 +126,19 @@ class HBWDevice {
 	void readEEPROM(void* dst, uint16_t address, uint16_t length, 
                            boolean lowByteFirst = false);
 	uint32_t getOwnAddress();
+	boolean busIsIdle();
+	
+	enum sendFrame_Status
+	{
+		SUCCESS = 0,	//   0 -> ok
+		BUS_BUSY,	//   1 -> bus not idle (only if onlyIfIdle)
+		NO_ACK		//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
+	};
 
   private:							 
 	uint8_t numChannels;    // number of channels
 	HBWChannel** channels;  // channels
-    HBWLinkSender* linkSender;
+	HBWLinkSender* linkSender;
 	HBWLinkReceiver* linkReceiver;
 	
 	// pins of config button and config LED
@@ -140,7 +153,7 @@ class HBWDevice {
 	//   0 -> ok
 	//   1 -> bus not idle (only if onlyIfIdle)
 	//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-	uint8_t sendFrame(boolean onlyIfIdle = false);
+	uint8_t sendFrame(boolean onlyIfIdle = false, uint8_t retries = 3);
 	void sendAck();  // ACK fuer gerade verarbeitete Message senden
 
 	// eigene Adresse setzen und damit auch random seed
@@ -151,16 +164,6 @@ class HBWDevice {
     uint32_t getCentralAddress();
     void handleBroadcastAnnounce();
 	
-    // Senderadresse beim Empfangen
-	uint32_t senderAddress;
-	// Senden
-	uint32_t txTargetAddress;        // Adresse des Moduls, zu dem gesendet wird
-	
-	uint8_t txFrameControlByte;
-    uint8_t txFrameDataLength;              // Laenge der Daten + Checksum
-	uint8_t txFrameData[MAX_RX_FRAME_LENGTH];
-
-
 	// the broadcast methods return...
 	// 0 -> everything ok
 	// 1 -> nothing sent because bus busy
@@ -188,11 +191,14 @@ class HBWDevice {
 	unsigned long ownAddress;
 // Empfangene Daten
 	// Empfangen
-	uint8_t frameComplete;
+	boolean frameComplete;
     uint32_t targetAddress;
 	uint8_t frameDataLength;                 // Laenge der Daten
 	uint8_t frameData[MAX_RX_FRAME_LENGTH];
 	uint8_t frameControlByte;
+    // Senderadresse beim Empfangen
+	uint32_t senderAddress;
+
 // carrier sense
 //  last time we have received anything
     unsigned long lastReceivedTime;
@@ -213,11 +219,12 @@ class HBWDevice {
 	void processEmessage(uint8_t const * const frameData);
 	
     void factoryReset();
-	void handleConfigButton();
-	uint8_t configButtonStatus;
-	void handleStatusLEDs();
+	void handleConfigButton();	// handle config button and config LED
+	static uint8_t configButtonStatus;
+	void handleStatusLEDs();	// handle Tx and Rx LEDs
 	boolean txLEDStatus;
 	boolean rxLEDStatus;
+
 	
 	struct s_PendingActions
 	{
@@ -231,6 +238,19 @@ class HBWDevice {
 	static s_PendingActions pendingActions;
 	
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
+	// Arduino Reset via Software function declaration, point to zero register
+	void (* resetSoftware)(void) = 0;
+	
+	// Senden
+	struct s_txFrame
+	{
+		uint32_t targetAddress;
+		uint8_t controlByte;
+		uint8_t dataLength;              // Laenge der Daten
+		uint8_t data[MAX_RX_FRAME_LENGTH];
+	};
+	s_txFrame txFrame;
+
 };
 
 
@@ -245,9 +265,17 @@ extern Stream* hbwdebugstream;
 void hbwdebughex(uint8_t b);
 
 template <typename T>
+#ifdef HBW_DEBUG
 void hbwdebug(T msg) { if(hbwdebugstream) hbwdebugstream->print(msg); };
+#else
+void hbwdebug(T msg) { };
+#endif
 
 template <typename T>
+#ifdef HBW_DEBUG
 void hbwdebug(T msg, int base) { if(hbwdebugstream) hbwdebugstream->print(msg,base); };
+#else
+void hbwdebug(T msg, int base) { };
+#endif
 
 #endif /* HBWired_h */

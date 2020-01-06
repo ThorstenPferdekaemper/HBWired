@@ -16,15 +16,14 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define SAMPLE_INTERVAL 2  // seconds
-#define UPDATE_INTERVAL 133  // seconds
+#define SAMPLE_INTERVAL 2  // seconds * 3 samples
 
 
 struct hbw_config_analog_in {
   uint8_t input_disabled:1;     // 0x07:0   1=DISABLED (default), 0=ENABLED
   uint8_t notify_disabled:1;   // 0x07:1   1=DISABLED (default), 0=ENABLED
   uint8_t        :6;      // 0x07:2-7
-  uint8_t update_interval;
+  uint8_t update_interval;  // factor 10, range 10 to 2540 seconds //TODO: 10 seconds stepping is ok?
 };
 
 
@@ -34,7 +33,7 @@ class HBWAnalogIn : public HBWChannel {
     HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config);
     virtual uint8_t get(uint8_t* data);
     virtual void loop(HBWDevice*, uint8_t channel);
-//    virtual void afterReadConfig();
+    virtual void afterReadConfig();
     
   private:
     uint8_t pin;   // Pin

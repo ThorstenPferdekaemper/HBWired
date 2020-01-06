@@ -13,7 +13,7 @@ Config der Kanäle kann über das FHEM-Webfrontend vorgenommen werden:
 # Minimum-Sendeintervall
 # Maximum-Sendeintervall
 # Abtastung (10...150ms in 10 ms Schritten)
-# Zählerdifferenz
+# Zählerdifferenz, ab der gesendet wird
 
 
 Debug-Pinbelegung:

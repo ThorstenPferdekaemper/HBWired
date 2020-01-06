@@ -43,7 +43,7 @@ void HBWLinkInfoEventSensor::sendInfoEvent(HBWDevice* device, uint8_t srcChan,
 			// external peering
 			// TODO: If bus busy, then try to repeat. ...aber zuerst feststellen, wie das die Original-Module machen (bzw. hier einfach so lassen)
 			/* byte result = */ 
-			device->sendInfoEvent(srcChan, length, data, addrEEPROM, channelEEPROM);
+			device->sendInfoEvent(srcChan, length, data, addrEEPROM, channelEEPROM, !NEED_IDLE_BUS, 1);  // free/idle bus was checked before calling sendInfoEvent. Send peer message only once
 		};
 	}; 
 }
