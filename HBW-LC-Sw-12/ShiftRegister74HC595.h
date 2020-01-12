@@ -13,21 +13,21 @@
 class ShiftRegister74HC595 
 {
 public:
-    ShiftRegister74HC595(int numberOfShiftRegisters, int serialDataPin, int clockPin, int latchPin);
+    ShiftRegister74HC595(const uint8_t numberOfShiftRegisters, const uint8_t serialDataPin, const uint8_t clockPin, const uint8_t latchPin);
     void setAll(uint8_t * digitalValues);
-    uint8_t * getAll(); 
-    void set(int pin, uint8_t value);
-    void setNoUpdate(int pin, uint8_t value);
+    uint8_t * getAll();
+    void set(const uint8_t pin, const uint8_t value);
+    void setNoUpdate(const uint8_t pin, uint8_t value);
     void updateRegisters();
     void setAllLow();
     void setAllHigh(); 
-    uint8_t get(int pin);
+    uint8_t get(const uint8_t pin);
 
 private:
-    int _numberOfShiftRegisters;
-    int _clockPin;
-    int _serialDataPin;
-    int _latchPin;
+    uint8_t _numberOfShiftRegisters;
+    uint8_t _clockPin;
+    uint8_t _serialDataPin;
+    uint8_t _latchPin;
     uint8_t * _digitalValues;
 };
 

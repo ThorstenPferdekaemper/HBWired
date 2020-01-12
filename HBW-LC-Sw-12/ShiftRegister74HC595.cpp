@@ -10,7 +10,7 @@
 
 
 // ShiftRegister74HC595 constructor
-ShiftRegister74HC595::ShiftRegister74HC595(int numberOfShiftRegisters, int serialDataPin, int clockPin, int latchPin)
+ShiftRegister74HC595::ShiftRegister74HC595(const uint8_t numberOfShiftRegisters, const uint8_t serialDataPin, const uint8_t clockPin, const uint8_t latchPin)
 {
     // set attributes
     _numberOfShiftRegisters = numberOfShiftRegisters;
@@ -41,7 +41,7 @@ ShiftRegister74HC595::ShiftRegister74HC595(int numberOfShiftRegisters, int seria
 // digitalVAlues is a uint8_t array where the length is equal to the number of shift registers.
 void ShiftRegister74HC595::setAll(uint8_t * digitalValues)
 {
-    int byte;
+    uint8_t byte;
     
     for (byte = _numberOfShiftRegisters - 1; byte >= 0; byte--) {
         shiftOut(_serialDataPin, _clockPin, MSBFIRST, digitalValues[byte]);	// shiftOut() use digitalWrite to set the IO pin. With 16MHz crystal it would result in approx. 145kHz serial clock speed
@@ -64,7 +64,7 @@ uint8_t * ShiftRegister74HC595::getAll()
 
 // Set a specific pin to either HIGH (1) or LOW (0).
 // The pin parameter is a positive, zero-based integer, indicating which pin to set.
-void ShiftRegister74HC595::set(int pin, uint8_t value)
+void ShiftRegister74HC595::set(const uint8_t pin, uint8_t value)
 {
     setNoUpdate(pin, value);
     updateRegisters();
@@ -79,7 +79,7 @@ void ShiftRegister74HC595::updateRegisters()
 
 // Equivalent to set(int pin, uint8_t value), except the physical shift register is not updated.
 // Should be used in combination with updateRegisters().
-void ShiftRegister74HC595::setNoUpdate(int pin, uint8_t value)
+void ShiftRegister74HC595::setNoUpdate(const uint8_t pin, uint8_t value)
 {
     if (value == 1) {
         _digitalValues[pin / 8] |= 1 << (pin % 8);
@@ -92,7 +92,7 @@ void ShiftRegister74HC595::setNoUpdate(int pin, uint8_t value)
 
 // Returns the state of the given pin.
 // Either HIGH (1) or LOW (0)
-uint8_t ShiftRegister74HC595::get(int pin)
+uint8_t ShiftRegister74HC595::get(const uint8_t pin)
 {
     return (_digitalValues[pin / 8] >> (pin % 8)) & 1;
 }
