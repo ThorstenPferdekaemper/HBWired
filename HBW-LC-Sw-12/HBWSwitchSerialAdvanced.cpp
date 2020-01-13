@@ -12,7 +12,7 @@
 #include "HBWSwitchSerialAdvanced.h"
 
 // Class HBWSwitchSerialAdvanced
-HBWSwitchSerialAdvanced::HBWSwitchSerialAdvanced(uint8_t _relayPos, uint8_t _ledPos, ShiftRegister74HC595* _shiftRegister, hbw_config_switch* _config) {
+HBWSwitchSerialAdvanced::HBWSwitchSerialAdvanced(uint8_t _relayPos, uint8_t _ledPos, SHIFT_REGISTER_CLASS* _shiftRegister, hbw_config_switch* _config) {
   relayPos = _relayPos;
   ledPos =_ledPos;
   config = _config;
