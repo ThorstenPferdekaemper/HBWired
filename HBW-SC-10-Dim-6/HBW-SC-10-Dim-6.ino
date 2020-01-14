@@ -27,6 +27,7 @@
 //
 
 // TODO: Implement dim peering params: RAMP_START_STEP. Validate behaviour of OnLevelPrio and on/off time 'absolute'.
+// TODO: reduce RAM usage! (with the current amount of channels, no additional features possible)
 
 
 #define HARDWARE_VERSION 0x01
@@ -62,7 +63,6 @@
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
   
   #define PWM1 9  // PWM out (controlled by timer1)
   #define PWM2_DAC 5  // PWM out (controlled by timer0)
@@ -86,7 +86,6 @@
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
   #define BUTTON 8  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
   #define PWM1 9
   #define PWM2_DAC 5
@@ -167,7 +166,7 @@ void setup()
   
   // create channels
 #if NUMBER_OF_DIM_CHAN == 6
-  byte PWMOut[6] = {PWM1, PWM2_DAC, PWM3_DAC, PWM4, PWM5, PWM6};  // assing pins
+  static const byte PWMOut[6] = {PWM1, PWM2_DAC, PWM3_DAC, PWM4, PWM5, PWM6};  // assing pins
   
   // dimmer + dimmer key channels
   for(uint8_t i = 0; i < NUMBER_OF_DIM_CHAN; i++) {
@@ -179,7 +178,7 @@ void setup()
 #endif
 
 #if NUMBER_OF_INPUT_CHAN == 10 && NUMBER_OF_SEN_INPUT_CHAN == 10
-  byte digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
+  static const byte digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
 
   // input sensor and key channels
   for(uint8_t i = 0; i < NUMBER_OF_SEN_INPUT_CHAN; i++) {
@@ -198,7 +197,7 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
-                             new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
+                             new HBWLinkKey<NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT>(), new HBWLinkDimmerAdvanced<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>());
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
@@ -210,7 +209,7 @@ void setup()
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
-                             new HBWLinkKey(NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT), new HBWLinkDimmerAdvanced(NUM_LINKS_DIM, LINKADDRESSSTART_DIM));
+                             new HBWLinkKey<NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT>(), new HBWLinkDimmerAdvanced<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>());
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
   //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs

@@ -13,13 +13,15 @@
 
 #include "HBWired.h"
 
+
+template<uint8_t numLinks, uint16_t eepromStart>
 class HBWLinkKey : public HBWLinkSender {
   public:
-      HBWLinkKey(uint8_t _numLinks, uint16_t _eepromStart);
+      HBWLinkKey();
 	  void sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress);
   private:
-      uint8_t numLinks;         // number of links of this type  
-      uint16_t eepromStart;     //size sollte konstant sein -> als define in .cpp
+      static const uint8_t EEPROM_SIZE = 6;   // "address_step" in XML
 };
 
+#include "HBWLinkKey.hpp"
 #endif

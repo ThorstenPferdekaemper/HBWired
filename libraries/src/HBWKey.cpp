@@ -29,6 +29,8 @@ void HBWKey::afterReadConfig(){
   hbwdebug(pin);
   hbwdebug(F(" type:"));
   hbwdebug(config->input_type);
+  hbwdebug(F(" pullup:"));
+  hbwdebug(config->pullup);
   hbwdebug(F("\n"));
 #endif
 };
@@ -120,6 +122,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
             keyPressNum++;
             lastSentLong = now ? now : 1;
+            // TODO: if bus is not idle, retry next time? (increment keyPressNum and update lastSentLong only on success of sendKeyEvent?)
             device->sendKeyEvent(channel, keyPressNum, false);
           }
         }
@@ -141,6 +144,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
             keyPressNum++;
             oldButtonState = buttonState;
+            // TODO: if bus is not idle, retry next time? (increment keyPressNum and update lastSentLong only on success of sendKeyEvent?)
             device->sendKeyEvent(channel, keyPressNum, !buttonState);
           }
         }
