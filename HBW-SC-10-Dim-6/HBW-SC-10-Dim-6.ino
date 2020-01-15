@@ -166,7 +166,7 @@ void setup()
   
   // create channels
 #if NUMBER_OF_DIM_CHAN == 6
-  static const byte PWMOut[6] = {PWM1, PWM2_DAC, PWM3_DAC, PWM4, PWM5, PWM6};  // assing pins
+  static const uint8_t PWMOut[6] = {PWM1, PWM2_DAC, PWM3_DAC, PWM4, PWM5, PWM6};  // assing pins
   
   // dimmer + dimmer key channels
   for(uint8_t i = 0; i < NUMBER_OF_DIM_CHAN; i++) {
@@ -178,7 +178,7 @@ void setup()
 #endif
 
 #if NUMBER_OF_INPUT_CHAN == 10 && NUMBER_OF_SEN_INPUT_CHAN == 10
-  static const byte digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
+  static const uint8_t digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
 
   // input sensor and key channels
   for(uint8_t i = 0; i < NUMBER_OF_SEN_INPUT_CHAN; i++) {

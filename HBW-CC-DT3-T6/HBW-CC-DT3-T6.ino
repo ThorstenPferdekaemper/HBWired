@@ -99,7 +99,7 @@ struct hbw_config {
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x5A (address step 14)
   hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6C (address step 6)
   hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x6D - 0x72 (address step 2)
-  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x73 - 0x79 (address step 2)
+  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x73 - 0x78 (address step 2)
 } hbwconfig;
 
 
@@ -164,10 +164,10 @@ HBDTControlDevice* device = NULL;
 void setup()
 {
   // variables for all OneWire channels
-  OneWire* g_ow = NULL;
+  //OneWire* g_ow = NULL;
   uint32_t g_owLastReadTime = 0;
   uint8_t g_owCurrentChannel = OW_CHAN_INIT; // always initialize with OW_CHAN_INIT value!
-  g_ow = new OneWire(ONEWIRE_PIN);
+  OneWire* g_ow = new OneWire(ONEWIRE_PIN);
 
   // create channels
   for(uint8_t i = 0; i < NUMBER_OF_TEMP_CHAN; i++) {
@@ -175,7 +175,7 @@ void setup()
     tempConfig[i] = &(hbwconfig.TempOWCfg[i]);
   }
 
-  byte relayPin[NUMBER_OF_DELTAT_CHAN] = {RELAY_1, RELAY_2, RELAY_3};  // assing pins
+  static const uint8_t relayPin[NUMBER_OF_DELTAT_CHAN] = {RELAY_1, RELAY_2, RELAY_3};  // assing pins
   HBWDeltaTx* deltaTxCh[NUMBER_OF_DELTAT_CHAN *2];  // pointer to deltaTx channels, to link in deltaT channels
 
   for(uint8_t i = 0; i < NUMBER_OF_DELTAT_CHAN; i++) {
@@ -186,7 +186,7 @@ void setup()
     channels[i +NUMBER_OF_TEMP_CHAN + NUMBER_OF_DELTAT_CHAN *2] = deltaTxCh[i +NUMBER_OF_DELTAT_CHAN];
   }
   
-//  byte buttonPin[NUMBER_OF_KEY_CHAN] = {BUTTON_1, BUTTON_2, BUTTON_3};  // assing pins
+//  static const uint8_t buttonPin[NUMBER_OF_KEY_CHAN] = {BUTTON_1, BUTTON_2, BUTTON_3};  // assing pins
 //  for(uint8_t i = 0; i < NUMBER_OF_KEY_CHAN; i++) {
 //    channels[i +NUMBER_OF_TEMP_CHAN +NUMBER_OF_DELTAT_CHAN *3] = new HBWKey(buttonPin[i], &(hbwconfig.KeyCfg[i]));
 //  }
@@ -200,8 +200,8 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
 //                             new HBWLinkKey(NUM_LINKS_KEY + NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX, LINKADDRESSSTART_DELTATX),
+                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
+                             new HBWLinkInfoEventActuator<NUM_LINKS_DELTATX, LINKADDRESSSTART_DELTATX>(),
                              g_ow, tempConfig
 //                            , new HBWLinkInfoEventSensor(NUM_LINKS_TEMP + NUM_LINKS_KEY,LINKADDRESSSTART_TEMP),
 //                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_DELTATX)
@@ -218,8 +218,8 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
 //                             new HBWLinkKey(NUM_LINKS_KEY + NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX, LINKADDRESSSTART_DELTATX),
+                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
+                             new HBWLinkInfoEventActuator<NUM_LINKS_DELTATX, LINKADDRESSSTART_DELTATX>(),
                              g_ow, tempConfig
 //                            , new HBWLinkInfoEventSensor(NUM_LINKS_TEMP + NUM_LINKS_KEY,LINKADDRESSSTART_TEMP),
 //                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_DELTATX)

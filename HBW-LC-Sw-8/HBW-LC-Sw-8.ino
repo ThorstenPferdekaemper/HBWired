@@ -104,7 +104,7 @@ void setup()
   rs485.begin();   // RS485 via SoftwareSerial, uses 19200 baud!
 
   // create channels
-  uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN, SWITCH3_PIN, SWITCH4_PIN, SWITCH5_PIN, SWITCH6_PIN, SWITCH7_PIN, SWITCH8_PIN};
+  static const uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN, SWITCH3_PIN, SWITCH4_PIN, SWITCH5_PIN, SWITCH6_PIN, SWITCH7_PIN, SWITCH8_PIN};
   
   // assing switches (relay) pins to channels
   for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
@@ -119,7 +119,7 @@ void setup()
   #else
                          &Serial,
   #endif
-                         NULL, new HBWLinkSwitchSimple(NUM_LINKS,LINKADDRESSSTART));
+                         NULL, new HBWLinkSwitchSimple<NUM_LINKS, LINKADDRESSSTART>());
 
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
   

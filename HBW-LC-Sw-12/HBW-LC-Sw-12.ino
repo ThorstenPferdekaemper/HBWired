@@ -44,7 +44,6 @@
 #include <HBWired.h>
 #include <HBWLinkSwitchAdvanced.h>
 #include "HBWSwitchSerialAdvanced.h"
-//#include <HBWAnalogIn.h>
 #include "HBWAnalogPow.h"
 
 
@@ -136,7 +135,7 @@ SHIFT_REGISTER_CLASS* myShReg_two = new SHIFT_REGISTER_CLASS(shiftRegTwo_Data, s
 void setup()
 {
   // assing LEDs and switches (relay) pins (i.e. shift register bit position)
-  static const uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // not only used for the LEDs, but also to keep track of the output state!
+  static const uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // not only used for the LEDs, also to keep track of the output state! (RAM style)
   static const uint8_t RelayBitPos[6] = { 8, 10, 12,          // shift register 2: 3 relays (with 2 coils each)
                                          16, 18, 20};        // shift register 3: 3 relays (with 2 coils each)
   static const uint8_t currentTransformerPins[6] = {CT_PIN1, CT_PIN2, CT_PIN3, CT_PIN4, CT_PIN5, CT_PIN6};
@@ -158,7 +157,7 @@ void setup()
                          &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                          NUM_CHANNELS,(HBWChannel**)channels,
                          NULL,
-                         NULL, new HBWLinkSwitchAdvanced(NUM_LINKS,LINKADDRESSSTART));
+                         NULL, new HBWLinkSwitchAdvanced<NUM_LINKS, LINKADDRESSSTART>());
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
@@ -170,7 +169,7 @@ void setup()
                          &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                          NUM_CHANNELS, (HBWChannel**)channels,
                          &Serial,
-                         NULL, new HBWLinkSwitchAdvanced(NUM_LINKS,LINKADDRESSSTART));
+                         NULL, new HBWLinkSwitchAdvanced<NUM_LINKS, LINKADDRESSSTART>());
    
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
  

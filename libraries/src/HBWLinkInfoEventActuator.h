@@ -12,14 +12,16 @@
 
 #include "HBWired.h"
 
+
+template<uint8_t numLinks, uint16_t eepromStart>
 class HBWLinkInfoEventActuator : public HBWLinkReceiver {
   public:
-      HBWLinkInfoEventActuator(uint8_t _numLinks, uint16_t _eepromStart);
+      HBWLinkInfoEventActuator();
       void receiveInfoEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                            uint8_t targetChannel, uint8_t length, uint8_t const * const data);
   private:
-      uint8_t numLinks;         // number of links of this type  
-      uint16_t eepromStart;     //size sollte konstant sein -> als define in .cpp
+      static const uint8_t EEPROM_SIZE = 7;   // "address_step" in XML
 };
 
+#include "HBWLinkInfoEventActuator.hpp"
 #endif

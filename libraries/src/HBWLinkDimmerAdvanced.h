@@ -17,7 +17,6 @@
 template<uint8_t numLinks, uint16_t eepromStart>
 class HBWLinkDimmerAdvanced : public HBWLinkReceiver {
   public:
-    // HBWLinkDimmerAdvanced(uint8_t _numLinks, uint16_t _eepromStart);
     HBWLinkDimmerAdvanced();
 	  void receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                            uint8_t targetChannel, uint8_t keyPressNum, boolean longPress);				

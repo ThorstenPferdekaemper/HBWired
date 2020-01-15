@@ -116,10 +116,9 @@ HBTempOWDevice* device = NULL;
 void setup()
 {
   // variables for all OneWire channels
-  OneWire* g_ow = NULL;
+  OneWire* g_ow = new OneWire(ONEWIRE_PIN);
   uint32_t g_owLastReadTime = 0;
   uint8_t g_owCurrentChannel = OW_CHAN_INIT; // always init with OW_CHAN_INIT! used as trigger/reset in channel loop()
-  g_ow = new OneWire(ONEWIRE_PIN);
 
   // create channels
   for(uint8_t i = 0; i < NUMBER_OF_TEMP_CHAN; i++) {
@@ -136,7 +135,7 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
   #if defined(NUM_LINKS_TEMP)
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
+                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(), NULL,
   #else
                              NULL, NULL,
   #endif
@@ -154,7 +153,7 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
   #if defined(NUM_LINKS_TEMP)
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
+                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(), NULL,
   #else
                              NULL, NULL,
   #endif

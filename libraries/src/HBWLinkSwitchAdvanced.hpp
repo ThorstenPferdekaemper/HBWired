@@ -1,5 +1,5 @@
 /* 
-** HBWLinkDimmerAdvanced
+** HBWLinkSwitchAdvanced
 **
 ** Direkte Verknuepfung (Peering), zu Schaltausgaengen
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
@@ -10,7 +10,7 @@
 
 
 template<uint8_t numLinks, uint16_t eepromStart>
-HBWLinkDimmerAdvanced<numLinks, eepromStart>::HBWLinkDimmerAdvanced() {
+HBWLinkSwitchAdvanced<numLinks, eepromStart>::HBWLinkSwitchAdvanced() {
 }
 
 
@@ -18,7 +18,7 @@ HBWLinkDimmerAdvanced<numLinks, eepromStart>::HBWLinkDimmerAdvanced() {
 // TODO: Der Beginn aller Verknuepfungen ist gleich. Eigentlich koennte man 
 //       das meiste in einer gemeinsamen Basisklasse abhandeln
 template<uint8_t numLinks, uint16_t eepromStart>
-void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
+void HBWLinkSwitchAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                                           uint8_t targetChannel, uint8_t keyPressNum, boolean longPress) {
   
   uint32_t sndAddrEEPROM;
@@ -29,7 +29,7 @@ void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
   data[NUM_PEER_PARAMS] = keyPressNum;
   
   // read what to do from EEPROM
-  for(byte i = 0; i < numLinks; i++) {
+  for(byte i = 0; i < numLinks; i++) {   
 	  device->readEEPROM(&sndAddrEEPROM, eepromStart + EEPROM_SIZE * i, 4, true);
 	  // TODO: is the following really ok?
 	  //       it reads to all links, even if none is set 
@@ -47,23 +47,13 @@ void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
       if (actionType & B00001111) {   // SHORT_ACTION_TYPE, ACTIVE
         // when active, read all other values and call channel set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
-     //         + 6       //  SHORT_ACTION_TYPE
-     //         + 7       //  SHORT_ONDELAY_TIME
-     //         + 8       //  SHORT_ON_TIME
-     //         + 9       //  SHORT_OFFDELAY_TIME
-     //         + 10      //  SHORT_OFF_TIME
-     //         + 11, 12, 13   //  SHORT_JT_* table
-     //         + 14      // SHORT_OFF_LEVEL
-     //         + 15      // SHORT_ON_MIN_LEVEL
-     //         + 16      // SHORT_ON_LEVEL
-     //         + 17      // SHORT_ONDELAY_MODE, SHORT_ON_LEVEL_PRIO, SHORT_OFFDELAY_BLINK, SHORT_RAMP_START_STEP
-     //         + 18      // SHORT_RAMPON_TIME
-     //         + 19      // SHORT_RAMPOFF_TIME
-     //         + 20      // SHORT_DIM_MIN_LEVEL
-     //         + 21      // SHORT_DIM_MAX_LEVEL
-     //         + 22      // SHORT_DIM_STEP, SHORT_OFFDELAY_STEP
-     //         + 23      // SHORT_OFFDELAY_NEWTIME, SHORT_OFFDELAY_OLDTIME
-        device->set(targetChannel, NUM_PEER_PARAMS +1, data);    // channel, data length, data
+      //           + 6        //  SHORT_ACTION_TYPE
+      //           + 7        //  SHORT_ONDELAY_TIME
+      //           + 8        //  SHORT_ON_TIME
+      //           + 9        //  SHORT_OFFDELAY_TIME
+      //           + 10       //  SHORT_OFF_TIME
+      //           + 11, 12   //  SHORT_JT_* table
+        device->set(targetChannel,NUM_PEER_PARAMS +1,data);    // channel, data length, data
       }
     }
     // read specific long action eeprom section
@@ -72,12 +62,8 @@ void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
       if (actionType & B00001111) {  // LONG_ACTION_TYPE, ACTIVE
         // when active, read all other values and call channel set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6 + NUM_PEER_PARAMS, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
-     //         + 6+ NUM_PEER_PARAMS      //  LONG_ACTION_TYPE
-     //         + 7+ NUM_PEER_PARAMS      //  LONG_ONDELAY_TIME
-     // ... and so on. Layout for LONG_* and SHORT_* must be the same
         device->set(targetChannel, NUM_PEER_PARAMS +1, data);    // channel, data length, data
       }
     }
   }
 }
-

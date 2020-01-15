@@ -123,8 +123,8 @@ void setup()
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 
   // create channels
-  byte blindDir[4] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR};
-  byte blindAct[4] = {BLIND1_ACT, BLIND2_ACT, BLIND3_ACT, BLIND4_ACT};
+  static const uint8_t blindDir[4] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR};
+  static const uint8_t blindAct[4] = {BLIND1_ACT, BLIND2_ACT, BLIND3_ACT, BLIND4_ACT};
   
   // assing relay pins
   for(uint8_t i = 0; i < NUMBER_OF_BLINDS; i++) {
@@ -142,7 +142,7 @@ void setup()
   #else
                          &Serial,
   #endif
-                         NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
+                         NULL, new HBWLinkBlindSimple<NUM_LINKS, LINKADDRESSSTART>());
    
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
 
