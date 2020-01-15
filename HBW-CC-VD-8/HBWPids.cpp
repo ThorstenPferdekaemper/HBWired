@@ -25,7 +25,9 @@ HBWPids::HBWPids(HBWValve* _valve, hbw_config_pid* _config)
   Input = DEFAULT_TEMP; // force channel to manual, of no input temperature is received
   Output = 0;
   ITerm = 0;
-  sampleTime = 2000; // pid compute every 2 sec
+ #ifndef FIXED_SAMPLE_TIME
+  sampleTime = PID_SAMPLE_TIME;
+ #endif
   setPoint = 2200; // what default? 22.00°C
 }
 
@@ -98,6 +100,8 @@ uint8_t HBWPids::get(uint8_t* data)
 {
   //TODO: add state_flags?
   // retVal = (pidConf[channel].setPoint << 8 | (pidConf[channel].autoTune << 4));
+
+  //TODO: instead of state_flags... return Input instead? (contains the current linked temperature)
   
   // return desired temperature
   // MSB first
@@ -237,7 +241,7 @@ void HBWPids::setTunings(double Kp, double Ki, double Kd)
 	kd = Kd / SampleTimeInSec;
 }
 
-
+#ifndef FIXED_SAMPLE_TIME
 void HBWPids::setSampleTime(int NewSampleTime)
 {
 	if (NewSampleTime > 0) {
@@ -247,7 +251,7 @@ void HBWPids::setSampleTime(int NewSampleTime)
 		sampleTime = (uint32_t) NewSampleTime;
 	}
 }
-
+#endif
 
 void HBWPids::setOutputLimits(uint32_t Max)
 {

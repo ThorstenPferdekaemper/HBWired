@@ -143,6 +143,7 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle, uint8_t retries){
           if(!(frameStatus & FRAME_SENTACKWAIT))  // ACK empfangen
             return SUCCESS;  // we have an ACK, i.e. ok
         };
+// TODO: (loetmeister) add "else", in case a frame was received (broadcast or other?), but not for us - stop sending and return BUS_BUSY? (use as collision detection in linkSender)
       };
     };
     // We have not received an ACK. However, there might be
@@ -151,7 +152,7 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle, uint8_t retries){
     if(onlyIfIdle && millis() - lastTry < RETRYIDLETIME)
         return BUS_BUSY;	// bus is not really free
   };
-  return NO_ACK;  // three times without ACK
+  return NO_ACK;  // three times (i.e. value of 'retries') without ACK
 }
 
 
