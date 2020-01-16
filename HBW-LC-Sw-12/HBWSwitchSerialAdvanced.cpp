@@ -11,6 +11,7 @@
 
 #include "HBWSwitchSerialAdvanced.h"
 
+
 // Class HBWSwitchSerialAdvanced
 HBWSwitchSerialAdvanced::HBWSwitchSerialAdvanced(uint8_t _relayPos, uint8_t _ledPos, SHIFT_REGISTER_CLASS* _shiftRegister, hbw_config_switch* _config) {
   relayPos = _relayPos;
@@ -23,12 +24,7 @@ HBWSwitchSerialAdvanced::HBWSwitchSerialAdvanced(uint8_t _relayPos, uint8_t _led
   relayOperationTimeStart = 0;
   operateRelay = false;
   
-  StateMachine.onTime = 0xFF;
-  StateMachine.offTime = 0xFF;
-  StateMachine.jumpTargets.DWORD = 0;
-  StateMachine.stateTimerRunning = false;
-  StateMachine.stateChangeWaitTime = 0;
-  StateMachine.lastStateChangeTime = 0;
+  StateMachine.init();
 //  StateMachine.setCurrentState(UNKNOWN_STATE); - not needed, as using LED shiftRegister state for init and re-reads
 };
 

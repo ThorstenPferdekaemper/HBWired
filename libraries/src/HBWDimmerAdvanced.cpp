@@ -26,12 +26,7 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
   nextFeedbackDelay = 0;
   lastFeedbackTime = 0;
   
-  StateMachine.onTime = 0xFF;
-  StateMachine.offTime = 0xFF;
-  StateMachine.jumpTargets.DWORD = 0;
-  StateMachine.stateTimerRunning = false;
-  StateMachine.stateChangeWaitTime = 0;
-  StateMachine.lastStateChangeTime = 0;
+  StateMachine.init();
   StateMachine.setCurrentState(UNKNOWN_STATE);
 
   currentOnLevelPrio = ON_LEVEL_PRIO_LOW;
