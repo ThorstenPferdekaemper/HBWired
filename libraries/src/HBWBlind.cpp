@@ -32,6 +32,7 @@ HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _co
   blindDirection = UP;
   blindSearchingForRefPosition = false;
   blindPositionRequested = 0;
+  lastKeyNum = 0;
 };
 
 // channel specific settings or defaults
@@ -42,6 +43,8 @@ void HBWChanBl::afterReadConfig() {
 }
 
 void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
+  
+  if (lastKeyNum == data[1] && length == 2) return;  // irgnore same keyNumber, surpress repeated long press (peering)
   
   // blind control
   if((*data) == 0xFF) { // toggle
@@ -132,13 +135,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       }
     }
   }
-  
-  // Logging
-//  if(!nextFeedbackDelay && config->logging) {
-//    lastFeedbackTime = millis();
-//    nextFeedbackDelay = device->getLoggingTime() * 100;
-//  }
-// --> moved to STOP action in loop
+  lastKeyNum = data[1];  // store keyNum for next call
 };
 
 
