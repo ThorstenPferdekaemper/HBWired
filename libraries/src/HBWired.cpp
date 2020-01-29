@@ -26,6 +26,7 @@
 
 // Defines
 #define FRAME_STARTBYTE 0xFD
+#define FRAME_STARTBYTE_SHORT 0xFE
 #define CRC16_POLYNOM 0x1002
 #define ESCAPE_CHAR 0xFC
 
@@ -240,7 +241,7 @@ void HBWDevice::sendFrameByte(byte sendByte, uint16_t* checksum) {
   if(checksum)
   crc16Shift(sendByte, checksum);
     // Add escape character, if needed
-    if(sendByte == FRAME_STARTBYTE || sendByte == 0xFE || sendByte == ESCAPE_CHAR) {
+    if(sendByte == FRAME_STARTBYTE || sendByte == FRAME_STARTBYTE_SHORT || sendByte == ESCAPE_CHAR) {
        serial->write(ESCAPE_CHAR);
        sendByte &= 0x7F;
     };
@@ -392,6 +393,8 @@ void HBWChannel::setInfo(HBWDevice* device, uint8_t length, uint8_t const * cons
 #endif
 void HBWChannel::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
 uint8_t HBWChannel::get(uint8_t* data) { return 0; };   
+void HBWChannel::setLock(boolean inhibit) { inhibitActive = inhibit; };
+boolean HBWChannel::getLock() { return inhibitActive; };
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
 void HBWChannel::afterReadConfig() {};
 
@@ -437,7 +440,6 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
          switch(frameData[0]){
             case 'u':                                                              // Update (Bootloader starten)
                goto *bootloader_start;			// Adresse des Bootloaders
-               // TODO: Bootloader?
                break;
          }
       #endif
@@ -528,9 +530,9 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             txFrame.data[1] = hardware_version;
             txFrame.dataLength = 2;
             break;
-         /* case 'l':               // set Lock Does this really make sense?
-            processEventSetLock();
-            break;   */
+         case 'l':
+            processEventSetLock(frameData[2], frameData[3] & 0x01);
+            break;
          case 'n':                                       // Seriennummer
         	determineSerial(txFrame.data);
         	txFrame.dataLength = 10;
@@ -583,6 +585,8 @@ void HBWDevice::receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan,
 // Enhanced peering, needs more data
 void HBWDevice::receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan, 
                                 uint8_t dstChan, uint8_t keyPressNum, boolean longPress) {
+    if(dstChan >= numChannels)  return;  // don't inhibit/lock or waste time search peerings for non exiting (target) channels
+	if(channels[dstChan]->getLock())  return;
     if(linkReceiver)
         linkReceiver->receiveKeyEvent(this, senderAddress, srcChan, dstChan, keyPressNum, longPress);
 };
@@ -594,6 +598,18 @@ void HBWDevice::processEventGetLevel(byte channel, byte command){
    txFrame.data[1] = channel;      // Sensornummer
    uint8_t length = get(channel, &(txFrame.data[2]));
    txFrame.dataLength = 0x02 + length;      // Length
+};
+
+
+void HBWDevice::processEventSetLock(uint8_t channel, boolean inhibit){
+   // lock (inihibit) a channel (disables all peerings to that channel)
+   // to avoid crashes, do not try to set any channels, which do not exist
+   if(channel < numChannels) {
+       channels[channel]->setLock(inhibit);
+       #ifdef HBW_DEBUG
+         hbwdebug(F("ch: "));hbwdebug(channel); hbwdebug(F("set inhibit: ")); inhibit ? hbwdebug(F("TRUE\n")) : hbwdebug(F("FALSE\n"));
+       #endif
+   }
 };
 
 
