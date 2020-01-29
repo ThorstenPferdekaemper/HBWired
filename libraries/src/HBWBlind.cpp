@@ -49,7 +49,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   // blind control
   if((*data) == 0xFF) { // toggle
   #ifdef DEBUG
-    hbwdebug("Toggle\n");
+    hbwdebug(F("Toggle\n"));
   #endif
     if (blindCurrentState == TURN_AROUND)
       blindNextState = STOP;
@@ -65,7 +65,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       // if current blind position is not known (e.g. due to a reset), actual position is set to the limit, to ensure that the moving time is long enough to reach the end position
       if (!blindPositionKnown) {
       #ifdef DEBUG
-        hbwdebug("Position unknown\n");
+        hbwdebug(F("Position unknown\n"));
       #endif
         if (blindDirection == UP)
           blindPositionActual = 0;
@@ -76,7 +76,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   }
   else if ((*data) == 0xC9) { // stop
   #ifdef DEBUG
-    hbwdebug("Stop\n");
+    hbwdebug(F("Stop\n"));
   #endif
     blindNextState = STOP;
     blindForceNextState = true;
@@ -88,12 +88,12 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     if (blindPositionRequested > 100)
       blindPositionRequested = 100;
   #ifdef DEBUG
-    hbwdebug("Requested Position: "); hbwdebug(blindPositionRequested); hbwdebug("\n");
+    hbwdebug(F("Requested Position: ")); hbwdebug(blindPositionRequested); hbwdebug(F("\n"));
   #endif
 
     if (!blindPositionKnown) {
     #ifdef DEBUG
-      hbwdebug("Position unknown. Moving to reference position.\n");
+      hbwdebug(F("Position unknown. Moving to reference position.\n"));
     #endif
 
       if (blindPositionRequested == 0) {
@@ -249,7 +249,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
           // if current position was not known (e.g. due to a reset) and end position are reached, then the current position is known again
           if ((!blindPositionKnown) && ((blindPositionRequested == 0) || (blindPositionRequested == 100))) {
           #ifdef DEBUG
-            hbwdebug("Reference position reached. Position is known.\n");
+            hbwdebug(F("Reference position reached. Position is known.\n"));
           #endif
             blindPositionKnown = true;
           }
@@ -272,7 +272,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
 
         if (blindSearchingForRefPosition == true) {
         #ifdef DEBUG
-          hbwdebug("Reference position reached. Moving to target position.\n");
+          hbwdebug(F("Reference position reached. Moving to target position.\n"));
         #endif
           data = (blindPositionRequestedSave * 2);
           device->set(channel, 1, &data);

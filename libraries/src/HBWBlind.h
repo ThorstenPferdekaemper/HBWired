@@ -13,7 +13,7 @@
 
 #include "HBWired.h"
 
-//#define DEBUG	// define/overwrite here or use DEBUG defined in "HBWired.h"
+//#define DEBUG  // enable per channel class
 
 /********************************/
 /* Config der Rollo-Steuerung:  */
