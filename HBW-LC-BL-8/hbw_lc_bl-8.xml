@@ -291,7 +291,7 @@
 		</paramset>
 		<paramset type="VALUES" id="hmw_busvoltage_input_values">
 			<parameter id="VALUE" operations="read,event">
-				<logical type="float" min="0.0" max="1023.0"/>
+				<logical type="float" min="0.0" max="27.9"/>
 				<physical type="float" interface="command" value_id="ANALOGVALUE">
 					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
 					<event frame="ANALOG_EVENT"/>

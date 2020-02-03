@@ -16,10 +16,9 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define SAMPLE_INTERVAL 2  // seconds
-#define UPDATE_INTERVAL 133  // seconds
-
-#define CENTRE_VALUE 511  // sin wave centre
+#define SAMPLE_INTERVAL 6  // milli seconds
+constexpr uint16_t MIN_UPDATE_INTERVAL = 1000;  // milli seconds
+constexpr uint16_t CENTRE_VALUE = 511;  // sin wave centre
 
 
 struct hbw_config_analogPow_in {
@@ -28,7 +27,7 @@ struct hbw_config_analogPow_in {
   uint8_t        :6;      // 0x00:2-7
   uint8_t update_interval;
   //TODO: Add compensation factor? (increase accurrancy)? - replace CENTRE_VALUE?
-  //TODO: Add phase selection (to consider 120°, 240° phase shift from optocoupler input)?
+  //TODO: Add phase selection (to consider 120Â°, 240Â° phase shift from optocoupler input)?
 };
 
 
@@ -44,7 +43,7 @@ class HBWAnalogPow : public HBWChannel {
     uint8_t pin;   // Pin
     hbw_config_analogPow_in* config;
     uint32_t lastActionTime;
-    uint8_t nextActionDelay;
+    uint16_t nextActionDelay;
     uint16_t currentValue;  // store last result (average)
 };
 

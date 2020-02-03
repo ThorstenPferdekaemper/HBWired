@@ -28,6 +28,7 @@
 			<address index="0x0006"/>
 		</physical>
 	</parameter>
+	<enforce id="DIRECT_LINK_DEACTIVATE" value="true"/>
 </paramset>
 
 <frames>
@@ -38,6 +39,8 @@
 	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
 		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
+	</frame>
+	<frame id="ANALOG_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
 	</frame>
 </frames>
@@ -415,8 +418,8 @@
 			<parameter id="ANALOGVALUE" operations="read,event">
 				<logical type="integer" min="0" max="1023"/>
 				<physical type="integer" interface="command" value_id="ANALOGVALUE">
-					<get request="LEVEL_GET" response="INFO_LEVEL"/>
-					<event frame="INFO_LEVEL"/>
+					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
+					<event frame="ANALOG_EVENT"/>
 				</physical>
 			</parameter>
 		</paramset>

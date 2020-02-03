@@ -13,7 +13,7 @@
 
 #include "HBWired.h"
 
-//#define DEBUG	// define/overwrite here or use DEBUG defined in "HBWired.h"
+//#define DEBUG  // enable per channel class
 
 /********************************/
 /* Config der Rollo-Steuerung:  */
@@ -70,13 +70,15 @@ class HBWChanBl : public HBWChannel {
     byte blindPositionActual;
     byte blindPositionLast;
     byte blindAngleActual;
-    byte blindDirection;
+    bool blindDirection;
     bool blindForceNextState;
     bool blindPositionKnown;
     bool blindSearchingForRefPosition;
     unsigned int blindNextStateDelayTime;
     unsigned long blindTimeStart;
     unsigned long blindTimeLastAction;
+    
+    uint8_t lastKeyNum;
 };
 
 #endif

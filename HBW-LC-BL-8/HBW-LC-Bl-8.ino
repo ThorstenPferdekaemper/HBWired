@@ -114,8 +114,8 @@ void setup()
   Serial.begin(19200, SERIAL_8E1); // RS485 via UART Serial
 
   // assing relay pins
-  byte blindDir[8] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR, BLIND5_DIR, BLIND6_DIR, BLIND7_DIR, BLIND8_DIR};
-  byte blindAct[8] = {BLIND1_ACT, BLIND2_ACT, BLIND3_ACT, BLIND4_ACT, BLIND5_ACT, BLIND6_ACT, BLIND7_ACT, BLIND8_ACT};
+  static const uint8_t blindDir[8] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR, BLIND5_DIR, BLIND6_DIR, BLIND7_DIR, BLIND8_DIR};
+  static const uint8_t blindAct[8] = {BLIND1_ACT, BLIND2_ACT, BLIND3_ACT, BLIND4_ACT, BLIND5_ACT, BLIND6_ACT, BLIND7_ACT, BLIND8_ACT};
   
   // create channels
   for(uint8_t i = 0; i < NUMBER_OF_BLINDS; i++) {
@@ -129,7 +129,7 @@ void setup()
                          &Serial, RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUMBER_OF_CHAN,(HBWChannel**)channels,
                          NULL,
-                         NULL, new HBWLinkBlindSimple(NUM_LINKS,LINKADDRESSSTART));
+                         NULL, new HBWLinkBlindSimple<NUM_LINKS, LINKADDRESSSTART>());
   
   device->setConfigPins(BUTTON, LED);
   device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs using config LED

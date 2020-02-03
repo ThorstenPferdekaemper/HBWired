@@ -44,7 +44,7 @@ HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 // Das folgende Define kann benutzt werden, wenn ueber die
 // Kanaele "geloopt" werden soll
 // als Define, damit es zentral definiert werden kann, aber keinen (globalen) Speicherplatz braucht
-#define PIN_ARRAY uint8_t pins[NUM_CHANNELS] = {A0, A1, A2, A3, A4, A5, 5, 6, 7, 9, 10, 11};
+#define PIN_ARRAY static const uint8_t pins[NUM_CHANNELS] = {A0, A1, A2, A3, A4, A5, 5, 6, 7, 9, 10, 11};
 
 
 // Config as C++ structure (without direct links)
@@ -158,7 +158,7 @@ void setup()
                          &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
                          NUM_CHANNELS,(HBWChannel**)keys,
                          &Serial,
-                         new HBWLinkKey(NUM_LINKS,LINKADDRESSSTART), NULL);
+                         new HBWLinkKey<NUM_LINKS, LINKADDRESSSTART>(), NULL);
 
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
  

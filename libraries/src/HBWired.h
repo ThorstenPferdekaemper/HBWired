@@ -15,7 +15,7 @@
 
 /* enable the below to allow peering with HBWLinkInfoEventActuator/HBWLinkInfoEventSensor
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
-//#define Support_HBWLink_InfoEvent
+// #define Support_HBWLink_InfoEvent
 
 
 
@@ -28,9 +28,14 @@ class HBWChannel {
   #ifdef Support_HBWLink_InfoEvent
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);  // called by receiveInfoEvent
   #endif
-    virtual uint8_t get(uint8_t* data);  // returns length, data must be big enough 
+    virtual uint8_t get(uint8_t* data);  // returns length, data must be large enough 
     virtual void loop(HBWDevice*, uint8_t channel);  // channel for feedbacks etc.
     virtual void afterReadConfig();
+
+    void setLock(boolean inhibit);
+    boolean getLock();
+  private:
+    boolean inhibitActive = false;  // disables all peerings, if true (only applicable for actor channels)
 };
 
 
@@ -215,7 +220,7 @@ class HBWDevice {
 	void determineSerial(uint8_t*);
 
 	void processEventGetLevel(uint8_t channel, uint8_t command);
-	void processEventSetLock();
+	void processEventSetLock(uint8_t channel, boolean inhibit);
 	void processEmessage(uint8_t const * const frameData);
 	
     void factoryReset();

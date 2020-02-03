@@ -7,8 +7,8 @@
 
 #define DEBUG_OUTPUT
 
-#define OFF_DELAY_TIME 2600  // ms
-#define POLLING_WAIT_TIME 330  // get linked channel state every 330 ms
+static const uint16_t OFF_DELAY_TIME = 2600;  // ms
+static const uint16_t POLLING_WAIT_TIME = 330;  // get linked channel state every 330 ms
 
 
 struct hbw_config_key_virt {
@@ -16,7 +16,7 @@ struct hbw_config_key_virt {
   uint8_t n_inverted:1;     // 0x07:1    0=inverted, 1=not inverted
   uint8_t       :6;         // 0x07:2-7
   //TODO: add option to force update on start? (forceUpdate = !config->update_on_start;)
-  uint8_t dummy;    //TODO: use for OFF_DELAY_TIME? (0-254 seconds?)
+  //uint8_t dummy;    //TODO: use for OFF_DELAY_TIME? (0-254 seconds?)
 };
 
 

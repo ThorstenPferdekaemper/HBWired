@@ -26,12 +26,7 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
   nextFeedbackDelay = 0;
   lastFeedbackTime = 0;
   
-  StateMachine.onTime = 0xFF;
-  StateMachine.offTime = 0xFF;
-  StateMachine.jumpTargets.DWORD = 0;
-  StateMachine.stateTimerRunning = false;
-  StateMachine.stateChangeWaitTime = 0;
-  StateMachine.lastStateChangeTime = 0;
+  StateMachine.init();
   StateMachine.setCurrentState(UNKNOWN_STATE);
 
   currentOnLevelPrio = ON_LEVEL_PRIO_LOW;
@@ -274,7 +269,7 @@ void HBWDimmerAdvanced::setOutputNoLogging(uint8_t newValue)
   if (newValue > 200)  return;  // exceeding limit
   
   //                        scale to 40%   50%   60%   70%   80%   90%  100% - according to pwm_range setting
-  static uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2300, 2550};  // avoid float, devide by 10 when calling analogWrite()!
+  static const uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2300, 2550};  // avoid float, devide by 10 when calling analogWrite()!
   uint8_t newValueMin = 0;
 
   if (!config->voltage_default) newValueMin = 255; // Factor 10! Set 25.5 min output level (need 0.5-5V for 1-10V mode)

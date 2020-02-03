@@ -150,7 +150,7 @@ class HBWDimmerAdvanced : public HBWChannel {
     hbw_config_dim* config; // logging
     uint8_t currentValue;
     uint8_t oldOnValue;
-    uint8_t oldValue;
+    uint8_t oldValue;  // used to determine direction for state flags
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
     HBWlibStateMachine StateMachine;

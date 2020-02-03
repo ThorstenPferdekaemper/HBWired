@@ -225,7 +225,7 @@
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="HYSTERESIS">
-				<logical type="float" min="0.0" max="30.0" default="1.0" unit="&#x2103;"/>
+				<logical type="float" min="0.0" max="3.0" default="1.0" unit="&#x2103;"/>
 				<physical size="0.5" type="integer" interface="eeprom">
 					<address index="+0.3"/>
 				</physical>

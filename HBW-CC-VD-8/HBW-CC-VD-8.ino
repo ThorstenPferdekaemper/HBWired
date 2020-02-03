@@ -143,15 +143,14 @@ HBVdDevice* device = NULL;
 void setup()
 {
   // variables for all OneWire channels
-  OneWire* g_ow = NULL;
+  OneWire* g_ow = new OneWire(ONEWIRE_PIN);
   uint32_t g_owLastReadTime = 0;
   uint8_t g_owCurrentChannel = OW_CHAN_INIT; // always init with OW_CHAN_INIT! used as trigger/reset in channel loop()
-  g_ow = new OneWire(ONEWIRE_PIN);
 
   HBWValve* valves[NUMBER_OF_VD_CHAN];  // pointer to Valve channels, to link in HBWPids channels
 
   // create channels: 0...NUMBER_OF_PID_CHAN, ...NUMBER_OF_VD_CHAN, ...NUMBER_OF_TEMP_CHAN
-  byte valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2, VD3, VD4, VD5, VD6, VD7, VD8};  // assing pins
+  static const uint8_t valvePin[NUMBER_OF_VD_CHAN] = {VD1, VD2, VD3, VD4, VD5, VD6, VD7, VD8};  // assing pins
   
   for(uint8_t i = 0; i < NUMBER_OF_PID_CHAN; i++) {
     valves[i] = new HBWValve(valvePin[i], &(hbwconfig.pidValveCfg[i]));
@@ -171,8 +170,8 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoEventActuator(NUM_LINKS_PID, LINKADDRESSSTART_PID),
+                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
+                             new HBWLinkInfoEventActuator<NUM_LINKS_PID, LINKADDRESSSTART_PID>(),
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
@@ -185,8 +184,8 @@ void setup()
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
-                             new HBWLinkInfoEventSensor(NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP),
-                             new HBWLinkInfoEventActuator(NUM_LINKS_PID, LINKADDRESSSTART_PID),
+                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
+                             new HBWLinkInfoEventActuator<NUM_LINKS_PID, LINKADDRESSSTART_PID>(),
                              g_ow, tempConfig);
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default

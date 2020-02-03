@@ -15,7 +15,7 @@ HBWAnalogPow::HBWAnalogPow(uint8_t _pin, hbw_config_analogPow_in* _config) {
   pin = _pin;
   config = _config;
   lastActionTime = 0;
-  nextActionDelay = SAMPLE_INTERVAL *2; // initial dealy
+  nextActionDelay = MIN_UPDATE_INTERVAL *2; // initial dealy
   currentValue = 0;
   analogRead(pin);
 };
@@ -45,11 +45,19 @@ void HBWAnalogPow::loop(HBWDevice* device, uint8_t channel) {
     return;
   }
   
-  if (millis() - lastActionTime < ((uint32_t)nextActionDelay *1000)) return; // quit if wait time not yet passed
-    
+  if (millis() - lastActionTime < ((uint32_t)nextActionDelay )) return; // quit if wait time not yet passed
+  
+  //TODO: make it work :)
+  // perform measurement in port interrupt function triggered by mains opto = mains frequency? (consider different phases 120°, 240° phase shift? - don't care if covering full sinus wave?)
+  // use global buffer and run run ADC conversion for one channel at a time, with fixed amount of samples, to cover full sin wave
+  // approach 1: run all samples at one interrupt (block device for 1/50Hz) or 2: run one sample per interrupt (50Hz), but delay a bit each time, to cover full sin wave
+  // disable interrupt until channel fetched result and next channel should be started?
+  
+  // use I²C ADC? how to buffer or run continous measurement?
+  
   nextActionDelay = SAMPLE_INTERVAL;
-  #define MAX_SAMPLES 3    // update "buffer" array definition, when changing this!
-  static uint16_t buffer[MAX_SAMPLES] = {0, 0, 0};
+  #define MAX_SAMPLES 6    // update "buffer" array definition, when changing this!
+  static uint8_t buffer[MAX_SAMPLES] = {0, 0, 0, 0, 0, 0};
   static uint8_t nextIndex = 0;
   
   uint16_t adcReading = analogRead(pin);
@@ -60,7 +68,7 @@ void HBWAnalogPow::loop(HBWDevice* device, uint8_t channel) {
   {
     adcReading = adcReading - CENTRE_VALUE;
   }
-  buffer[nextIndex++] = adcReading;//analogRead(pin);
+  buffer[nextIndex++] = (uint8_t)(adcReading >>2);//analogRead(pin);
   lastActionTime = millis();
   
   if (nextIndex >= MAX_SAMPLES) {
@@ -73,7 +81,8 @@ void HBWAnalogPow::loop(HBWDevice* device, uint8_t channel) {
     while (i);
     
     currentValue = sum / MAX_SAMPLES;
-    nextActionDelay = UPDATE_INTERVAL;	// "sleep" until next update
+    // nextActionDelay = UPDATE_INTERVAL;	// "sleep" until next update
+    nextActionDelay = (config->update_interval < 1) ? MIN_UPDATE_INTERVAL : (uint16_t)(config->update_interval * 1000);	// "sleep" until next update
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("adc-ch:"));

@@ -19,6 +19,8 @@
 
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
+#define FIXED_SAMPLE_TIME
+#define PID_SAMPLE_TIME 2000 // pid compute every 2 sec
 
 // config of one PID channel, address step 9
 struct hbw_config_pid {
@@ -27,7 +29,7 @@ struct hbw_config_pid {
   uint16_t kp;    // proportional
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
-  uint16_t windowSize;  // TODO: reduce to 1byte? (10 seconds steps? = max 2540 seconds)
+  uint16_t windowSize;  // TODO: reduce to 1byte? (use 10 seconds steps? = max 2540 seconds. Or 30 seconds stepping?)
   //TODO: add default setPoint 0...25.5°C
 };
 
@@ -59,7 +61,9 @@ class HBWPids : public HBWChannel {
     uint32_t outMax;
     double ITerm;
     int16_t Input, lastInput;
+   #ifndef FIXED_SAMPLE_TIME
     uint16_t sampleTime;
+   #endif
     uint32_t lastPidTime; // pid computes every sampleTime
     double Output;
     double kp, ki, kd;
@@ -77,6 +81,10 @@ class HBWPids : public HBWChannel {
     static const bool MANUAL = false;
     static const bool AUTOMATIC = true;
     static const bool SET_BY_PID = true;
+    
+   #ifdef FIXED_SAMPLE_TIME
+    static const uint16_t sampleTime = PID_SAMPLE_TIME;
+   #endif
 };
 
 

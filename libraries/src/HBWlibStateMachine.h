@@ -114,6 +114,17 @@ class HBWlibStateMachine {
       return nextJump;
     };
     
+    /* set required variables - that not get set before used elsewhere */
+    inline void init() {
+      onTime = 0xFF;
+      offTime = 0xFF;
+      jumpTargets.DWORD = 0;
+      stateTimerRunning = false;
+      stateChangeWaitTime = 0;
+      lastStateChangeTime = 0;
+      lastKeyNum = 0;
+    }
+    
     union {
       uint32_t DWORD;
       uint8_t jt_hi_low[4];
