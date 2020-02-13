@@ -145,7 +145,7 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
     outputChangeNextDelay = OUTPUT_STARTUP_DELAY * (channel + 1);
   }
 
-  if (now - outputChangeLastTime >= outputChangeNextDelay *100)
+  if (now - outputChangeLastTime >= (uint32_t)outputChangeNextDelay *100)
   {
     switchstate(nextState);
     outputChangeLastTime = now;
