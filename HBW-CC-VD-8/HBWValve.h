@@ -79,17 +79,17 @@ class HBWValve : public HBWChannel {
     void setNewLevel(HBWDevice* device, uint8_t NewLevel);
     
     // output control
-    inline void switchstate(byte State);
-    uint32_t set_timer(bool firstState, byte status);
-    uint32_t set_peakmiddle(uint32_t ontimer, uint32_t offtimer);
-    inline bool first_on_or_off(uint32_t ontimer, uint32_t offtimer);
+    inline void switchstate(bool State);
+    uint16_t set_timer(bool firstState, bool status);
+    uint16_t set_peakmiddle(uint16_t ontimer, uint16_t offtimer);
+    bool first_on_or_off(uint16_t ontimer, uint16_t offtimer);
     bool init_new_state();
-    uint32_t set_ontimer(uint8_t VentPositionRequested);
-    uint32_t set_offtimer(uint32_t ontimer);
+    uint16_t set_ontimer(uint8_t VentPositionRequested);
+    uint16_t set_offtimer(uint16_t ontimer);
     
     uint32_t outputChangeLastTime;    // last time output state was changed
-    uint32_t outputChangeNextDelay;    // time until next state change  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
-    uint32_t onTimer, offTimer;     // current calculated on and of duration  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
+    uint16_t outputChangeNextDelay;    // time until next state change
+    uint16_t onTimer, offTimer;     // current calculated on and of duration
 
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
@@ -108,7 +108,7 @@ class HBWValve : public HBWChannel {
       uint8_t byte:8;
     } stateFlags;
     
-    static const uint32_t OUTPUT_STARTUP_DELAY = 4300;  //TODO: change to 16 bit, use factor 100 to compare to 'millis'
+    static const uint16_t OUTPUT_STARTUP_DELAY = 63;  // 63 == 6.3 seconds
     static const bool MANUAL = false;
     static const bool AUTOMATIC = true;
 };
