@@ -171,7 +171,7 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
   //}
 
   outputChangeLastTime = millis();
-  currentState = nextState;
+  currentState = nextState; // TODO: replace currentState by stateFlags.element.status
   stateFlags.element.status = currentState;
 
   // send info/notify message in loop()
@@ -220,5 +220,6 @@ bool HBWDeltaT::calculateNewState()
     }
     return true;
   }
-  return stateFlags.element.mode; // retun the state currently set - no change
+  else
+    return stateFlags.element.mode; // retun the state currently set - no change
 }

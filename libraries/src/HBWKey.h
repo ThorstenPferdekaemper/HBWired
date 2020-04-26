@@ -11,6 +11,8 @@
 #define SWITCH_DEBOUNCE_TIME 145  // ms
 #define DOORSENSOR_DEBOUNCE_TIME 330  // ms
 
+
+// below values have to match INPUT_TYPE in XML!
 #define IN_DOORSENSOR   0    // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
 #define IN_MOTIONSENSOR 1    // sends a short KeyEvent for raising or falling edge - not both
 #define IN_SWITCH       2    // sends a short KeyEvent, each time the input (e.g. wall switch) changes the polarity

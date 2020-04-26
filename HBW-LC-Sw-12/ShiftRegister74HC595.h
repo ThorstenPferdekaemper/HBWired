@@ -3,6 +3,7 @@
   Developed and maintained by Timo Denk and contributers, since Nov 2014.
   Additional information is available at https://timodenk.com/blog/shift-register-arduino-library/
   Released into the public domain.
+  version 1.3.1
 */
 
 #pragma once

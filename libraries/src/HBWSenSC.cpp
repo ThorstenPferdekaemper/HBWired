@@ -95,7 +95,7 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
     lastFeedbackTime = millis();  // at least last time of trying
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
     // we know that the level has only 1 byte here
-    uint8_t level;
+    static uint8_t level;
     get(&level);
     device->sendInfoMessage(channel, 1, &level);
     nextFeedbackDelay = 0;  // do not resend (sendInfoMessage perform 3 retries anyway)

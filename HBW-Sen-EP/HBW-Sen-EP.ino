@@ -34,7 +34,7 @@
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
-//#include "HBW_interrupt.h"  // TODO: Add interrupt support (only possible when not using SoftwareSerial)
+//#include "HBW-Sen-EP_interrupt.h"  // TODO: Add interrupt support (only possible when not using SoftwareSerial)
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
@@ -91,7 +91,7 @@ HBWDevice* device = NULL;
 void setup()
 {
   // create channels
-  byte SenPin[NUMBER_OF_SEN_CHAN] = {Sen1, Sen2, Sen3, Sen4, Sen5, Sen6, Sen7, Sen8};  // assing pins
+  static const uint8_t SenPin[NUMBER_OF_SEN_CHAN] = {Sen1, Sen2, Sen3, Sen4, Sen5, Sen6, Sen7, Sen8};  // assing pins
   
   for(uint8_t i = 0; i < NUMBER_OF_SEN_CHAN; i++) {
     channels[i] = new HBWSenEP(SenPin[i], &(hbwconfig.SenEpCfg[i]));
