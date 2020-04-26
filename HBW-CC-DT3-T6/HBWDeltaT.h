@@ -55,7 +55,7 @@ struct hbw_config_DeltaTx {
 class HBWDeltaTx : public HBWChannel {
   public:
     HBWDeltaTx(hbw_config_DeltaTx* _config);
-    virtual void loop(HBWDevice*, uint8_t channel);
+    // virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);  // allow set() only if not peered?
