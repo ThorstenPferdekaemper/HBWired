@@ -864,10 +864,10 @@
 			</parameter> -->
 			<parameter id="INPUT_TYPE">
 				<logical type="option">
-					<option id="DOORSENSOR" default="true"/>
+					<option id="DOORSENSOR"/>
 					<option id="MOTIONSENSOR"/>
 					<option id="SWITCH"/>
-					<option id="PUSHBUTTON"/>
+					<option id="PUSHBUTTON" default="true"/>
 				</logical>
 				<physical size="0.2" type="integer" interface="eeprom">
 					<address index="+0.3"/>
