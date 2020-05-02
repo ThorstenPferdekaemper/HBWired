@@ -46,6 +46,26 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
     buttonState = activeHigh ^ buttonState;
     
     switch (config->input_type) {
+#ifdef IN_DOORSENSOR
+      case IN_DOORSENSOR:
+    // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
+        if (buttonState != oldButtonState) {
+          if (!keyPressedMillis) {
+            keyPressedMillis = now ? now : 1;
+          }
+          else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+            keyPressNum++;
+            oldButtonState = buttonState;
+            // TODO: if bus is not idle, retry next time? (increment keyPressNum and update lastSentLong only on success of sendKeyEvent?)
+            device->sendKeyEvent(channel, keyPressNum, !buttonState);
+          }
+        }
+        else {
+          keyPressedMillis = 0;
+        }
+        break;
+#endif
+
       case IN_SWITCH:
     // sends a short KeyEvent, each time the switch changes the polarity
         if (buttonState) {
@@ -132,27 +152,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           }
           keyPressedMillis = 0;
         }
-        break;
-    
-#ifdef IN_DOORSENSOR
-      case IN_DOORSENSOR:
-    // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
-        if (buttonState != oldButtonState) {
-          if (!keyPressedMillis) {
-            keyPressedMillis = now ? now : 1;
-          }
-          else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
-            keyPressNum++;
-            oldButtonState = buttonState;
-            // TODO: if bus is not idle, retry next time? (increment keyPressNum and update lastSentLong only on success of sendKeyEvent?)
-            device->sendKeyEvent(channel, keyPressNum, !buttonState);
-          }
-        }
-        else {
-          keyPressedMillis = 0;
-        }
-        break;
-#endif
-   }
+        break; 
+    }
   }
 };

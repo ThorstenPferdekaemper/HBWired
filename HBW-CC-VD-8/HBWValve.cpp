@@ -20,7 +20,7 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
   stateFlags.byte = 0;
   initDone = false;
   
-  digitalWrite(pin, LOW);
+  digitalWrite(pin, OFF);
   pinMode(pin, OUTPUT);
 }
 
@@ -100,7 +100,7 @@ void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
     valveLevel = NewLevel;
     isFirstState = true;
     nextState = init_new_state();
-	//TODO: Add timestamp here, to keep track of updated valve position for anti-stick?
+	//TODO: Add timestamp here (or  use lastFeedbackTime?), to keep track of updated valve position for anti-stick?
 
     // Logging
     if(!nextFeedbackDelay && config->logging) {
@@ -145,7 +145,7 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
     outputChangeNextDelay = OUTPUT_STARTUP_DELAY * (channel + 1);
   }
 
-  if (now - outputChangeLastTime >= outputChangeNextDelay)
+  if (now - outputChangeLastTime >= (uint32_t)outputChangeNextDelay *100)
   {
     switchstate(nextState);
     outputChangeLastTime = now;
@@ -169,37 +169,23 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
 
 
 // called by loop() with next state, if delay time has passed
-void HBWValve::switchstate(byte State)
+void HBWValve::switchstate(bool State)
 {
-  switch(State)
-  {
-    case VENTON:
-//        digitalWrite(pin, ON);
-      stateFlags.element.status = (false ^ config->n_inverted);
-      outputChangeNextDelay = set_timer(isFirstState, nextState);
-      nextState = VENTOFF;
-      isFirstState = false;
-    break;
-
-    case VENTOFF:
-//        digitalWrite(pin, OFF);
-      stateFlags.element.status = (true ^ config->n_inverted);
-      outputChangeNextDelay = set_timer(isFirstState, nextState);
-      nextState = VENTON;
-      isFirstState = false;
-    break;
-  }
+  outputChangeNextDelay = set_timer(isFirstState, nextState);
+  nextState = (State == VENTON ? VENTOFF : VENTON);
+  stateFlags.element.status = (nextState ^ config->n_inverted);
+  isFirstState = false;
   digitalWrite(pin, stateFlags.element.status);
   
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("switchtstate, pin: ")); hbwdebug(pin);
   State == VENTOFF ? hbwdebug(F(" VENTOFF")) : hbwdebug(F(" VENTON"));
-  hbwdebug(F(" next delay: ")); hbwdebug(outputChangeNextDelay); hbwdebug(F("\n"));
+  hbwdebug(F(" next delay: ")); hbwdebug((uint32_t)outputChangeNextDelay *100); hbwdebug(F("\n"));
   #endif
 }
 
 
-uint32_t HBWValve::set_timer(bool firstState, byte Status)
+uint16_t HBWValve::set_timer(bool firstState, bool Status)
 {
   if (firstState == true)
     return set_peakmiddle(onTimer, offTimer);
@@ -212,7 +198,7 @@ uint32_t HBWValve::set_timer(bool firstState, byte Status)
 
 
 /* bisect the timer the first time */
-uint32_t HBWValve::set_peakmiddle (uint32_t ontimer, uint32_t offtimer)
+uint16_t HBWValve::set_peakmiddle (uint16_t ontimer, uint16_t offtimer)
 {
   if (first_on_or_off(ontimer, offtimer))
     return ontimer / 2;
@@ -221,7 +207,7 @@ uint32_t HBWValve::set_peakmiddle (uint32_t ontimer, uint32_t offtimer)
 }
 
 
-bool HBWValve::first_on_or_off(uint32_t ontimer, uint32_t offtimer)
+bool HBWValve::first_on_or_off(uint16_t ontimer, uint16_t offtimer)
 {
   return (ontimer >= offtimer);
 }
@@ -229,12 +215,12 @@ bool HBWValve::first_on_or_off(uint32_t ontimer, uint32_t offtimer)
 
 bool HBWValve::init_new_state()
 {
-  onTimer = set_ontimer(valveLevel);
+  onTimer = set_ontimer(valveLevel); // reduce by 0...15%? e.g. (valveLevel > config->valvePctCap) ? (valveLevel - config->valvePctCap) : 0)
   offTimer = set_offtimer(onTimer);
   
   #ifdef DEBUG_OUTPUT
-  hbwdebug(F("Valve init_new_state, onTimer: "));  hbwdebug(onTimer);
-  hbwdebug(F(" offTimer: "));  hbwdebug(offTimer);
+  hbwdebug(F("Valve init_new_state, onTimer: "));  hbwdebug((uint32_t)onTimer*100);
+  hbwdebug(F(" offTimer: "));  hbwdebug((uint32_t)offTimer*100);
   hbwdebug(F(" valveSwitchTime: "));  hbwdebug((uint32_t)config->valveSwitchTime *10000);  hbwdebug(F("\n"));
   #endif
   
@@ -246,11 +232,11 @@ bool HBWValve::init_new_state()
 }
 
 
-uint32_t HBWValve::set_ontimer(uint8_t VentPositionRequested) {
-    return ((((uint32_t)config->valveSwitchTime *100) * VentPositionRequested) / 2);
+uint16_t HBWValve::set_ontimer(uint8_t VentPositionRequested) {
+    return ((((uint16_t)config->valveSwitchTime) * VentPositionRequested) / 2);
 }
 
 
-uint32_t HBWValve::set_offtimer(uint32_t ontimer) {
-    return ((uint32_t)config->valveSwitchTime *10000 - ontimer);
+uint16_t HBWValve::set_offtimer(uint16_t ontimer) {
+    return ((uint16_t)config->valveSwitchTime *100 - ontimer);
 }

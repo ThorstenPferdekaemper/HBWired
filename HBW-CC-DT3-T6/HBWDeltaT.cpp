@@ -39,6 +39,7 @@ void HBWDeltaT::afterReadConfig()
   if (initDone == false)
   {
   // All off on init, but consider inverted setting
+    initDone = true;
     digitalWrite(pin, config->n_inverted ? LOW : HIGH);   // 0=inverted, 1=not inverted
     pinMode(pin,OUTPUT);
     currentState = OFF;
@@ -48,7 +49,6 @@ void HBWDeltaT::afterReadConfig()
   // Do not reset outputs on config change (EEPROM re-reads), but update its state
     digitalWrite(pin, !currentState ^ config->n_inverted);
   }
-  initDone = true;
   
   // channel is disabled by default. Valid values must be set when being enabled...
 //  if (config->deltaHys == 31)  config->deltaHys = 6; // 0.6°C
@@ -148,12 +148,11 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 };
 
 /* standard public function - called by device main loop for every channel in sequential order */
-void HBWDeltaTx::loop(HBWDevice* device, uint8_t channel)
-{
-  asm ("nop");
-  //uint32_t now = millis();
-  // TODO add error handling if no new temperature was set after n tries or x time?
-};
+// void HBWDeltaTx::loop(HBWDevice* device, uint8_t channel)
+// {
+  // //uint32_t now = millis();
+  // // TODO add error handling if no new temperature was set after n tries or x time?
+// };
 
 
 /* set the output port, if different to current state */
@@ -220,5 +219,6 @@ bool HBWDeltaT::calculateNewState()
     }
     return true;
   }
-  return stateFlags.element.mode; // retun the state currently set - no change
+  else
+    return currentState; // retun the state currently set - no change
 }

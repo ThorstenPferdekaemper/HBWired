@@ -127,10 +127,10 @@ void HBSwSerDevice::afterReadConfig() {
 
 HBSwSerDevice* device = NULL;
 
-
 // SHIFT_REGISTER_CLASS defined in "HBWSwitchSerialAdvanced.h"
 SHIFT_REGISTER_CLASS* myShReg_one = new SHIFT_REGISTER_CLASS(shiftRegOne_Data, shiftRegOne_Clock, shiftRegOne_Latch);
 SHIFT_REGISTER_CLASS* myShReg_two = new SHIFT_REGISTER_CLASS(shiftRegTwo_Data, shiftRegTwo_Clock, shiftRegTwo_Latch);
+
 
 void setup()
 {

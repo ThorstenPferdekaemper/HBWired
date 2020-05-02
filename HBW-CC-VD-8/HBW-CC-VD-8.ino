@@ -25,7 +25,7 @@
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
 #define NUMBER_OF_VD_CHAN NUMBER_OF_PID_CHAN   // output channels - valve actuator (has to be same amount as PIDs)
-#define NUMBER_OF_TEMP_CHAN 6  // input channels - 1-wire temperature sensors
+#define NUMBER_OF_TEMP_CHAN 8  // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 
 #define NUM_LINKS_PID 20    // address step 7

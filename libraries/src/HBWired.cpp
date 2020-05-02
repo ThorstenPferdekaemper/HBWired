@@ -586,7 +586,7 @@ void HBWDevice::receiveInfoEvent(uint32_t senderAddress, uint8_t srcChan,
 void HBWDevice::receiveKeyEvent(uint32_t senderAddress, uint8_t srcChan, 
                                 uint8_t dstChan, uint8_t keyPressNum, boolean longPress) {
     if(dstChan >= numChannels)  return;  // don't inhibit/lock or waste time search peerings for non exiting (target) channels
-	if(channels[dstChan]->getLock())  return;
+    if(channels[dstChan]->getLock())  return;
     if(linkReceiver)
         linkReceiver->receiveKeyEvent(this, senderAddress, srcChan, dstChan, keyPressNum, longPress);
 };
