@@ -1,5 +1,5 @@
 /*
- * HBWAnalogIn.cpp
+ * HBWAnalogIn.h
  * 
  * analog input channel, max. 16 bit reading
  * 

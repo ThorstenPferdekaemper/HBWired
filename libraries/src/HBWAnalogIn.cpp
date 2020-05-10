@@ -3,7 +3,7 @@
  * 
  * analog input channel, max. 16 bit reading
  * 
- * Updated: 29.09.2018
+ * Updated: 10.05.2020
  * www.loetmeister.de
  * 
  */
@@ -65,8 +65,8 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
     while (i);
     
     currentValue = sum / MAX_SAMPLES;
-    nextActionDelay = config->update_interval;	// "sleep" until next update
-    nextActionDelay = (config->update_interval == 0) ? DEFAULT_UPDATE_INTERVAL/10 : config->update_interval;
+    // "sleep" until next update
+    nextActionDelay = (config->update_interval == 0 || config->update_interval == 255) ? DEFAULT_UPDATE_INTERVAL/10 : config->update_interval;
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("adc-ch:"));
