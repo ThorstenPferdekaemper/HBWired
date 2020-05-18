@@ -16,7 +16,7 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define SAMPLE_INTERVAL 2  // seconds * 3 samples
+#define SAMPLE_INTERVAL 3  // seconds * 3 samples
 #define DEFAULT_UPDATE_INTERVAL 300  // seconds
 
 // address step 6
@@ -41,7 +41,7 @@ class HBWAnalogIn : public HBWChannel {
     uint8_t pin;   // Pin
     hbw_config_analog_in* config;
     uint32_t lastActionTime;
-    uint8_t nextActionDelay;
+    uint16_t nextActionDelay;
     uint16_t currentValue;  // store last result (average)
     uint16_t lastSendValue;  // result that has been send (average)
     uint32_t lastSentTime;  // last time of successful send

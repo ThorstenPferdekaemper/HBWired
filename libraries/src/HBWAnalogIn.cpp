@@ -26,7 +26,7 @@ HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
 // channel specific settings or defaults
 void HBWAnalogIn::afterReadConfig() {
   if (config->update_interval == 0xFF)  config->update_interval = DEFAULT_UPDATE_INTERVAL/10;
-  if (config->send_delta_value == 0xFF) config->send_delta_value = 10;  // delta as value/10 (consider factor in XML!)
+  if (config->send_delta_value == 0xFF) config->send_delta_value = 100;  // delta as raw ADC value (consider factor in XML!)
   if (config->send_max_interval == 0xFFFF) config->send_max_interval = DEFAULT_UPDATE_INTERVAL *2;  // not faster than update interval
   if (config->send_min_interval == 0xFF) config->send_min_interval = 30 /10;  // 30 seconds (send_min_interval has 10 seconds stepping)
 };
@@ -56,10 +56,11 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   // check if some values have to be send - do not send before min interval
   if (config->send_min_interval && now - lastSentTime <= (uint32_t)config->send_min_interval * 10000)  return;
   if ((config->send_max_interval && now - lastSentTime >= (uint32_t)config->send_max_interval * 1000) ||
-      (config->send_delta_value && abs( currentValue - lastSendValue ) >= (unsigned int)(config->send_delta_value) * 10)) {
+      (config->send_delta_value && abs( currentValue - lastSendValue ) >= (unsigned int)config->send_delta_value)) {
     // send new value
-    //get(level); - using currentValue instead...
-    if (device->sendInfoMessage(channel, sizeof(currentValue), (uint8_t*) &currentValue) != HBWDevice::BUS_BUSY) {
+    static uint8_t level[2];
+	get(level);
+    if (device->sendInfoMessage(channel, sizeof(level), level) != HBWDevice::BUS_BUSY) {
       lastSendValue = currentValue;   // store last value only on success
     }
     lastSentTime = now;   // if send failed, next try will be on send_max_interval or send_min_interval in case the value changed (send_delta_value)
@@ -70,7 +71,7 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
 #endif
   }
   
-  if (now - lastActionTime < ((uint32_t)nextActionDelay *10000)) return; // quit if wait time not yet passed
+  if (now - lastActionTime < ((uint32_t)nextActionDelay *1000)) return; // quit if wait time not yet passed
     
   nextActionDelay = SAMPLE_INTERVAL;
   #define MAX_SAMPLES 3    // update "buffer" array definition, when changing this
@@ -91,7 +92,7 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
     
     currentValue = sum / MAX_SAMPLES;
     // "sleep" until next update
-    nextActionDelay = config->update_interval;
+    nextActionDelay = config->update_interval *10;
     
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("adc-ch:"));  hbwdebug(channel);  hbwdebug(F(" measured:"));  hbwdebug(currentValue);  hbwdebug(F("\n"));
