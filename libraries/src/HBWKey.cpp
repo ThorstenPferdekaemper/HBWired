@@ -5,6 +5,8 @@
  * - Added: input_locked, n_inverted, input_type (SWITCH, MOTIONSENSOR, DOORSENSOR)
  * - Changes require new XML layout for config!
  * 
+ * Updated (www.loetmeister.de): 19.05.2020
+ * - Added resend capability on busy bus, for MOTIONSENSOR and DOORSENSOR input_type
  */
 
 #include "HBWKey.h"
@@ -38,121 +40,119 @@ void HBWKey::afterReadConfig(){
 
 void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   
-  uint32_t now = millis();
+  if (!config->n_input_locked)  return;  // skip locked channels
   
-  if (config->n_input_locked) {   // skip locked channels
-    
-    bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
-    buttonState = activeHigh ^ buttonState;
-    
-    switch (config->input_type) {
-#ifdef IN_DOORSENSOR
-      case IN_DOORSENSOR:
-    // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
-        if (buttonState != oldButtonState) {
-          if (!keyPressedMillis) {
-            keyPressedMillis = now ? now : 1;
-          }
-          else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+  uint32_t now = millis();
+  if (now == 0) now = 1;  // do not allow time=0 for the below code // AKA  "der Teufel ist ein Eichhoernchen"
+  
+  bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
+  buttonState = activeHigh ^ buttonState;
+  
+  switch (config->input_type) {
+    case DOORSENSOR:
+  // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
+      if (buttonState != oldButtonState) {
+        if (!keyPressedMillis) {
+          keyPressedMillis = now;
+        }
+        else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+          if (device->sendKeyEvent(channel, keyPressNum, !buttonState) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             oldButtonState = buttonState;
-            // TODO: if bus is not idle, retry next time? (increment keyPressNum and update lastSentLong only on success of sendKeyEvent?)
-            device->sendKeyEvent(channel, keyPressNum, !buttonState);
           }
         }
-        else {
-          keyPressedMillis = 0;
+      }
+      else {
+        keyPressedMillis = 0;
+      }
+      break;
+  
+    case SWITCH:
+  // sends a short KeyEvent, each time the switch changes the polarity
+      if (buttonState) {
+        if (!keyPressedMillis) {
+         // Taste war vorher nicht gedrueckt
+         keyPressedMillis = now;
         }
-        break;
-#endif
-
-      case IN_SWITCH:
-    // sends a short KeyEvent, each time the switch changes the polarity
-        if (buttonState) {
-          if (!keyPressedMillis) {
-           // Taste war vorher nicht gedrueckt
-           keyPressedMillis = now ? now : 1;
-          }
-          else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
-            keyPressNum++;
-            lastSentLong = now ? now : 1;
-            device->sendKeyEvent(channel, keyPressNum, false);
-          }
+        else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
+          keyPressNum++;
+          lastSentLong = now;
+          device->sendKeyEvent(channel, keyPressNum, false);
         }
-        else {
-          if (lastSentLong) {
-            keyPressNum++;
-            lastSentLong = 0;
-            device->sendKeyEvent(channel, keyPressNum, false);
-          }
-          keyPressedMillis = 0;
+      }
+      else {
+        if (lastSentLong) {
+          keyPressNum++;
+          lastSentLong = 0;
+          device->sendKeyEvent(channel, keyPressNum, false);
         }
-        break;
-      
-      case IN_PUSHBUTTON:
-    // sends short KeyEvent on short press and (repeated) long KeyEvent on long press
-        if (buttonState) {
-          // d.h. Taste nicht gedrueckt
-          // "Taste war auch vorher nicht gedrueckt" kann ignoriert werden
-            // Taste war vorher gedrueckt?
-          if (keyPressedMillis) {
-            // entprellen, nur senden, wenn laenger als 50ms gedrueckt
-            // aber noch kein "long" gesendet
-            if (now - keyPressedMillis >= KEY_DEBOUNCE_TIME && !lastSentLong) {
-              keyPressNum++;
-              device->sendKeyEvent(channel, keyPressNum, false);
-            }
-            keyPressedMillis = 0;
-          }
-        }
-        else {
-          // Taste gedrueckt
-          // Taste war vorher schon gedrueckt
-          if (keyPressedMillis) {
-            // muessen wir ein "long" senden?
-            if (lastSentLong) {   // schon ein LONG gesendet
-              if (now - lastSentLong >= 300) {  // alle 300ms wiederholen
-                // keyPressNum nicht erhoehen
-                lastSentLong = now ? now : 1; // der Teufel ist ein Eichhoernchen
-                device->sendKeyEvent(channel, keyPressNum, true);  // long press
-              }
-            }
-            else if (now - keyPressedMillis >= long(config->long_press_time) * 100) {
-              // erstes LONG
-              keyPressNum++;
-              lastSentLong = now ? now : 1;
-              device->sendKeyEvent(channel, keyPressNum, true);  // long press
-            };
-          }
-          else {
-            // Taste war vorher nicht gedrueckt
-            keyPressedMillis = now ? now : 1; // der Teufel ist ein Eichhoernchen
-            lastSentLong = 0;
-          }
-        }
-        break;
+        keyPressedMillis = 0;
+      }
+      break;
     
-      case IN_MOTIONSENSOR:
-    // sends a short KeyEvent for raising or falling edge - not both
-        if (buttonState) {
-          if (!keyPressedMillis) {
-           // Taste war vorher nicht gedrueckt
-           keyPressedMillis = now ? now : 1;
-          }
-          else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
+    case PUSHBUTTON:
+  // sends short KeyEvent on short press and (repeated) long KeyEvent on long press
+      if (buttonState) {
+        // d.h. Taste nicht gedrueckt
+        // "Taste war auch vorher nicht gedrueckt" kann ignoriert werden
+          // Taste war vorher gedrueckt?
+        if (keyPressedMillis) {
+          // entprellen, nur senden, wenn laenger als 50ms gedrueckt
+          // aber noch kein "long" gesendet
+          if (now - keyPressedMillis >= KEY_DEBOUNCE_TIME && !lastSentLong) {
             keyPressNum++;
-            lastSentLong = now ? now : 1;
-            // TODO: if bus is not idle, retry next time? (increment keyPressNum and update lastSentLong only on success of sendKeyEvent?)
             device->sendKeyEvent(channel, keyPressNum, false);
-          }
-        }
-        else {
-          if (lastSentLong) {
-            lastSentLong = 0;
           }
           keyPressedMillis = 0;
         }
-        break; 
-    }
+      }
+      else {
+        // Taste gedrueckt
+        // Taste war vorher schon gedrueckt
+        if (keyPressedMillis) {
+          // muessen wir ein "long" senden?
+          if (lastSentLong) {   // schon ein LONG gesendet
+            if (now - lastSentLong >= 300) {  // alle 300ms wiederholen
+              // keyPressNum nicht erhoehen
+              lastSentLong = now;
+              device->sendKeyEvent(channel, keyPressNum, true);  // long press
+            }
+          }
+          else if (now - keyPressedMillis >= long(config->long_press_time) * 100) {
+            // erstes LONG
+            keyPressNum++;
+            lastSentLong = now;
+            device->sendKeyEvent(channel, keyPressNum, true);  // long press
+          };
+        }
+        else {
+          // Taste war vorher nicht gedrueckt
+          keyPressedMillis = now;
+          lastSentLong = 0;
+        }
+      }
+      break;
+  
+    case MOTIONSENSOR:
+  // sends a short KeyEvent for raising or falling edge - not both
+      if (buttonState) {
+        if (!keyPressedMillis) {
+         // Taste war vorher nicht gedrueckt
+         keyPressedMillis = now;
+        }
+        else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
+          if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY) {
+            keyPressNum++;
+            lastSentLong = now;
+          }
+        }
+      }
+      else {
+        if (lastSentLong) {
+          lastSentLong = 0;
+        }
+        keyPressedMillis = 0;
+      }
+      break; 
   }
 };
