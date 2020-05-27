@@ -86,7 +86,7 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_blind blindCfg[NUMBER_OF_BLINDS]; // 0x07-0x22 (address step 7)
-  hbw_config_analog_in adcInCfg[NUMBER_OF_ANALOG_CHAN]; // 0x23 - 0x24 (address step 2)
+  hbw_config_analog_in adcInCfg[NUMBER_OF_ANALOG_CHAN]; // 0x23 - 0x28 (address step 6)
 } hbwconfig;
 
 

@@ -16,7 +16,6 @@
 
 // Dimming channel
 HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
-  // : actionParameter( NULL )
 {
   pin = _pin;
   config = _config;
@@ -27,7 +26,6 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
   lastFeedbackTime = 0;
   
   StateMachine.init();
-  StateMachine.setCurrentState(UNKNOWN_STATE);
 
   currentOnLevelPrio = ON_LEVEL_PRIO_LOW;
   rampStepCounter = 0;
@@ -37,8 +35,8 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
 
 
 // channel specific settings or defaults
-void HBWDimmerAdvanced::afterReadConfig() {
-  
+void HBWDimmerAdvanced::afterReadConfig()
+{
   if (StateMachine.currentStateIs(UNKNOWN_STATE)) {
     // All off on init
     analogWrite(pin, LOW);
@@ -56,17 +54,12 @@ void HBWDimmerAdvanced::afterReadConfig() {
 void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
   if (length >= NUM_PEER_PARAMS) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
-  //if (length == sizeof(LinkCommand)) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS -> sizeof(LinkCommand) == 3??
 
     StateMachine.writePeerParamActionType(*(data));
     StateMachine.writePeerConfigParam(data[D_POS_peerConfigParam]);
     uint8_t currentKeyNum = data[NUM_PEER_PARAMS];
-   //TODO: new, add... test
-    /* LinkCommand const* cmd = (LinkCommand const*)data;
-     actionParameter = cmd->actionParameter;*/
 
     if (StateMachine.peerParam_getActionType() >1) {   // ACTION_TYPE
-    // if (actionParameter->actionType >1) {   // ACTION_TYPE
       if ((StateMachine.currentStateIs(JT_ON)) && (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && StateMachine.peerParam_onLevelPrioIsLow())) { 
             //do nothing in this case
             //TODO: optimize condition - reduce code size
@@ -132,7 +125,8 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     }
     else {  // action type: JUMP_TO_TARGET
       
-      // Assign values from peering (receiveKeyEvent)
+      // Assign values from peering (receiveKeyEvent), which we might need in main loop later on
+	  // TODO: change peering to point to EEPROM address of active peer - read needed values on demand, not store them in memory!
       StateMachine.onDelayTime = data[D_POS_onDelayTime];
       StateMachine.onTime = data[D_POS_onTime];
       StateMachine.offDelayTime = data[D_POS_offDelayTime];
@@ -333,7 +327,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
   
   unsigned long now = millis();
 
-  if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || StateMachine.getCurrentState() != StateMachine.getNextState()) {
+  if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || !StateMachine.noStateChange()) {
     
     if (StateMachine.getNextState() == FORCE_STATE_CHANGE) {
       rampStepCounter = 0;  // clear counter, when state change was forced
@@ -387,7 +381,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
         StateMachine.lastStateChangeTime = now;    // only update in blink mode
     }
     else {      
-      if (StateMachine.getCurrentState() == StateMachine.getNextState())  // no change to state, so must be time triggered
+      if (StateMachine.noStateChange())  // no change to state, so must be time triggered
         StateMachine.stateTimerRunning = false;
 
   #ifdef DEBUG_OUTPUT
@@ -592,7 +586,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
   static uint8_t level[2];	
   get(level);
-  if(device->sendInfoMessage(channel, 2, level) == HBWDevice::BUS_BUSY) {  // bus busy
+  if(device->sendInfoMessage(channel, sizeof(level), level) == HBWDevice::BUS_BUSY) {  // bus busy
   	nextFeedbackDelay = 250;  // try again later, but insert a small delay
   }
   else {

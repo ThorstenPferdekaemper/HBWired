@@ -63,7 +63,7 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
     if (device->sendInfoMessage(channel, sizeof(level), level) != HBWDevice::BUS_BUSY) {
       lastSendValue = currentValue;   // store last value only on success
     }
-    lastSentTime = now;   // if send failed, next try will be on send_max_interval or send_min_interval in case the value changed (send_delta_value)
+    lastSentTime = now;   // if send failed, next try will be on send_max_interval or send_min_interval in case the value is still different (send_delta_value)
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("adc-ch: "));  hbwdebug(channel);

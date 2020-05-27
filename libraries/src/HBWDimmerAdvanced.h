@@ -102,48 +102,6 @@ class HBWDimmerAdvanced : public HBWChannel {
        TOGGLEDIM_INVERS_TO_COUNTER
     };
 
-    /*struct ActionParameter
-    {
-       uint8_t actionType    : 4;
-       uint8_t   : 1;
-       uint8_t multiExecute  : 1;
-       uint8_t offTimeMode   : 1;
-       uint8_t onTimeMode    : 1;
-       uint8_t onDelayTime;
-       uint8_t onTime;
-       uint8_t offDelayTime;
-       uint8_t offTime;
-       uint8_t jtOnDelay  : 3;
-       uint8_t jtOn       : 3;
-       uint8_t jtOffDelay : 3;
-       uint8_t jtOff      : 3;
-       uint8_t jtRampOn   : 3;
-       uint8_t jtRampOff  : 3;
-       uint8_t   :6;
-       uint8_t offLevel;
-       uint8_t onMinLevel;
-       uint8_t onLevel;
-       uint8_t onDelayMode   : 1;
-       uint8_t onLevelPrio   : 1;
-       uint8_t offDelayBlink : 1;
-       uint8_t    : 1;
-       uint8_t rampStartStep :4;
-       uint8_t rampOnTime;
-       uint8_t rampOffTime;
-       uint8_t dimMinLevel;
-       uint8_t dimMaxLevel;
-       uint8_t dimStep      :4;
-       uint8_t offDelayStep  :4;
-       uint8_t offDelayNewTime :4;
-       uint8_t offDelayOldTime  :4;
-    };
- 
-    struct LinkCommand
-    {
-       uint8_t keyNum;
-       ActionParameter* actionParameter;
-    };*/
-
 
   private:
     uint8_t pin;
@@ -160,7 +118,6 @@ class HBWDimmerAdvanced : public HBWChannel {
     uint8_t dimUpDown(uint8_t const * const data, boolean dimUp);
     void prepareOnOffRamp(uint8_t rampTime, uint8_t level);
     
-    // ActionParameter const* actionParameter;
     uint8_t rampOnTime;
     uint8_t rampOffTime;
     uint8_t dimMinLevel;
