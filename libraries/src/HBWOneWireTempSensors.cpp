@@ -104,16 +104,14 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
 /**
  * write sensor addresses from memory into EEPROM - for new devices only
  */
-    uint8_t startaddress = address_start + (sizeof(*_config[0]) - OW_DEVICE_ADDRESS_SIZE) + (sizeof(*_config[0]) * channel);
+    int startaddress = address_start + (sizeof(*_config[0]) - OW_DEVICE_ADDRESS_SIZE) + (sizeof(*_config[0]) * channel);
     
   #ifdef DEBUG_OUTPUT
   hbwdebug(F(" save to EEPROM, @startaddress: "));  hbwdebughex(startaddress);  hbwdebug(F("\n"));
   #endif
-    byte* ptr = (byte*) (_config[channel]->address);
-    for (uint8_t addr = startaddress ; addr < (startaddress + OW_DEVICE_ADDRESS_SIZE); addr++) {
+    for (uint8_t i = 0 ; i < OW_DEVICE_ADDRESS_SIZE; i++) {
       // EEPROM read, write if different
-      if (*ptr != EEPROM.read(addr))  EEPROM.write(addr, *ptr);
-      ptr++;
+      EEPROM.update(startaddress +i, _config[channel]->address[i]);
     }
     
   } // while (1)
