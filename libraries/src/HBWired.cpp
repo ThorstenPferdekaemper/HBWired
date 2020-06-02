@@ -819,7 +819,7 @@ void HBWDevice::handleBroadcastAnnounce() {
    // avoid sending broadcast in the first second
    if(millis() < 1000) return;
    // send methods return 0 if everything is ok
-   pendingActions.announced = (broadcastAnnounce(0) == 0);
+   pendingActions.announced = (broadcastAnnounce(0) == SUCCESS);
 }
 
 
@@ -1031,7 +1031,7 @@ void HBWDevice::handleConfigButton() {
           if(now - lastTime > 5000) configButtonStatus = 2;
       }else{              // nicht mehr gedrueckt
           if(now - lastTime > 100)   // announce on short press
-              broadcastAnnounce(0);
+              pendingActions.announced = false;
         configButtonStatus = 0;
       };
       break;

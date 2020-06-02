@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-LC-Bl-4" name="RS485 blind actuator 4-channel">
 		<parameter const_value="0x82" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="1" size="1" index="1"/>
-		<parameter const_value="0x0032" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
+		<parameter const_value="0x0033" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -264,39 +264,60 @@
 		</paramset>
 	</channel>
 	<channel index="5" physical_index_offset="-1" count="1" type="MODULE BUS VOLTAGE">	<!-- module voltage chan (variant of analog input channel) -->
-		<paramset type="MASTER" id="hmw_analog_ch_master" address_start="0x23" address_step="2">
-		    <parameter id="INPUT_ENABLED">
-				<logical type="boolean" default="true"/>
-				<physical size="0.1" type="integer" interface="eeprom">
+		<paramset type="MASTER" id="hmw_analog_ch_master" address_start="0x23" address_step="6">
+			<parameter id="SEND_DELTA_VALUE">
+				<logical type="float" default="2.73" min="0.1" max="6.9">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+0.0"/>
 				</physical>
-				<conversion type="boolean_integer" invert="true"/>
+				<conversion type="float_integer_scale" factor="36.66"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="100" device_value="0xff"/>
+				</conversion>
 			</parameter>
-			<parameter id="NOTIFY">
-				<logical type="option">
-					<option id="ON"/>
-					<option id="OFF" default="true"/>
+			<parameter id="SEND_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="600" min="10" max="3600">
+					<special_value id="NOT_USED" value="0"/>
 				</logical>
-				<physical size="0.1" type="integer" interface="eeprom">
-					<address index="+0.1"/>
-				</physical>
-			</parameter>
-			<parameter id="UPDATE_INTERVAL">
-				<logical type="integer" default="300" min="10" max="2540" unit="s"/>
-				<physical size="1.0" type="integer" interface="eeprom">
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
 					<address index="+1.0"/>
 				</physical>
-				<conversion type="integer_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="600" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_MIN_INTERVAL">
+			   <logical type="integer" unit="s" default="30" min="10" max="2540">
+					<special_value id="NOT_USED" value="0"/>
+			   </logical>
+			   <physical size="1.0" type="integer" interface="eeprom">
+					<address index="+3.0"/>
+			   </physical>
+				<conversion type="float_integer_scale" factor="0.1"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="UPDATE_INTERVAL">
+				<logical type="integer" default="300" min="10" max="2540" unit="s">
+					<special_value id="INPUT_DISABLED" value="0"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+4.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1"/>
 			</parameter>
 		</paramset>
 		<paramset type="VALUES" id="hmw_busvoltage_input_values">
 			<parameter id="VALUE" operations="read,event">
-				<logical type="float" min="0.0" max="1023.0"/>
+				<logical type="float" min="0.0" max="27.9"/>
 				<physical type="float" interface="command" value_id="ANALOGVALUE">
 					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
 					<event frame="ANALOG_EVENT"/>
 				</physical>
-				<conversion type="float_integer_scale" factor="36.66"/>
+				<conversion type="float_integer_scale" factor="36.66"/> <!-- based on 10bit ADC -->
 			</parameter>
 		</paramset>
 	</channel>

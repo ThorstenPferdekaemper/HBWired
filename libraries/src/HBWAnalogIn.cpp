@@ -3,7 +3,7 @@
  * 
  * analog input channel, max. 16 bit reading
  * 
- * Updated: 29.09.2018
+ * Updated: 17.05.2020
  * www.loetmeister.de
  * 
  */
@@ -17,14 +17,19 @@ HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
   lastActionTime = 0;
   nextActionDelay = SAMPLE_INTERVAL *2; // initial dealy
   currentValue = 0;
+  lastSendValue = 0;
+  lastSentTime = 0;
   analogRead(pin);
 };
 
 
 // channel specific settings or defaults
-// void HBWAnalogIn::afterReadConfig() {
-  // if (config->update_interval == 0xFF || config->update_interval == 0)  config->update_interval = 30; // default 300 seconds
-// };
+void HBWAnalogIn::afterReadConfig() {
+  if (config->update_interval == 0xFF)  config->update_interval = DEFAULT_UPDATE_INTERVAL/10;
+  if (config->send_delta_value == 0xFF) config->send_delta_value = 100;  // delta as raw ADC value (consider factor in XML!)
+  if (config->send_max_interval == 0xFFFF) config->send_max_interval = DEFAULT_UPDATE_INTERVAL *2;  // not faster than update interval
+  if (config->send_min_interval == 0xFF) config->send_min_interval = 30 /10;  // 30 seconds (send_min_interval has 10 seconds stepping)
+};
 
 
 /* standard public function - returns length of data array. Data array contains current channel reading */
@@ -40,12 +45,33 @@ uint8_t HBWAnalogIn::get(uint8_t* data) {
 /* standard public function - called by main loop for every channel in sequential order */
 void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   
-  if (config->input_disabled) {   // skip disabled channels
+  if (config->update_interval == 0) {   // skip disabled channels
     currentValue = 0;
+    lastSendValue = 0;
     return;
   }
   
-  if (millis() - lastActionTime < ((uint32_t)nextActionDelay *10000)) return; // quit if wait time not yet passed
+  unsigned long now = millis();
+  
+  // check if some values have to be send - do not send before min interval
+  if (config->send_min_interval && now - lastSentTime <= (uint32_t)config->send_min_interval * 10000)  return;
+  if ((config->send_max_interval && now - lastSentTime >= (uint32_t)config->send_max_interval * 1000) ||
+      (config->send_delta_value && abs( currentValue - lastSendValue ) >= (unsigned int)config->send_delta_value)) {
+    // send new value
+    static uint8_t level[2];
+	get(level);
+    if (device->sendInfoMessage(channel, sizeof(level), level) != HBWDevice::BUS_BUSY) {
+      lastSendValue = currentValue;   // store last value only on success
+    }
+    lastSentTime = now;   // if send failed, next try will be on send_max_interval or send_min_interval in case the value is still different (send_delta_value)
+
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("adc-ch: "));  hbwdebug(channel);
+  hbwdebug(F(" sent: "));  hbwdebug(lastSendValue); lastSendValue == currentValue ? hbwdebug(F(" SUCCESS!\n")) : hbwdebug(F(" FAILED!\n"));
+#endif
+  }
+  
+  if (now - lastActionTime < ((uint32_t)nextActionDelay *1000)) return; // quit if wait time not yet passed
     
   nextActionDelay = SAMPLE_INTERVAL;
   #define MAX_SAMPLES 3    // update "buffer" array definition, when changing this
@@ -53,7 +79,7 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   static uint8_t nextIndex = 0;
   
   buffer[nextIndex++] = analogRead(pin);
-  lastActionTime = millis();
+  lastActionTime = now;
   
   if (nextIndex >= MAX_SAMPLES) {
     nextIndex = 0;
@@ -65,15 +91,11 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
     while (i);
     
     currentValue = sum / MAX_SAMPLES;
-    nextActionDelay = config->update_interval;	// "sleep" until next update
-    nextActionDelay = (config->update_interval == 0) ? DEFAULT_UPDATE_INTERVAL/10 : config->update_interval;
-
+    // "sleep" until next update
+    nextActionDelay = config->update_interval *10;
+    
 #ifdef DEBUG_OUTPUT
-  hbwdebug(F("adc-ch:"));
-  hbwdebug(channel);
-  hbwdebug(F(" Val:"));
-  hbwdebug(currentValue);
-  hbwdebug(F("\n"));
+  hbwdebug(F("adc-ch:"));  hbwdebug(channel);  hbwdebug(F(" measured:"));  hbwdebug(currentValue);  hbwdebug(F("\n"));
 #endif
   }
 };

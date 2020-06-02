@@ -33,7 +33,7 @@ void HBWOneWireTemp::afterReadConfig() {
       action = ACTION_START_CONVERSION; // start with new conversion, maybe the previous sensor was removed...
       
   #ifdef DEBUG_OUTPUT
-  hbwdebug(F("conf_OW addr: "));  m_hbwdebug_ow_address(&config->address[0]);  hbwdebug(F("\n"));
+  hbwdebug(F("conf_OW-addr: "));  m_hbwdebug_ow_address(&config->address[0]);  hbwdebug(F("\n"));
   #endif
 };
 
@@ -44,7 +44,12 @@ void HBWOneWireTemp::afterReadConfig() {
  */
 void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config, uint8_t channels, uint8_t address_start) {
   
-  if (ow == NULL)  return;
+  if (ow == NULL) {
+    #ifdef DEBUG_OUTPUT
+    hbwdebug(F("Warning. No OW bus defined!\n"));
+    #endif
+    return;
+  }
   
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("OW sensorSearch\n"));
@@ -61,7 +66,7 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
     for (channel = 0; channel < channels; channel++) {
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
-  hbwdebug(F(" stored address: "));  m_hbwdebug_ow_address(&_config[channel]->address[0]);  hbwdebug(F("\n"));
+  hbwdebug(F(" stored ow-addr: "));  m_hbwdebug_ow_address(&_config[channel]->address[0]);  hbwdebug(F("\n"));
   #endif
       if (deviceInvalidOrEmptyID(_config[channel]->address[0])) break;   // free slot found
     }
@@ -99,16 +104,14 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
 /**
  * write sensor addresses from memory into EEPROM - for new devices only
  */
-    uint8_t startaddress = address_start + (sizeof(*_config[0]) - OW_DEVICE_ADDRESS_SIZE) + (sizeof(*_config[0]) * channel);
+    int startaddress = address_start + (sizeof(*_config[0]) - OW_DEVICE_ADDRESS_SIZE) + (sizeof(*_config[0]) * channel);
     
   #ifdef DEBUG_OUTPUT
   hbwdebug(F(" save to EEPROM, @startaddress: "));  hbwdebughex(startaddress);  hbwdebug(F("\n"));
   #endif
-    byte* ptr = (byte*) (_config[channel]->address);
-    for (uint8_t addr = startaddress ; addr < (startaddress + OW_DEVICE_ADDRESS_SIZE); addr++) {
+    for (uint8_t i = 0 ; i < OW_DEVICE_ADDRESS_SIZE; i++) {
       // EEPROM read, write if different
-      if (*ptr != EEPROM.read(addr))  EEPROM.write(addr, *ptr);
-      ptr++;
+      EEPROM.update(startaddress +i, _config[channel]->address[i]);
     }
     
   } // while (1)

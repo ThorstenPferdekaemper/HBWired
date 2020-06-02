@@ -37,7 +37,7 @@
 
 
 class HBWlibStateMachine {
-	public:
+    public:
     /* convert time value stored in EEPROM to milliseconds (used for state machine) */
     inline uint32_t convertTime(uint8_t timeValue) {
       
@@ -46,15 +46,15 @@ class HBWlibStateMachine {
     
       // factors: 1,60,1000,6000 (last one is not used)
       switch (factor) {
-    	case 0:          // x1
-    	  return (uint32_t)timeValue *1000;
-    	  break;
-    	case 64:         // x60
-    	  return (uint32_t)timeValue *60000;
-    	  break;
-    	case 128:        // x1000
-    	  return (uint32_t)timeValue *1000000;
-    	  break;
+        case 0:          // x1
+          return (uint32_t)timeValue *1000;
+          break;
+        case 64:         // x60
+          return (uint32_t)timeValue *60000;
+          break;
+        case 128:        // x1000
+          return (uint32_t)timeValue *1000000;
+          break;
     //    case 192:        // not used value
     //      return 0; // TODO: check how to handle this properly, what does on/off time == 0 mean? infinite on/off??
     //      break;
@@ -89,8 +89,8 @@ class HBWlibStateMachine {
     
 
     /* read jump target entry - set by peering (used for state machine) */
-	/* on & off values could de different per device type (e.g. switch, dimmer) and need to be provided to the function *
-	* TODO: check if possible to use global definition in the sketch or device specific definition file with Arduino... */
+    /* on & off values could de different per device type (e.g. switch, dimmer) and need to be provided to the function *
+    * TODO: check if possible to use global definition in the sketch or device specific definition file with Arduino... */
     inline uint8_t getJumpTarget(uint8_t bitshift, const uint8_t jt_on_value, const uint8_t jt_off_value) {
       
       uint8_t nextJump = ((jumpTargets.DWORD >>bitshift) & B00000111);
@@ -123,6 +123,7 @@ class HBWlibStateMachine {
       stateChangeWaitTime = 0;
       lastStateChangeTime = 0;
       lastKeyNum = 0;
+      currentState = UNKNOWN_STATE;
     }
     
     union {
@@ -160,6 +161,9 @@ class HBWlibStateMachine {
     }
     inline void keepCurrentState() {
       nextState = currentState;
+    }
+    inline boolean noStateChange() {
+      return (nextState == currentState);
     }
     inline void forceStateChange() {
       nextState = FORCE_STATE_CHANGE; // force update

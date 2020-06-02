@@ -26,10 +26,12 @@
 // - added level option in peering to set target value
 // v0.5
 // - added one analog channel for bus voltage measurement
+// v0.51
+// - more configuration options for analog channel (need new XML)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0032
+#define FIRMWARE_VERSION 0x0033
 #define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 4
@@ -84,7 +86,7 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_blind blindCfg[NUMBER_OF_BLINDS]; // 0x07-0x22 (address step 7)
-  hbw_config_analog_in adcInCfg[NUMBER_OF_ANALOG_CHAN]; // 0x23 - 0x24 (address step 2)
+  hbw_config_analog_in adcInCfg[NUMBER_OF_ANALOG_CHAN]; // 0x23 - 0x28 (address step 6)
 } hbwconfig;
 
 

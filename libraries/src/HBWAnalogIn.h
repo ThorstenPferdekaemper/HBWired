@@ -1,5 +1,5 @@
 /*
- * HBWAnalogIn.cpp
+ * HBWAnalogIn.h
  * 
  * analog input channel, max. 16 bit reading
  * 
@@ -16,15 +16,16 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define SAMPLE_INTERVAL 2  // seconds * 3 samples
+#define SAMPLE_INTERVAL 3  // seconds * 3 samples
 #define DEFAULT_UPDATE_INTERVAL 300  // seconds
 
-
+// address step 6
 struct hbw_config_analog_in {
-  uint8_t input_disabled:1;     // 0x07:0   1=DISABLED (default), 0=ENABLED
-  uint8_t notify_disabled:1;   // 0x07:1   1=DISABLED (default), 0=ENABLED
-  uint8_t        :6;      // 0x07:2-7
+  uint8_t send_delta_value;        // Differenz des Messwerts, ab dem gesendet wird
+  uint16_t send_max_interval;     // Maximum-Sendeintervall
+  uint8_t send_min_interval;     // Minimum-Sendeintervall (factor 10, range 10 to 2540 seconds)
   uint8_t update_interval;  // factor 10, range 10 to 2540 seconds //TODO: 10 seconds stepping is ok?
+  uint8_t dummy;
 };
 
 
@@ -34,14 +35,16 @@ class HBWAnalogIn : public HBWChannel {
     HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config);
     virtual uint8_t get(uint8_t* data);
     virtual void loop(HBWDevice*, uint8_t channel);
-    // virtual void afterReadConfig();
+    virtual void afterReadConfig();
     
   private:
     uint8_t pin;   // Pin
     hbw_config_analog_in* config;
     uint32_t lastActionTime;
-    uint8_t nextActionDelay;
+    uint16_t nextActionDelay;
     uint16_t currentValue;  // store last result (average)
+    uint16_t lastSendValue;  // result that has been send (average)
+    uint32_t lastSentTime;  // last time of successful send
 };
 
 #endif

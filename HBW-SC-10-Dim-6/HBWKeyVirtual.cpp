@@ -47,10 +47,11 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
     hbwdebug(F("\n"));
   #endif
 
-      keyPressNum++;
-      lastSentLong = sendLong;
-      device->sendKeyEvent(channel, keyPressNum, sendLong);
-      
+      if (device->sendKeyEvent(channel, keyPressNum, sendLong) != HBWDevice::BUS_BUSY) {
+        keyPressNum++;
+        lastSentLong = sendLong;
+      //device->sendKeyEvent(channel, keyPressNum, sendLong);
+      }
       //forceUpdate = false;
     }
   }

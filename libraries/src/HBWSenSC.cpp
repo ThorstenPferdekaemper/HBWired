@@ -89,9 +89,10 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
     else {
       keyPressedMillis = 0;
     }
+    
     // feedback trigger set?
     if(!nextFeedbackDelay) return;
-    if(millis() - lastFeedbackTime < nextFeedbackDelay *10) return;
+    if(millis() - lastFeedbackTime < ((uint32_t)nextFeedbackDelay *10)) return;
     lastFeedbackTime = millis();  // at least last time of trying
     // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
     // we know that the level has only 1 byte here
