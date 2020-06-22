@@ -19,6 +19,7 @@
 
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
+
 #define FIXED_SAMPLE_TIME
 #define PID_SAMPLE_TIME 2000 // pid compute every 2 sec
 
@@ -29,8 +30,8 @@ struct hbw_config_pid {
   uint16_t kp;    // proportional
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
-  uint16_t windowSize;  // TODO: reduce to 1byte? (use 10 seconds steps? = max 2540 seconds. Or 30 seconds stepping?)
-  //TODO: add default setPoint 0...25.5°C
+  uint8_t windowSize;  // 10 seconds steps = max 2540 seconds (windowSize == CYCLE_TIME in XML)
+  uint8_t setPoint; // default setPoint (range 0...25.4°C)
 };
 
 

@@ -18,6 +18,7 @@ HBWPids::HBWPids(HBWValve* _valve, hbw_config_pid* _config)
   valve = _valve;
   
   windowStartTime = 0;
+  lastPidTime = 0;
   oldInAuto = 0; // we switch to MANUAL in error Position. Store the old value here
   initDone = false;
   inErrorState = 0;
@@ -28,7 +29,6 @@ HBWPids::HBWPids(HBWValve* _valve, hbw_config_pid* _config)
  #ifndef FIXED_SAMPLE_TIME
   sampleTime = PID_SAMPLE_TIME;
  #endif
-  setPoint = 2200; // what default? 22.00°C
 }
 
 
@@ -41,18 +41,25 @@ void HBWPids::afterReadConfig()
   if (config->kp == 0xFFFF)  config->kp = 1000;
   if (config->ki == 0xFFFF)  config->ki = 50; //todo do i need size 2 for autotune 0,5
   if (config->kd == 0xFFFF)  config->kd = 10; //dito 0,1
-  if (config->windowSize > 10000 || config->windowSize < 5)  config->windowSize = 600; // 10min
+  if (config->windowSize == 0xFF || config->windowSize == 0)  config->windowSize = 60; // 10min
 
-	setOutputLimits((uint32_t) config->windowSize * 1000);
-	setTunings((float) config->kp, (float) config->ki / 100, (float) config->kd / 100);
+  setOutputLimits((uint32_t) config->windowSize * 10000);
+  setTunings((float) config->kp, (float) config->ki / 100, (float) config->kd / 100);
 
   if (!initDone)  // only on device start - avoid to overwrite current output or inAuto mode
   {
+    setPoint = (config->setPoint == 0xFF) ? 2100 : (int16_t) config->setPoint *10;
     inAuto = config->startMode; // 1 automatic ; 0 manual
     valve->setPidsInAuto(inAuto);
     initDone = true;
   }
   setMode(inAuto);
+  
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("pid_cfg, windowSize: ")); hbwdebug(config->windowSize);
+  hbwdebug(F(" setPoint: ")); hbwdebug(setPoint);
+  hbwdebug(F("\n"));
+#endif
 }
 
 
@@ -128,7 +135,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
 	// so make a delay between channels
 	if (windowStartTime == 0) {
 	  windowStartTime = (uint32_t) millis() - ((channel + 1) * 3000);
-    lastPidTime = (uint32_t) millis() - sampleTime;
+    //lastPidTime = (uint32_t) millis() - sampleTime;
     
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("PID ch: ")); hbwdebug(channel);
@@ -170,9 +177,9 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   compute();
   
   // new window
-  if (millis() - windowStartTime > (uint32_t) config->windowSize * 1000)
+  if (millis() - windowStartTime > (uint32_t) config->windowSize * 10000)
   {
-    uint8_t valveStatus = (uint8_t) mymap(Output, (uint32_t) config->windowSize *1000, 200.0); //map from 0 to 200
+    uint8_t valveStatus = (uint8_t) mymap(Output, (uint32_t) config->windowSize *10000, 200.0); //map from 0 to 200
     if (inAuto) {   // only if inAuto (valve set() will only apply new level)
       valve->set(device, 1, &valveStatus, SET_BY_PID);  // setByPID = true
     }
@@ -180,7 +187,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("computePid ch: ")); hbwdebug(channel);
   hbwdebug(F(" inAuto: ")); hbwdebug(inAuto);
-  hbwdebug(F(" windowSize: ")); hbwdebug(config->windowSize);
+  hbwdebug(F(" windowSize: ")); hbwdebug((uint16_t)config->windowSize *10);
   hbwdebug(F(" output: ")); hbwdebug(Output);
   hbwdebug(F(" desiredValveLevel: ")); hbwdebug(valveStatus);
   hbwdebug(F(" input: ")); hbwdebug(Input);

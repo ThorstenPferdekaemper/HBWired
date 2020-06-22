@@ -4,7 +4,7 @@
 		<type name="RS485 8-channel PID Valve actuator" id="HBW-CC-VD8" priority="2">
 			<parameter index="0" size="1" const_value="0x97"/>
 			<parameter index="1" size="1" const_value="2"/>
-			<parameter index="2" size="2" cond_op="GE" const_value="0x0003"/>
+			<parameter index="2" size="2" cond_op="GE" const_value="0x0004"/>
 		</type>
 	</supported_types>
 	<paramset type="MASTER" id="HBW-CC-VD8_dev_master">
@@ -137,13 +137,24 @@
 				   </conversion>
 				</parameter>
 				<parameter id="CYCLE_TIME">
-				   <logical type="integer" min="2" max="10000" unit="s"/>
-				   <physical type="integer" size="2.0" interface="eeprom" endian="little">
-					  <address index="+7"/>
-				   </physical>
-				   <conversion type="integer_integer_map">
-					 <value_map device_value="0xffff" parameter_value="600" from_device="true" to_device="false"/>
-				   </conversion>
+					<logical type="integer" min="10" max="2540" unit="s"/>
+					<physical type="integer" size="1.0" interface="eeprom" endian="little">
+						<address index="+7"/>
+					</physical>
+					<conversion type="float_integer_scale" factor="0.1"/>
+					<conversion type="integer_integer_map">
+						<value_map device_value="0xff" parameter_value="60" from_device="true" to_device="false"/>
+					</conversion>
+				</parameter>
+				<parameter id="DEFAULT_SET_POINT">
+					<logical type="float" unit="&#x2103;" default="21.0" min="0.0" max="25.4"/>
+					<physical size="1.0" type="integer" interface="eeprom">
+						<address index="+8"/>
+					</physical>
+					<conversion type="float_integer_scale" factor="10"/>
+					<conversion type="integer_integer_map">
+						<value_map device_value="0xff" parameter_value="210" from_device="true" to_device="false"/>
+					</conversion>
 				</parameter>
 			</paramset>
 		
@@ -398,7 +409,7 @@
 			</paramset>
 		</channel>
 		
-		<channel index="17" physical_index_offset="-1" count="8" type="PID_TEMP">
+		<channel index="17" physical_index_offset="-1" count="8" type="TEMPSENSOR">
 			<link_roles>
 				<source name="TEST"/>
 			</link_roles>
@@ -425,7 +436,7 @@
 						<value_map device_value="0xff" parameter_value="127" from_device="true" to_device="false"/>
 					</conversion>
 				</parameter>
-				<parameter id="SEND_MIN_INTERVALL">
+				<parameter id="SEND_MIN_INTERVAL">
 					<logical type="integer" min="5" max="3600" default="10" unit="s">
 						<special_value id="NOT_USED" value="0"/>
 					</logical>
@@ -434,7 +445,7 @@
 				</physical>
 					<!--  <conversion type="float_integer_scale" factor="100"/> -->
 					<conversion type="integer_integer_map">
-						<value_map device_value="0xff" parameter_value="10" from_device="true" to_device="false"/>
+						<value_map device_value="0xffff" parameter_value="10" from_device="true" to_device="false"/>
 					</conversion>
 				</parameter>
 				<parameter id="SEND_MAX_INTERVALL">
@@ -446,7 +457,7 @@
 					</physical>
 					<!-- <conversion type="float_integer_scale" factor="100"/> -->
 					<conversion type="integer_integer_map">
-						<value_map device_value="0xff" parameter_value="150" from_device="true" to_device="false"/>
+						<value_map device_value="0xffff" parameter_value="150" from_device="true" to_device="false"/>
 					</conversion>
 				</parameter>
 				<parameter id="ONEWIRE_TYPE">
