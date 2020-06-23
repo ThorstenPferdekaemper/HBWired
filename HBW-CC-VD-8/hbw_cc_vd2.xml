@@ -40,11 +40,11 @@
 			<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMP"/>
 		</frame>
 		<frame id="LEVEL_SET" direction="to_device" type="#x" channel_field="10">
-			<parameter type="integer" index="11.0" size="1.0" param="STATE"/>
+			<parameter type="integer" index="11.0" size="1.0" param="LEVEL"/>
 		</frame>
 		<frame id="LEVEL_GET" direction="to_device" type="#S" channel_field="10"/>
 		<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
-			<parameter type="integer" index="11.0" size="1.0" param="STATE"/>
+			<parameter type="integer" index="11.0" size="1.0" param="LEVEL"/>
 			<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
 		</frame>
 		<frame id="KEY_EVENT_SHORT" direction="from_device" event="true" type="#K" channel_field="10">
@@ -287,9 +287,9 @@
 				</parameter>
 			</paramset>-->
 			<paramset type="VALUES" id="hmw_output_ch_values">
-        		<parameter id="VALVE" operations="read,write,event" control="VALVE.LEVEL">
+        		<parameter id="LEVEL" operations="read,write,event" control="VALVE.LEVEL">
 					<logical type="float" default="0.0" min="0.0" max="1.0" unit="100%"/>
-					<physical type="integer" interface="command" value_id="STATE">
+					<physical type="integer" interface="command" value_id="LEVEL">
 						<set request="LEVEL_SET"/>
 						<get request="LEVEL_GET" response="INFO_LEVEL"/>
 						<event frame="INFO_LEVEL"/>
