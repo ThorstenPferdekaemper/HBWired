@@ -19,6 +19,7 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
   outputChangeLastTime = 0;
   stateFlags.byte = 0;
   initDone = false;
+  clearFeedback();
   
   digitalWrite(pin, OFF);
   pinMode(pin, OUTPUT);
@@ -56,39 +57,38 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 // slighlty customized set() function, to allow PID channels to set level in automatic mode
 void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data, bool setByPID)
 {
-  if (config->unlocked || setByPID)
+  if (!config->unlocked || !setByPID) return;
+
+/* TODO: Check if we allow setting level always (even when inAuto), but use the AUTO flag to fallback to error_pos if no set() was called
+ * for some time when inAuto (? switch_time *x?). PIDs should still sync the inAuto flag, to not overwrite manual set levels */
+  if ((*data >= 0 && *data <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // right limits only if manual or setByPID
   {
-  /* TODO: Check if we allow setting level always (even when inAuto), but use the AUTO flag to fallback to error_pos if no set() was called
-   * for some time when inAuto (? switch_time *x?). PIDs should still sync the inAuto flag, to not overwrite manual set levels */
-    if ((*data >= 0 && *data <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // right limits only if manual or setByPID
+    setNewLevel(device, *data);
+    
+#ifdef DEBUG_OUTPUT
+hbwdebug(F("Valve set, level: ")); hbwdebug(valveLevel);
+hbwdebug(F(" inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
+#endif
+  }
+  else
+  {
+    switch (*data)
     {
-      setNewLevel(device, *data);
-      
-  #ifdef DEBUG_OUTPUT
-  hbwdebug(F("Valve set, level: ")); hbwdebug(valveLevel);
-  hbwdebug(F(" inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
-  #endif
+      case SET_TOGGLE_AUTOMATIC:    // toogle PID mode
+        stateFlags.element.inAuto = !stateFlags.element.inAuto;
+        break;
+      case SET_AUTOMATIC:
+        stateFlags.element.inAuto = AUTOMATIC;
+        break;
+      case SET_MANUAL:
+        stateFlags.element.inAuto = MANUAL;
+        break;
     }
-    else
-    {
-      switch (*data)
-      {
-        case SET_TOGGLE_AUTOMATIC:    // toogle PID mode
-          stateFlags.element.inAuto = !stateFlags.element.inAuto;
-          break;
-        case SET_AUTOMATIC:
-          stateFlags.element.inAuto = AUTOMATIC;
-          break;
-        case SET_MANUAL:
-          stateFlags.element.inAuto = MANUAL;
-          break;
-      }
-      setNewLevel(device, stateFlags.element.inAuto ? config->error_pos : valveLevel);
-      
-  #ifdef DEBUG_OUTPUT
-  hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
-  #endif
-    }
+    setNewLevel(device, stateFlags.element.inAuto ? config->error_pos : valveLevel);
+    
+#ifdef DEBUG_OUTPUT
+hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
+#endif
   }
 }
 
@@ -103,10 +103,7 @@ void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
 	//TODO: Add timestamp here (or  use lastFeedbackTime?), to keep track of updated valve position for anti-stick?
 
     // Logging
-    if(!nextFeedbackDelay && config->logging) {
-      lastFeedbackTime = millis();
-      nextFeedbackDelay = device->getLoggingTime() * 100;
-    }
+    setFeedback(device, config->logging);
   }
 }
 
@@ -122,7 +119,7 @@ uint8_t HBWValve::get(uint8_t* data)
 }
 
 
-// helper functions to allow integration with PID channels (access private variables)
+// helper functions to allow integration with PID channels (access to private variables)
 bool HBWValve::getPidsInAuto()
 {
   return stateFlags.element.inAuto;
@@ -138,7 +135,6 @@ void HBWValve::setPidsInAuto(bool newAuto)
 void HBWValve::loop(HBWDevice* device, uint8_t channel)
 {
 	uint32_t now = millis();
-  static uint8_t level[2];
 
   // startup handling. Only relevant if all channel remain at same error pos.
   if (outputChangeLastTime == 0 && outputChangeNextDelay == OUTPUT_STARTUP_DELAY) {
@@ -152,19 +148,7 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
   }
   
   // feedback trigger set?
-  if (!nextFeedbackDelay)  return;
-  if (now - lastFeedbackTime < nextFeedbackDelay)  return;
-  lastFeedbackTime = now;  // at least last time of trying
-  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-  // we know that the level has 2 byte here (value & state)
-  get(level);
-  if (device->sendInfoMessage(channel, 2, level) == HBWDevice::BUS_BUSY) {  // bus busy
-  // try again later, but insert a small delay
-    nextFeedbackDelay = 250;
-  }
-  else {
-    nextFeedbackDelay = 0;
-  }
+  checkFeedback(device, channel);
 }
 
 
@@ -177,11 +161,11 @@ void HBWValve::switchstate(bool State)
   isFirstState = false;
   digitalWrite(pin, stateFlags.element.status);
   
-  #ifdef DEBUG_OUTPUT
+ #ifdef DEBUG_OUTPUT
   hbwdebug(F("switchtstate, pin: ")); hbwdebug(pin);
   State == VENTOFF ? hbwdebug(F(" VENTOFF")) : hbwdebug(F(" VENTON"));
   hbwdebug(F(" next delay: ")); hbwdebug((uint32_t)outputChangeNextDelay *100); hbwdebug(F("\n"));
-  #endif
+ #endif
 }
 
 

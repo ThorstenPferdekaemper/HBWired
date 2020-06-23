@@ -91,23 +91,21 @@ class HBWValve : public HBWChannel {
     uint16_t outputChangeNextDelay;    // time until next state change
     uint16_t onTimer, offTimer;     // current calculated on and of duration
 
-    uint32_t lastFeedbackTime;  // when did we send the last feedback?
-    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
-    
     bool initDone;
     bool isFirstState;
     bool nextState;
 
-    union tag_state_flags {
+    union tag_state_flags {  // state_flags should not exeed one byte!
       struct state_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
         uint8_t upDown  :1; // Pid regelt hoch oder runter
         uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
         uint8_t status  :1; // outputs on or off?
+        //uint8_t fillup  :1; // not used
       } element;
       uint8_t byte:8;
     } stateFlags;
-    
+
     static const uint16_t OUTPUT_STARTUP_DELAY = 63;  // 63 == 6.3 seconds
     static const bool MANUAL = false;
     static const bool AUTOMATIC = true;
