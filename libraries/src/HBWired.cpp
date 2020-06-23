@@ -107,7 +107,6 @@ byte HBWDevice::sendFrame(boolean onlyIfIdle, uint8_t retries){
 
 // carrier sense
    if(onlyIfIdle) {
-	 //if(millis() - lastReceivedTime < minIdleTime)
 	 if(!busIsIdle())
 		 return BUS_BUSY;
 	 // set new idle time
@@ -397,6 +396,34 @@ void HBWChannel::setLock(boolean inhibit) { inhibitActive = inhibit; };
 boolean HBWChannel::getLock() { return inhibitActive; };
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
 void HBWChannel::afterReadConfig() {};
+
+// default logging/feedback functions
+void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled) {
+  if (!nextFeedbackDelay && loggingEnabled) {
+    lastFeedbackTime = millis();
+    nextFeedbackDelay = device->getLoggingTime() * 100;
+    // nextFeedbackDelay = HBWDevice::getLoggingTime() * 100;
+  }
+};
+void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
+  uint32_t now = millis();
+  if(!nextFeedbackDelay)  // feedback trigger set?
+    return;
+  if (now - lastFeedbackTime < nextFeedbackDelay)
+    return;
+  lastFeedbackTime = now;  // at least last time of trying
+  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
+  uint8_t data[16];
+  uint8_t data_len = get(data);
+  uint8_t errcode = device->sendInfoMessage(channel, data_len, data);   
+  if (errcode == HBWDevice::BUS_BUSY)  // bus busy
+  // try again later, but insert a small delay
+    nextFeedbackDelay = 250;
+  else
+    nextFeedbackDelay = 0;
+};
+void HBWChannel::clearFeedback() { lastFeedbackTime = 0; nextFeedbackDelay = 0; };
+
 
 
 void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {};

@@ -34,8 +34,16 @@ class HBWChannel {
 
     void setLock(boolean inhibit);
     boolean getLock();
+
   private:
     boolean inhibitActive = false;  // disables all peerings, if true (only applicable for actor channels)
+
+  protected:
+    uint32_t lastFeedbackTime;  // when did we send the last feedback?
+    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
+    void setFeedback(HBWDevice*, boolean loggingEnabled);  //  enable
+    void checkFeedback(HBWDevice*, uint8_t channel);  //  enable
+    void clearFeedback();  //  
 };
 
 
