@@ -406,17 +406,16 @@ void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled) {
   }
 };
 void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
-  uint32_t now = millis();
   if(!nextFeedbackDelay)  // feedback trigger set?
     return;
-  if (now - lastFeedbackTime < nextFeedbackDelay)
+  if (millis() - lastFeedbackTime < nextFeedbackDelay)
     return;
-  lastFeedbackTime = now;  // at least last time of trying
-  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-  uint8_t data[16];
+  lastFeedbackTime = millis();  // at least last time of trying
+  uint8_t data[7];  // TODO: set meaningfull value for data lenght (usual values are 2 bytes. 16 bit value or 8 bit value + 8 bit state_flags)
   uint8_t data_len = get(data);
-  uint8_t errcode = device->sendInfoMessage(channel, data_len, data);   
-  if (errcode == HBWDevice::BUS_BUSY)  // bus busy
+  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
+  uint8_t resultcode = device->sendInfoMessage(channel, data_len, data);   
+  if (resultcode == HBWDevice::BUS_BUSY)  // bus busy
   // try again later, but insert a small delay
     nextFeedbackDelay = 250;
   else

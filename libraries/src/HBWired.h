@@ -41,9 +41,9 @@ class HBWChannel {
   protected:
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
-    void setFeedback(HBWDevice*, boolean loggingEnabled);  //  enable
-    void checkFeedback(HBWDevice*, uint8_t channel);  //  enable
-    void clearFeedback();  //  
+    void setFeedback(HBWDevice*, boolean loggingEnabled);  //  set feedback trigger
+    void checkFeedback(HBWDevice*, uint8_t channel);  //  send sendInfoMessage, if feedback trigger is set
+    void clearFeedback();  //  reset/init feedback trigger values
 };
 
 
