@@ -45,8 +45,8 @@
 // HB Wired protocol and modules
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
-#include "HBWPids.h"
-#include "HBWValve.h"
+#include <HBWPids.h>
+#include <HBWValve.h>
 #include <HBWLinkInfoEventSensor.h>
 #include <HBWLinkInfoEventActuator.h>
 
