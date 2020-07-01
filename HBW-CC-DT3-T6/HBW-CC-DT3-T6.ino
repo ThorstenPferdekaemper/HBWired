@@ -17,14 +17,14 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0002
-#define HMW_DEVICETYPE 0x71 //device ID (make sure to import .xml into FHEM)
+#define HMW_DEVICETYPE 0x9C //device ID (make sure to import .xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 #define NUM_LINKS_TEMP 20    // requires Support_HBWLink_InfoEvent in HBWired.h
 #define LINKADDRESSSTART_TEMP 0x100  // step 6
 #define NUMBER_OF_DELTAT_CHAN 3 // result output channels[, can peer with switch]
-#define NUM_LINKS_DELTATX 6     // peer  input channels (T1 & T2) with temperature sensor
+#define NUM_LINKS_DELTATX 6     // allow to peer input channels (T1 & T2) with one temperature sensor each
 #define LINKADDRESSSTART_DELTATX 0x220  // step 7
 //#define NUMBER_OF_KEY_CHAN 3  // input channels - deltaT vKey [pushbutton/switch]
 //#define NUM_LINKS_KEY 12    // 3 DELTA_T KEY[, 9 for pushbutton/switch]
@@ -164,7 +164,6 @@ HBDTControlDevice* device = NULL;
 void setup()
 {
   // variables for all OneWire channels
-  //OneWire* g_ow = NULL;
   uint32_t g_owLastReadTime = 0;
   uint8_t g_owCurrentChannel = OW_CHAN_INIT; // always initialize with OW_CHAN_INIT value!
   OneWire* g_ow = new OneWire(ONEWIRE_PIN);
