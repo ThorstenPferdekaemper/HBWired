@@ -421,7 +421,7 @@ void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
   else
     nextFeedbackDelay = 0;
 };
-void HBWChannel::clearFeedback() { lastFeedbackTime = 0; nextFeedbackDelay = 0; };
+void HBWChannel::clearFeedback() { nextFeedbackDelay = 0; };
 
 
 

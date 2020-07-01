@@ -9,8 +9,7 @@
 HBWSwitch::HBWSwitch(uint8_t _pin, hbw_config_switch* _config) {
     pin = _pin;
     config = _config;
-    nextFeedbackDelay = 0;
-    lastFeedbackTime = 0;
+    clearFeedback();
     currentState = UNKNOWN_STATE;
 };
 
@@ -49,10 +48,8 @@ void HBWSwitch::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 		}
 	}
 	// Logging
-	if(!nextFeedbackDelay && config->logging) {
-		lastFeedbackTime = millis();
-		nextFeedbackDelay = device->getLoggingTime() * 100;
-	}
+	// set trigger to send info/notify message in loop()
+    setFeedback(device, config->logging);
 };
 
 
@@ -67,20 +64,6 @@ uint8_t HBWSwitch::get(uint8_t* data) {
 
 void HBWSwitch::loop(HBWDevice* device, uint8_t channel) {
 	// feedback trigger set?
-    if(!nextFeedbackDelay) return;
-    unsigned long now = millis();
-    if(now - lastFeedbackTime < nextFeedbackDelay) return;
-    lastFeedbackTime = now;  // at least last time of trying
-    // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-	// we know that the level has only 1 byte here
-	uint8_t level;
-    get(&level);	
-    uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
-    if(errcode == HBWDevice::BUS_BUSY) {  // bus busy
-    // try again later, but insert a small delay
-    	nextFeedbackDelay = 250;
-    }else{
-    	nextFeedbackDelay = 0;
-    }
+    checkFeedback(device, channel);
 }
 

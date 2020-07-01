@@ -17,8 +17,7 @@ HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _co
   blindDir = _blindDir;
   blindAct = _blindAct;
   config = _config;  
-  nextFeedbackDelay = 0;
-  lastFeedbackTime = 0;
+  clearFeedback();
   pinMode(blindAct,OUTPUT);
   digitalWrite(blindAct,OFF);
   pinMode(blindDir,OUTPUT);
@@ -255,11 +254,9 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
           }
         }
 
-        // send info message with current position
-        if(!nextFeedbackDelay && config->logging && !blindSearchingForRefPosition) {  // Logging only for final state (STOP state), don't send when searching ref. pos.
-          lastFeedbackTime = now;
-          nextFeedbackDelay = device->getLoggingTime() * 100;
-        }
+        // prepare to send info message with current position
+        if(!blindSearchingForRefPosition)  // Logging only for final state (STOP state), don't send when searching ref. pos.
+          setFeedback(device, config->logging);
 
         // switch off the "active" relay
         digitalWrite(blindAct, OFF);
@@ -309,23 +306,8 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel) {
       }
     }
   
-  // feedback trigger set?
-    if (!nextFeedbackDelay)
-      return;
-    if (now - lastFeedbackTime < nextFeedbackDelay)
-      return;
-    lastFeedbackTime = now;  // at least last time of trying
-    // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-    // we know that the level has 2 byte here
-    static uint8_t level[2];
-    get(level);
-    if (device->sendInfoMessage(channel, 2, level) == HBWDevice::BUS_BUSY) {  // bus busy
-    // try again later, but insert a small delay
-      nextFeedbackDelay = 250;
-    }
-    else {
-      nextFeedbackDelay = 0;
-    }
+  // handle feedback (sendInfoMessage)
+  checkFeedback(device, channel);
 }
 
 

@@ -52,8 +52,6 @@ class HBWSwitchAdvanced : public HBWChannel {
   private:
     uint8_t pin;
     hbw_config_switch* config; // logging
-    uint32_t lastFeedbackTime;  // when did we send the last feedback?
-    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
     HBWlibStateMachine StateMachine;
 
     void setOutput(HBWDevice* device, uint8_t const * const data);

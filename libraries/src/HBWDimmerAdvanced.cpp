@@ -22,7 +22,7 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
   currentValue = 0;
   oldValue = 0;
   oldOnValue = 0;
-  nextFeedbackDelay = 0;
+  clearFeedback();
   lastFeedbackTime = 0;
   
   StateMachine.init();
@@ -242,10 +242,7 @@ void HBWDimmerAdvanced::setOutput(HBWDevice* device, uint8_t newValue)
     setOutputNoLogging(newValue);
     
     // Logging
-    if(!nextFeedbackDelay && config->logging) {
-      lastFeedbackTime = millis();
-      nextFeedbackDelay = device->getLoggingTime() * 100;
-    }
+    setFeedback(device, config->logging);
   }
 #ifdef DEBUG_OUTPUT
   else {
@@ -579,17 +576,5 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
   
   // feedback trigger set?
-  if(!nextFeedbackDelay) return;
-  now = millis();
-  if(now - lastFeedbackTime < nextFeedbackDelay) return;
-  lastFeedbackTime = now;  // at least last time of trying
-  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-  static uint8_t level[2];	
-  get(level);
-  if(device->sendInfoMessage(channel, sizeof(level), level) == HBWDevice::BUS_BUSY) {  // bus busy
-  	nextFeedbackDelay = 250;  // try again later, but insert a small delay
-  }
-  else {
-    nextFeedbackDelay = 0;
-  }
+  checkFeedback(device, channel);
 }
