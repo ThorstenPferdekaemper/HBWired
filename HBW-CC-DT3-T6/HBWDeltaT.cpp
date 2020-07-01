@@ -19,7 +19,7 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
   deltaT = 0xFF;
   outputChangeLastTime = DELTA_CALCULATION_WAIT_TIME;
   deltaCalcLastTime = MIN_CHANGE_WAIT_TIME; // wait some time to get input values
-  lastFeedbackTime = 0;
+  clearFeedback();
   stateFlags.byte = 0;
   initDone = false;
 };
@@ -116,9 +116,6 @@ uint8_t HBWDeltaT::get(uint8_t* data)
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 {
-	//uint32_t now = millis();
-  static uint8_t level[2];
-
   stateFlags.element.mode = calculateNewState();  // calculate new deltaT value, set channel mode (active/inactive)
   
   if (millis() - outputChangeLastTime >= MIN_CHANGE_WAIT_TIME)
@@ -126,25 +123,18 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
     if (setOutput(device, channel)) // will only set output if state is different
     {
    #ifdef DEBUG_OUTPUT
-    hbwdebug(F(" newstate: ")); hbwdebug(nextState); hbwdebug("\n");
+    hbwdebug(F("newstate: ")); hbwdebug(nextState);
    #endif
     }
+ #ifdef DEBUG_OUTPUT
+  hbwdebug(F(" ch: ")); hbwdebug(channel);
+  hbwdebug(F(" deltaT: ")); hbwdebug(deltaT);
+  hbwdebug("\n");
+ #endif
   }
   
   // feedback trigger set?
-  if (!nextFeedbackDelay) return;
-  if (millis() - lastFeedbackTime < nextFeedbackDelay) return;
-  lastFeedbackTime = millis();  // at least last time of trying
-  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-  // we know that the level has 2 byte here (value & state)
-  get(level);
-  if (device->sendInfoMessage(channel, sizeof(level), level) == HBWDevice::BUS_BUSY) {  // bus busy
-  // try again later, but insert a small delay
-    nextFeedbackDelay = 250;
-  }
-  else {
-    nextFeedbackDelay = 0;
-  }
+  checkFeedback(device, channel);
 };
 
 /* standard public function - called by device main loop for every channel in sequential order */
@@ -158,6 +148,8 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 /* set the output port, if different to current state */
 bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 {
+  outputChangeLastTime = millis();
+  
   if (currentState == nextState)  return false; // no change - quit
 
   digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output
@@ -168,16 +160,12 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
     //device->sendKeyEvent(channel, keyPressNum, currentState);  // peering (ignore inversion... can be done in peering)
     //return false?;
   //}
-
-  outputChangeLastTime = millis();
+  
   currentState = nextState;
   stateFlags.element.status = currentState;
 
-  // send info/notify message in loop()
-  if(!nextFeedbackDelay && config->logging) {
-    lastFeedbackTime = millis();
-    nextFeedbackDelay = device->getLoggingTime() * 100;
-  }
+  // set trigger to send info/notify message in loop()
+  setFeedback(device, config->logging);
   
   return true;
 }
@@ -220,5 +208,5 @@ bool HBWDeltaT::calculateNewState()
     return true;
   }
   else
-    return currentState; // retun the state currently set - no change
+    return stateFlags.element.mode; // retun the state currently set - no change
 }
