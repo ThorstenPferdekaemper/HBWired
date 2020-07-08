@@ -61,8 +61,7 @@ class HBWChanBl : public HBWChannel {
     uint8_t blindDir;   // direction relay
     uint8_t blindAct;   // activity relay
     hbw_config_blind* config; // logging
-    uint32_t lastFeedbackTime;  // when did we send the last feedback?
-    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
+   
     byte blindNextState;
     byte blindCurrentState;
     byte blindPositionRequested;

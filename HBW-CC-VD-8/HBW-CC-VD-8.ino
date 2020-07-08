@@ -17,10 +17,13 @@
 // - temperature channels and peering added
 // v0.03
 // - valve changed to "time proportioning control" with own lib (HBWValve.h)
+// v0.04
+// - changed hbw_config_pid windowSize (CYCLE_TIME) to 10 seconds stepping (max 2540 seconds) (HBWPids.h)
+// - added hbw_config_pid setPoint, to allow default setPoint 0...25.4°C (HBWPids.h)
 
 
 #define HARDWARE_VERSION 0x02
-#define FIRMWARE_VERSION 0x0003
+#define FIRMWARE_VERSION 0x0004
 #define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
@@ -34,16 +37,16 @@
 #define LINKADDRESSSTART_TEMP 0x270   // ends @0x323
 
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
+#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+/* Also undefine "HBW_DEBUG" in 'HBWired.h' to save space! "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
 // HB Wired protocol and modules
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
-#include "HBWPids.h"
-#include "HBWValve.h"
+#include <HBWPids.h>
+#include <HBWValve.h>
 #include <HBWLinkInfoEventSensor.h>
 #include <HBWLinkInfoEventActuator.h>
 

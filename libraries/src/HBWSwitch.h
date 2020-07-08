@@ -9,6 +9,7 @@
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
 //       callbacks fuer die einzelnen Kanaele aufzurufen 
 //       und den Kanaelen nur den Anfang "ihres" EEPROMs zu sagen
+// config of one channel, address step 2
 struct hbw_config_switch {
 	uint8_t logging:1;              // 0x0000
 	uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED
@@ -25,12 +26,11 @@ class HBWSwitch : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
+
   private:
     uint8_t pin;
     uint8_t currentState;    // keep track of logical state, not real IO
     hbw_config_switch* config; // logging
-    uint32_t lastFeedbackTime;  // when did we send the last feedback?
-    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
 };
 
 #endif

@@ -2,7 +2,7 @@
 <device version="12" eep_size="1024">
 <supported_types>
 	<type name="RS485 3 Channel Delta Temperature and 6 One Wire Channel Temperature Module" id="HBW-CC-DT3-T6" priority="2">
-		<parameter index="0" size="1" const_value="0x71"/><!--HMW_DEVICETYPE-->
+		<parameter index="0" size="1" const_value="0x9C"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
 		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
@@ -202,13 +202,13 @@
 		</link_roles>-->
 		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x5B" address_step="6">
 			<parameter id="LOGGING">
-			  <logical type="option">
-				<option id="OFF"/>
-				<option id="ON" default="true"/>
-			  </logical>
-			  <physical type="integer" size="0.1" interface="eeprom">
-				<address index="0.0"/>
-			  </physical>
+				<logical type="option">
+					<option id="OFF"/>
+					<option id="ON" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="0.0"/>
+				</physical>
 			</parameter>
 			<parameter id="LOCKED">
 				<logical type="boolean" default="true"/>
@@ -230,6 +230,9 @@
 					<address index="+0.3"/>
 				</physical>
 				<conversion type="float_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0x1F"/>
+				</conversion>
 			</parameter>
 			<parameter id="DELTA_TEMP">
 				<logical type="float" unit="&#x2103;" default="4.0" min="0.0" max="25.4"/>

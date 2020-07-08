@@ -35,9 +35,7 @@ struct hbw_config_DeltaT {
   uint8_t logging:1;      // +0.0   1=on 0=off
   uint8_t locked:1;     // +0.1   1=LOCKED, 0=UNLOCKED
   uint8_t n_inverted:1;   // +0.2   inverted logic (0=inverted)
-  //uint8_t :5;     //fillup
   uint8_t deltaHys:5;   // temperature hysteresis (factor 10), max 30 = 3.0°C (3.0°C for on & off = 6.0°C)
-  //uint8_t deltaHys;   // temperature hysteresis (factor 10)
   uint8_t deltaT;   // temperature delta (factor 10), max. 254 = 25.4°C
   int16_t maxT1;   // centi celcius (factor 100)
   int16_t minT2;   // centi celcius (factor 100)
@@ -86,11 +84,7 @@ class HBWDeltaT : public HBWChannel {
     int16_t deltaT;
     uint32_t outputChangeLastTime;    // last time output state was changed
     uint32_t deltaCalcLastTime;    // last time of calculation
-    // uint32_t outputChangeNextDelay;    // time until next state change
     uint8_t keyPressNum;
-
-    uint32_t lastFeedbackTime;  // when did we send the last feedback?
-    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
 
     bool calculateNewState();
     bool setOutput(HBWDevice* device, uint8_t channel);

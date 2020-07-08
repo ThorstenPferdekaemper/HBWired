@@ -109,8 +109,6 @@ class HBWDimmerAdvanced : public HBWChannel {
     uint8_t currentValue;
     uint8_t oldOnValue;
     uint8_t oldValue;  // used to determine direction for state flags
-    uint32_t lastFeedbackTime;  // when did we send the last feedback?
-    uint16_t nextFeedbackDelay; // 0 -> no feedback pending
     HBWlibStateMachine StateMachine;
     
     void setOutputNoLogging(uint8_t newValue);
