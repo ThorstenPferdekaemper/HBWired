@@ -28,7 +28,7 @@
 #define FIRMWARE_VERSION 0x0004
 #define HMW_DEVICETYPE 0x93
 
-#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
