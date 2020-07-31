@@ -39,11 +39,16 @@
 #include <HBWLinkSwitchSimple.h>
 #include <HBWSwitch.h>
 
-#define RS485_RXD 4
-#define RS485_TXD 2
-#define RS485_TXEN 3  // Transmit-Enable
 
-HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+#ifdef USE_HARDWARE_SERIAL
+  #define RS485_TXEN 2  // Transmit-Enable
+#else
+  #define RS485_RXD 4
+  #define RS485_TXD 2
+  #define RS485_TXEN 3  // Transmit-Enable
+  
+  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+#endif
 
 
 // Pins
@@ -98,10 +103,12 @@ HBSwDevice* device = NULL;
 
 void setup()
 {
-#ifndef NO_DEBUG_OUTPUT
+#ifdef USE_HARDWARE_SERIAL
+  Serial.begin(19200, SERIAL_8E1);
+#else
   Serial.begin(115200);  // Serial->USB for debug
-#endif
   rs485.begin();   // RS485 via SoftwareSerial, uses 19200 baud!
+#endif
 
   // create channels
   static const uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN, SWITCH3_PIN, SWITCH4_PIN, SWITCH5_PIN, SWITCH6_PIN, SWITCH7_PIN, SWITCH8_PIN};
@@ -112,9 +119,14 @@ void setup()
   }
 
   device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
-                         &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
-                         NUM_CHANNELS,(HBWChannel**)switches,
-  #ifdef NO_DEBUG_OUTPUT
+  #ifdef USE_HARDWARE_SERIAL
+                         &Serial,
+  #else
+                         &rs485,
+  #endif
+                         RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
+                         NUM_CHANNELS, (HBWChannel**)switches,
+  #ifdef USE_HARDWARE_SERIAL  // set _debugstream to NULL
                          NULL,
   #else
                          &Serial,
@@ -124,7 +136,7 @@ void setup()
   device->setConfigPins(BUTTON, LED);  // 8 and 13 is the default
   
   
-#ifndef NO_DEBUG_OUTPUT
+#ifndef USE_HARDWARE_SERIAL
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
   hbwdebug(F("\n"));

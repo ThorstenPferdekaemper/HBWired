@@ -927,7 +927,7 @@
 		<link_roles>
 			<source name="SWITCH"/>
 		</link_roles>
-		<paramset id="hbw_vinput_ch_master" type="MASTER" address_start="0x31" address_step="2">
+		<paramset id="hbw_vinput_ch_master" type="MASTER" address_start="0x31" address_step="1">
 		    <parameter id="INPUT_LOCKED">
 				<logical type="boolean" default="true"/>
 				<physical size="0.1" type="integer" interface="eeprom">

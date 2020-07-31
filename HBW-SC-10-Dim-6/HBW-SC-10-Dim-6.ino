@@ -12,16 +12,16 @@
 //
 //*******************************************************************
 // Changes
-// v0.01
+// v0.1
 // - initial version
-// v0.02
+// v0.2
 // - added OFFDELAY_BLINK, OFFDELAY_STEP peering setting
 // - clean-up
-// v0.03
+// v0.3
 // - added input channels: Key & Sensor
-// v0.04
+// v0.4
 // - added virtual key channels, allow external peering with Dim channels (e.g. switch 1-10V dimmer on/off)
-// v0.05
+// v0.5
 // - added state flags
 // - put key channels back in, kept virtual key channels (dimmer key)
 //
@@ -31,7 +31,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0005
+#define FIRMWARE_VERSION 0x0033
 #define HMW_DEVICETYPE 0x96 //device ID (make sure to import hbw_io-10_dim-6.xml into FHEM)
 
 #define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
@@ -71,14 +71,14 @@
   #define PWM5 11  // PWM out (controlled by timer2)
   #define PWM6 3  // PWM out (controlled by timer2)
 
-  #define IO1 12
-  #define IO2 8
-  #define IO3 7
-  #define IO4 4
-  #define IO5 A0
-  #define IO6 A1
-  #define IO7 A2
-  #define IO8 A3
+  #define IO1 A3
+  #define IO2 A2
+  #define IO3 A1
+  #define IO4 A0
+  #define IO5 4
+  #define IO6 7
+  #define IO7 8
+  #define IO8 12
   #define IO9 A4
   #define IO10 A5
 #else

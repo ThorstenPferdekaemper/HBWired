@@ -54,11 +54,16 @@
 #include <HBWBlind.h>
 #include <HBWAnalogIn.h>
 
-#define RS485_RXD 4
-#define RS485_TXD 2
-#define RS485_TXEN 3  // Transmit-Enable
 
-HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+#ifdef USE_HARDWARE_SERIAL
+  #define RS485_TXEN 2  // Transmit-Enable
+#else
+  #define RS485_RXD 4
+  #define RS485_TXD 2
+  #define RS485_TXEN 3  // Transmit-Enable
+  
+  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+#endif
 
 // Pins
 #define BUTTON 8  // Button fuer Factory-Reset etc.
@@ -119,10 +124,13 @@ HBBlDevice* device = NULL;
 void setup()
 {
   analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
-#ifndef USE_HARDWARE_SERIAL
+  
+#ifdef USE_HARDWARE_SERIAL
+  Serial.begin(19200, SERIAL_8E1);
+#else
   Serial.begin(115200);  // Serial->USB for debug
+  rs485.begin();   // RS485 via SoftwareSerial, uses 19200 baud!
 #endif
-  rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 
   // create channels
   static const uint8_t blindDir[4] = {BLIND1_DIR, BLIND2_DIR, BLIND3_DIR, BLIND4_DIR};
@@ -137,9 +145,14 @@ void setup()
 #endif
 
   device = new HBBlDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
-                         &rs485,RS485_TXEN,sizeof(hbwconfig),&hbwconfig,
-                         NUMBER_OF_CHAN,(HBWChannel**)channels,
   #ifdef USE_HARDWARE_SERIAL
+                         &Serial,
+  #else
+                         &rs485,
+  #endif
+                         RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
+                         NUMBER_OF_CHAN, (HBWChannel**)channels,
+  #ifdef USE_HARDWARE_SERIAL  // set _debugstream to NULL
                          NULL,
   #else
                          &Serial,
