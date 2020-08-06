@@ -923,7 +923,7 @@
 		</paramset>
 	</channel>
 	
-	<channel index="27" type="DIMMER KEY" count="6" physical_index_offset="-1">	<!-- virtual input key chan, triggered by dimmmer chan -->
+	<channel index="27" type="DIMMER_V_KEY" count="6" physical_index_offset="-1">	<!-- virtual input key chan, triggered by dimmmer chan -->
 		<link_roles>
 			<source name="SWITCH"/>
 		</link_roles>
