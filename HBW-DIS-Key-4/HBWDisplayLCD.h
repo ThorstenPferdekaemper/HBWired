@@ -73,9 +73,6 @@ PROGMEM const char * const bool_text[][4] = {
 };
 
 
-//const uint16_t factor_map[] PROGMEM = {1, 10, 100, 100}; //1000
-
-
 //typedef struct {
 //  const char *on;
 //  const char *off;
@@ -268,13 +265,6 @@ class HBWDisplayDim : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-
-//    enum Actions
-//    {
-//       MEASURE,
-//       CALC_AVG,
-//       SET_OUTPUT
-//    };
   
   private:
     hbw_config_display_backlight* config;
@@ -287,10 +277,9 @@ class HBWDisplayDim : public HBWChannel {
     uint8_t lastKeyNum;
     boolean initDone;
     
-    static const uint32_t BRIGTNESS_MEASURE_INTERVAL = 1000;
-    static const uint32_t SET_BACKLIGHT_INTERVAL = 3000;
+    static const uint32_t UPDATE_BACKLIGHT_INTERVAL = 1660;
 
-    // TODO: add notify/logging? Not really needed, it would only help to update the state in FHEM (just use get state!!)
+    // TODO: add notify/logging? Not really needed, should not be enabled in auto_brightness mode anyway
 };
 
 // Class HBWDisplay (master channel)
@@ -334,20 +323,5 @@ class HBWDisplay : public HBWChannel {
     void parseLine(char* _line, uint8_t length);
     
 };
-
-// Class HBWDisplayLine (give access to one display line via dedicated channel)
-//class HBWDisplayLine : public HBWChannel {
-//  public:
-//    HBWDisplayLine(displayBuf* _displayBuf, uint8_t _line_num, uint8_t _max_char);
-//    // HBWDisplayLine(LiquidCrystal* _display, uint8_t _line_num, uint8_t _max_char);
-//    // virtual void loop(HBWDevice*, uint8_t channel);
-//    //virtual uint8_t get(uint8_t* data);
-//    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-//    //virtual void afterReadConfig();
-//
-//  private:
-//    
-//
-//};
 
 #endif /* HBWDISPLAYLCD_H_ */
