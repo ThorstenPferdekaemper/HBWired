@@ -254,6 +254,7 @@ class HBWDisplayLine : public HBWDisplayVChannel {
     boolean useDefault;
     //char* ptr_line;
     char line[LINE_BUFF_LEN];   // value received by set command (like "foo: %1%"). Will be displayed when set or called by command value 201
+    uint8_t lastKeyNum;
 };
 
 

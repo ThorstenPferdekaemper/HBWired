@@ -67,8 +67,14 @@
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
 		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
 	</frame>
-	<frame id="SET_OPT_TOGGLE" direction="to_device" type="#x" channel_field="10">
+	<frame id="SET_TOGGLE" direction="to_device" type="#x" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" const_value="255"/>
+	</frame>
+	<frame id="SET_ON" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="200"/>
+	</frame>
+	<frame id="SET_OFF" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="0"/>
 	</frame>
 	<frame id="SET_OPT_ON" direction="to_device" type="#x" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" const_value="204"/>
@@ -236,10 +242,10 @@
 				</physical>
 				<conversion type="float_integer_scale" factor="200"/>
 			</parameter>
-			<parameter id="AUTO_BRIGHTNESS_TOGGLE" operations="write">
+			<parameter id="TOGGLE_VALUE" operations="write">
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
-					<set request="SET_OPT_TOGGLE"/>
+					<set request="SET_TOGGLE"/>
 				</physical>
 			</parameter>
 			<parameter id="AUTO_BRIGHTNESS_ON" operations="write">
@@ -283,8 +289,8 @@
 			  <logical type="option">
 				<option id="Innen_%4%_C"/>
 				<option id="Aussen_%3%_C"/>
-				<option id="Sp:_%2%_C_%5%"/>
-				<option id="Ofen:_%1%_C" default="true"/>
+				<option id="Sp_%2%_C_%5%"/>
+				<option id="Ofen_%1%_C" default="true"/>
 			  </logical>
 			  <physical type="integer" size="0.2" interface="eeprom">
 				<address index="+0.1"/>
@@ -346,19 +352,19 @@
 			<parameter id="DEFAULT_TEXT_TOGGLE" operations="write">
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
-					<set request="SET_OPT_TOGGLE"/>
+					<set request="SET_TOGGLE"/>
 				</physical>
 			</parameter>
 			<parameter id="DEFAULT_TEXT_ON" operations="write">
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
-					<set request="SET_OPT_ON"/>
+					<set request="SET_ON"/>
 				</physical>
 			</parameter>
 			<parameter id="DEFAULT_TEXT_OFF" operations="write">
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
-					<set request="SET_OPT_OFF"/>
+					<set request="SET_OFF"/>
 				</physical>
 			</parameter>
 		</paramset>

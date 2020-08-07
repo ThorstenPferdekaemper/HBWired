@@ -61,6 +61,7 @@ HBWDisplayLine::HBWDisplayLine(hbw_config_display_line* _config)//, char* _displ
   config = _config;
   //ptr_line = _displayLine;
   useDefault = true;
+  lastKeyNum = 0;
 };
 
 
@@ -168,19 +169,27 @@ void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * c
 /* set special input value for a channel, via peering event. */
 void HBWDisplayLine::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  if (length > 1 )
+  if (length == 2)
+  {
+    if (lastKeyNum == data[1])  // ignore repeated key press
+      return;
+    else
+      lastKeyNum = data[1];
+  }
+  
+  if (length > 2 )  // need to set min. 3 characters (should be ok, set "foo" or even a single variable, like "%1%")
   {
     memset(line, 0, sizeof(line));
     memcpy(line, data, length < sizeof(line) ? length : sizeof(line));   // just copy what fits the buffer, discard the rest
     useDefault = false;   // use the data we got, not the default
   }
 //TODO: check how to handle repeated key press in peering (length == 2 & lastKeyNum = data[1])
-  else if (length == 1) {  // just one byte. This should be a command
+  else {  // first byte should be a command (peering or FEHM)
     switch (data[0]) {
-      case 204:
+      case 0:
         useDefault = true;
         break;
-      case 202:
+      case 200:
         useDefault = false;
         break;
       case 255:
@@ -254,7 +263,7 @@ void HBWDisplayDim::set(HBWDevice* device, uint8_t length, uint8_t const * const
         break;
       case 255:   // toggle
         currentValue = currentValue > 0 ? 0 : 200;
-        if (currentValue) config->auto_brightness = true;  // auto_brightness on
+        config->auto_brightness = false;  // auto_brightness off
        #ifdef DEBUG_OUTPUT
        hbwdebug(F("toggle, "));
        #endif
@@ -579,12 +588,11 @@ void HBWDisplayDim::loop(HBWDevice* device, uint8_t channel)
     //brightness = (brightness + (uint8_t) (analogRead(photoresistorPin) >> 2)) /2;  // drop last two bits (10bit ADC)
 
     // smooth ADC reading, but allow larger steps if current backlight is bright
-    if ((reading - brightness) > 8) {
-      brightness += 2 + (currentValue/40);
+    if ((int16_t)(reading - brightness) > 3) {
+      brightness += 1 + (currentValue/30);
     }
-    if ((reading - brightness) < 8) {
-      if (brightness > 2 + (currentValue/40))
-        brightness -= 2 + (currentValue/40);
+    else if ((int16_t)(reading - brightness) < -3) {
+      brightness -= 1 + (currentValue/30);
     }
     
     if (config->auto_brightness && photoresistorPin != NOT_A_PIN) {
