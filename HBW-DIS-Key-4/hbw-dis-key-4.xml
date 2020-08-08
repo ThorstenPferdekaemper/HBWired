@@ -65,7 +65,10 @@
 		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
 	</frame>
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
-		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
+		<parameter type="integer" index="12.0" size="1.0" param="INHIBIT"/>
+	</frame>
+	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
+		<parameter type="integer" index="11.0" size="1.0" param="TOGGLE_FLAG"/>
 	</frame>
 	<frame id="SET_TOGGLE" direction="to_device" type="#x" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" const_value="255"/>
@@ -543,6 +546,12 @@
 					<set request="VALUE_SET"/>
 				</physical>
 			</parameter>
+			<parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="INHIBIT">
+					<set request="SET_LOCK"/>
+				</physical>
+			</parameter>
 		</paramset>
 	</channel>
 	
@@ -617,6 +626,12 @@
 					<set request="LEVEL_SET"/>
 				</physical>
 				<conversion type="boolean_integer" true="200" false="0" threshold="1"/>
+			</parameter>
+			<parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="INHIBIT">
+					<set request="SET_LOCK"/>
+				</physical>
 			</parameter>
 		</paramset>
 	</channel>

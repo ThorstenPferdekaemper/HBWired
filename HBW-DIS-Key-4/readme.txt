@@ -1,11 +1,11 @@
 Homematic Wired Homebrew Display Module + 4 Key Input
 =====================================================
 
---- still in delopment ---
+--- still in development ---
 
 Das Modul HBW-DIS-Key-4 bindet ein LCD Character Display an den Bus an. Die Anzahl der Zeilen und Zeichen pro Zeile kann angepasst werden.
 Zusätzlich sind 4 Tasterkanäle vorhanden.
-Die Tasterkanäle unterstützen Direktverknüpfungen (Peering). Ebenso können die virtuellen Switch. und Temperaturkanäle mit Sensoren direkt verknüpft werden.
+Die Tasterkanäle unterstützen Direktverknüpfungen (Peering). Ebenso können die virtuellen Switch- und Temperaturkanäle mit Sensoren direkt verknüpft werden.
 
 Basis ist ein Arduino NANO mit RS485-Interface.
 
@@ -17,28 +17,29 @@ Kanäle:
 1x Dimmer (Display Hintergrundbeleuchtung)
 2x (4x) display_line
 4x Key (Taster, Schalter)
-4x display_v_temp	(Speichert Temperaturmesswerte oder belibige Werte von -32768 bis 32767)
+4x display_v_temp	(Speichert Temperaturmesswerte oder beliebige Werte von -32768 bis 32767)
 4x display_v_switch	(Speichert einen binären Wert, 0 oder 1)
 
 
 Für die "display_line" Kanäle, welche je eine Zeile des Displays repräsentieren, kann mit FHEM ein Wert übertragen werden (siehe FHEM RAW Befehle weiter unten) oder es wird einer der vordefinierten Zeilen angezeigt.
-Wenn für eine Zeile "Innen: %1%°C" gesetzt ist, dann wird %1% mit dem Wert des ersten display_v_* Kanals ersetzt. Bei einem Temperaturmesswert würde dann z.B. im Display "Innen: 22.4°C" angezeigt.
-Die 8 display_v_* Kanäle können über die Platzhalter %1% bis %8% angezeigt werden. Erhalten diese Kanäle neue Werte (über FHEM oder Peering), so wird dies im Display automatisch aktualisiert.
+Wenn für eine Zeile "Innen: %1%°C" gesetzt ist, dann wird %1% mit dem Wert des ersten display_v_* Kanals ersetzt. Bei einem Temperaturmesswert würde dann z.B. im Display "Innen: 22.4°C" angezeigt. Mit einem Key (Taster) Peering kann zwischen der vordefinierten Zeile und der per FHEM gesetzten umgeschaltet werden.
 
-Für "display_v_temp" Kanäle können ein Faktor (1; 10; 100; 1000) und Anzeigeformat (999; 999.9; 999.99; 99.999) Konfiguriert werden.
+Die 8 display_v_* Kanäle können über die Platzhalter %1% bis %8% angezeigt werden. Erhalten diese Kanäle neue Werte (über FHEM oder Peering), so wird dies im Display automatisch aktualisiert.
+Für "display_v_temp" Kanäle können ein Faktor (1; 10; 100; 1000) und Anzeigeformat (999; 999.9; 999.99; 99.999) konfiguriert werden.
 Für "display_v_switch" Kanäle ein Anzeigetext, z.B. Ein/Aus, Auf/Zu, Auto/Manu.
 
 
 
 # RAW Befehle #
 Zeile 1 setzen:
-{my $hstring = unpack ("H*","Test1: %1%");; fhem "set HBW_DIS_Key_4_HBW7296375 raw 7302$hstring"}
+{my $hstring = unpack ("H*","Innen: %1%\xDFC");; fhem "set HBW_DIS_Key_4_HBW7296375 raw 7302$hstring"}
+(\xDF hex Wert für "°" - abhängig vom Zeichensatz des Displays)
 Zeile 2 setzen:
 {my $hstring = unpack ("H*","Test2: %02%");; fhem "set HBW_DIS_Key_4_HBW7296375 raw 7303$hstring"}
 
 73 - "set" Befehl
 02 - Kanal 2 des Device, muss entsprechend der Displayzeile angepasst werden. (display_line Kanäle)
-$hstring - Der zu sendende Text, als Hex String (hexstring_bytearray)
+$hstring - Der zu sendende Text, als Hex String (hexstring_bytearray) umgewandelt
 
 
 
