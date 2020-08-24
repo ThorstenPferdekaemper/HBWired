@@ -7,36 +7,32 @@
  */
  
 #include "HBWDisplayLCD.h"
+#include <EEPROM.h>
 
+
+/* global */
+boolean HBWDisplayDim::displayWakeUp = true;  // wakeup on start - if config->startup allows
+byte HBWDisplayVChannel::numTotal = 0;
+byte HBWDisplayLine::numTotal = 0;
 
 /* contructors */
-
-//byte HBWDisplayVChannel::num = 0;
 //HBWDisplayVChannel::HBWDisplayVChannel()
 //{
 //  num++;
 //};
 
-HBWDisplayVChNum::HBWDisplayVChNum(hbw_config_displayVChNum* _config)//, int16_t* _displayVChNumValue)
+HBWDisplayVChNum::HBWDisplayVChNum(hbw_config_displayVChNum* _config)
 {
+  HBWDisplayVChannel::numTotal++;
   config = _config;
-  //displayVChNumValue = _displayVChNumValue;
-  //*displayVChNumValue = 0;
   currentValue = 0;
 };
 
 
-//HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config, uint8_t* _displayVChBoolValue)
-//HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config, char* _displayVChBoolValue)
-HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config)//, t_displayVChanValues _displayVChBoolValue)
-//HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config, pfunc_getStringFromValue _displayVChBool)
+HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config)
 {
+  HBWDisplayVChannel::numTotal++;
   config = _config;
-//  displayVChBoolValue = _displayVChBoolValue;
-  ////dispVChanVars[0].getStrFromVal = HBWDisplayVChBool::getStringFromValue;
-  /////_displayVChBool = &HBWDisplayVChBool::getStringFromValue;
-//  *displayVChBoolValue = {0};
-  //memset(displayVChBoolValue, 0, sizeof(t_displayVChVars{0}.b));  // clear string from old value
   currentValue = false;
   lastKeyNum = 0;
 };
@@ -47,28 +43,23 @@ HBWDisplayDim::HBWDisplayDim(hbw_config_display_backlight* _config, uint8_t _bac
   config = _config;
   backlightPin = _backlight_pin;
   photoresistorPin = _photoresistor_pin;
-
-//  nextAction = MEASURE;
-  //lastActionTime = BRIGTNESS_MEASURE_INTERVAL; // delay startup
   lastKeyNum = 0;
   initDone = false;
-  //currentValue = 200;   // 0...200 -> 0...100%
+  currentValue = 0;
 };
 
 
-HBWDisplayLine::HBWDisplayLine(hbw_config_display_line* _config)//, char* _displayLine)
+HBWDisplayLine::HBWDisplayLine(hbw_config_display_line* _config)
 {
   config = _config;
-  //ptr_line = _displayLine;
   useDefault = true;
   lastKeyNum = 0;
+
+  num = numTotal++;
 };
 
 
-//HBWDisplay::HBWDisplay(LiquidCrystal* _display, t_displayVChVars* _displayVChVars, hbw_config_display* _config)
-///HBWDisplay::HBWDisplay(LiquidCrystal* _display, HBWDisplayVChannel** _displayVChan, hbw_config_display* _config, t_displayLine* _displayLines)
 HBWDisplay::HBWDisplay(LiquidCrystal* _display, HBWDisplayVChannel** _displayVChan, hbw_config_display* _config, HBWDisplayVChannel** _displayLines)
-//HBWDisplay::HBWDisplay(LiquidCrystal* _display, pfunc_getStringFromValue _displayVChVars, hbw_config_display* _config)
 {
   config = _config;
   lcd = _display;
@@ -79,25 +70,39 @@ HBWDisplay::HBWDisplay(LiquidCrystal* _display, HBWDisplayVChannel** _displayVCh
   initDone = false;
 };
 
+
 /* class functions */
 
 // channel specific settings or defaults
 void HBWDisplay::afterReadConfig()
 {
+  if (config->num_characters == 7)  config->num_characters = 4; //4*4+4 = 20
+
+/* temp */
+//config->num_lines = 1; // +1 -> 2 lines
+//config->num_characters = 2; // 2+1*4 -> 12
+//config->refresh_rate = 4;
+/* temp */
+  
   if (!initDone) {
+    // write custom characters to display
+//    lcd->createChar(0, t_smiley);
+    
     // set up the LCD's number of columns and rows:
-    lcd->begin(12, NUMBER_OF_DISPLAY_LINES);
+    lcd->begin((config->num_characters *4) +4, config->num_lines +1);
     lcd->clear();
     // Print a message to the LCD.
     lcd->print(F("HBW-DISPLAY"));
+    
+//    lcd->write(byte(0));
     initDone = true;
   }
-// #ifdef DEBUG_OUTPUT
-//  hbwdebug(F("display_cfg"));
-//  hbwdebug(F(" size displayVChan: ")); hbwdebug(sizeof(displayVChan));
-//  hbwdebug(F(" num displayVChan: ")); hbwdebug(sizeof(**displayVChan) / sizeof(displayVChan[0])); // does not work....
-//  hbwdebug(F("\n"));
-// #endif
+ #ifdef DEBUG_OUTPUT
+  hbwdebug(F("display_cfg"));
+  hbwdebug(F(" num_char: ")); hbwdebug((config->num_characters *4) +4);
+  hbwdebug(F(" lines: ")); hbwdebug(config->num_lines +1);
+  hbwdebug(F("\n"));
+ #endif
 };
 
 
@@ -119,9 +124,7 @@ void HBWDisplayVChNum::set(HBWDevice* device, uint8_t length, uint8_t const * co
   //else if == 8 (QWORD)
   else {
     uint8_t offset = 0;
-    //*displayVChNumValue = (int16_t)((data[0] << 8) | data[1]);  // handle 2 byte values, skip the rest
     if (length == 8)  offset = 6;  // negative values might be send as QWORD
-      //*displayVChNumValue = (int16_t)((data[6] << 8) | data[7]);  // negative values might be send as QWORD
     currentValue = (int16_t)((data[0 + offset]) << 8 | data[1 + offset]);  // handle 2 byte values, skip the rest
   }
 
@@ -142,8 +145,6 @@ void HBWDisplayVChBool::setInfo(HBWDevice* device, uint8_t length, uint8_t const
 void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
   /* just store the new value. The display loop can fetch it, when needed */
-  //*displayVChBoolValue = data[0];
-
   if (length == 2)
   {
     if (lastKeyNum == data[1])  // ignore repeated key press
@@ -169,7 +170,8 @@ void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * c
 /* set special input value for a channel, via peering event. */
 void HBWDisplayLine::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  if (length == 2)
+  HBWDisplayDim::displayWakeUp = true;
+  if (length == 2)  // peering has 2 bytes
   {
     if (lastKeyNum == data[1])  // ignore repeated key press
       return;
@@ -177,56 +179,60 @@ void HBWDisplayLine::set(HBWDevice* device, uint8_t length, uint8_t const * cons
       lastKeyNum = data[1];
   }
   
-  if (length > 2 )  // need to set min. 3 characters (should be ok, set "foo" or even a single variable, like "%1%")
+  if (length > 2 )  // need to set min. 3 characters (should be ok, to set "foo" or even a single variable, like "%1%")
   {
     memset(line, 0, sizeof(line));
     memcpy(line, data, length < sizeof(line) ? length : sizeof(line));   // just copy what fits the buffer, discard the rest
-    useDefault = false;   // use the data we got, not the default
+    useDefault = false;   // use the data we just got, not the default
   }
-//TODO: check how to handle repeated key press in peering (length == 2 & lastKeyNum = data[1])
   else {  // first byte should be a command (peering or FEHM)
     switch (data[0]) {
       case 0:
-        useDefault = true;
-        break;
-      case 200:
         useDefault = false;
         break;
+      case 200:
+        useDefault = true;
+        break;
+      // case 205: // toogle/activate auto cycle? (return default or set line, every other call of getStringFromValue())?
+     #ifdef DISPLAY_CUSTOM_LINES_EESTART
+      case 220:
+      hbwdebug(F("save custom line")); hbwdebug(num);// hbwdebug(F(", numTotal: ")); hbwdebug(numTotal);
+        if (strlen(line) > 0) {
+//          hbwdebug(F(", eeAddr: ")); hbwdebug(DISPLAY_CUSTOM_LINES_EESTART + (MAX_DISPLAY_CHARACTER_PER_LINE * num));
+          EEPROM.put(DISPLAY_CUSTOM_LINES_EESTART + (LINE_BUFF_LEN * num), line);
+//          hbwdebug(F(", eePut line:")); hbwdebug(line);
+        }
+        hbwdebug(F("\n"));
+      break;
+     #endif
       case 255:
         useDefault = !useDefault;
       break;
-      // case 205: // toogle/activate auto cycle? (return default or set line, every other call of getStringFromValue())
     }
   }
-  
+
 
  #ifdef DEBUG_OUTPUT
  char text[LINE_BUFF_LEN +1] = {0};
- hbwdebug(F("Line_set, len: ")); hbwdebug(length); hbwdebug(F(" "));
-////  for(uint8_t i=0; i<length; i++) {  // only read what fits the buffer
-////    text[i] = data[i];
-////   //hbwdebug(data[i]); hbwdebug(F("-"));
-////  }
- if (length > 1 ) {
+ hbwdebug(F("Line_set, len: ")); hbwdebug(length); hbwdebug(F(" default:"));hbwdebug(useDefault);hbwdebug(F(" "));
+ if (length > 2 ) {
    memcpy(text, data, length < LINE_BUFF_LEN ? length : LINE_BUFF_LEN);
    hbwdebug(F("text: ")); hbwdebug(text);
  }
  hbwdebug(F("\n"));
-//
-// // echo to console
-// parseLine(text, length);
  #endif
-
-  //memcpy(ptr_line, data, length < LINE_BUFF_LEN ? length : LINE_BUFF_LEN);
-////  for(uint8_t i=1; i<length; i++) {  // only read what fits the buffer
-////    line1[i] = data[i];
-////  }
-
 };
 
 /* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
+  // 0 - backlight off (0%)
+  // 1...199 - 0.5% - 99.5% -> auto_brightness to 'off' when setting explicit value
+  // 200 - backlight on (100%)
+  // 202 - auto_brightness off
+  // 204 - auto_brightness on
+  // 255 - toggle backligh
 void HBWDisplayDim::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
+  HBWDisplayDim::displayWakeUp = true;
  #ifdef DEBUG_OUTPUT
  hbwdebug(F("setDim: "));
  #endif
@@ -239,48 +245,50 @@ void HBWDisplayDim::set(HBWDevice* device, uint8_t length, uint8_t const * const
       lastKeyNum = data[1];
   }
   
-  // set 202 - auto_brightness off? -> auto_brightness to 'off' when setting explicit value?
-  // set 203 - toggle auto_brightness?
-  // set 204 - auto_brightness on?
-  // set 0 - backlight off
-  // set 255 - toggle backligh
-  // set 200 - backlight on
-
   if (data[0] > 200)
   {
     switch (data[0]) {
       case 202:  // auto_brightness off
         config->auto_brightness = false;
        #ifdef DEBUG_OUTPUT
-       hbwdebug(F("auto_brightness off, "));
+       hbwdebug(F("auto_brightness off"));
        #endif
         break;
       case 204:  // auto_brightness on
         config->auto_brightness = true;
        #ifdef DEBUG_OUTPUT
-       hbwdebug(F("auto_brightness on, "));
+       hbwdebug(F("auto_brightness on"));
        #endif
         break;
       case 255:   // toggle
         currentValue = currentValue > 0 ? 0 : 200;
         config->auto_brightness = false;  // auto_brightness off
        #ifdef DEBUG_OUTPUT
-       hbwdebug(F("toggle, "));
+       hbwdebug(F("toggle"));
        #endif
         break;
     }
   }
   else {
     currentValue = data[0];
-    config->auto_brightness = false;  // auto_brightness off
+    config->auto_brightness = false;  // auto_brightness off when setting value manually
   }
   
 #ifdef DEBUG_OUTPUT
-hbwdebug(currentValue);
+hbwdebug(F(", currentValue: ")); hbwdebug(currentValue);
 hbwdebug(F("\n"));
 #endif 
 };
-  
+
+
+/* set special input value for a channel, via peering event. */
+void HBWDisplay::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
+{
+  //displayWakeUp = true;
+// TODO: allow key peerig, to change entire screens?
+// or use peering of one key with all lines, to get alle changed?
+};
+
 
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDisplayDim::get(uint8_t* data)
@@ -294,7 +302,6 @@ uint8_t HBWDisplayDim::get(uint8_t* data)
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDisplayVChBool::get(uint8_t* data)
 {
-  //*data = currentValue;
   *data = currentValue ? 200 : 0;
 
   return 1;
@@ -305,9 +312,6 @@ uint8_t HBWDisplayVChBool::get(uint8_t* data)
 uint8_t HBWDisplayVChNum::get(uint8_t* data)
 {
   // MSB first
-//  *data++ = (*displayVChNumValue >> 8);
-//  *data = *displayVChNumValue & 0xFF;
-
   *data++ = (currentValue >> 8);
   *data = currentValue & 0xFF;
 
@@ -315,11 +319,11 @@ uint8_t HBWDisplayVChNum::get(uint8_t* data)
 };
 
 
-// default function for HBWDisplayVChannel base class
+/* default function for HBWDisplayVChannel base class */
 uint8_t HBWDisplayVChannel::getStringFromValue(char* _buffer) { return 0; };
 
 
-// read string from Progmem or RAM for each line of the display
+/* read string from Progmem or RAM for each line of the display */
 uint8_t HBWDisplayLine::getStringFromValue(char* _buffer)
 {
   char cstr[LINE_BUFF_LEN];
@@ -328,22 +332,30 @@ uint8_t HBWDisplayLine::getStringFromValue(char* _buffer)
   if (useDefault)
   {
     if (defaultText < sizeof(default_lines)/sizeof(*default_lines)) { // validate selection with available array elements
-      strcpy_P(cstr, (char *)pgm_read_word(&(default_lines[defaultText])));
+      strcpy_P(cstr, (char *)pgm_read_word(&(default_lines[defaultText])));   // load configured default text
     }
     else {
+     #ifdef DISPLAY_CUSTOM_LINES_EESTART
+      EEPROM.get(DISPLAY_CUSTOM_LINES_EESTART + (LINE_BUFF_LEN * num), cstr);
+      if ((unsigned char)cstr[0] == 0xFF) {
+        strcpy_P(cstr, (char *)pgm_read_word(&(default_line_out_of_range)));
+      }
+//      hbwdebug(F("eeGet line")); hbwdebug(num); hbwdebug(F(":")); hbwdebug(cstr);hbwdebug(F("\n"));
+     #else
       strcpy_P(cstr, (char *)pgm_read_word(&(default_line_out_of_range)));
+     #endif
     }
     strcpy(_buffer, cstr);
   }
   else {
-    strcpy(_buffer, line);
+    strcpy(_buffer, line);   // load text, that has been "set()"
   }
 
   return 0; // value not relevant for HBWDisplayLine
 };
 
 
-// concatenate text string for bool channel
+/* concatenate text string for bool channel */
 uint8_t HBWDisplayVChBool::getStringFromValue(char* _buffer)
 {
   if (config->display_text < sizeof(bool_text)/sizeof(*bool_text))  // validate selection with available array elements
@@ -351,7 +363,6 @@ uint8_t HBWDisplayVChBool::getStringFromValue(char* _buffer)
     char cstr[MAX_LENGTH_FOR_BOOL_TEXT +1];
     strcpy_P(cstr, (char *)pgm_read_word(&(bool_text[config->display_text][currentValue])));
     strcat(_buffer, cstr);
-    ///strcat_P(_buffer, (char *)pgm_read_word(&(bool_text[displayType][currentValue])));
     
     return strlen(cstr);
   }
@@ -359,7 +370,7 @@ uint8_t HBWDisplayVChBool::getStringFromValue(char* _buffer)
 };
 
 
-// concatenate text string for numeric channel
+/* concatenate text string for numeric channel */
 uint8_t HBWDisplayVChNum::getStringFromValue(char* _buffer)
 {
   uint16_t factor = 1;
@@ -371,11 +382,12 @@ uint8_t HBWDisplayVChNum::getStringFromValue(char* _buffer)
 };
 
 
-// format an int as fixed point value and create a sting/char array
-// return length of this string
-// (e.g. -1234 is retured as -12.34 string, using precicion 2 and factor 100)
-// params: factor (1...1000)
-//         precision (0...3)
+/*  format an int as fixed point value and create a sting/char array
+ *  return length of this string
+ *  (e.g. -1234 is retured as -12.34 string, using precicion 2 and factor 100)
+ *  params: factor (1...1000)
+ *          precision (0...3)
+ */
 uint8_t HBWDisplayVChNum::formatFixpoint(char* _buf, int16_t intVal, uint8_t precision, uint16_t factor) {
  #ifdef DEBUG_OUTPUT
  hbwdebug(F("formatFixp, Val:")); hbwdebug(intVal);
@@ -418,39 +430,16 @@ uint8_t HBWDisplayVChNum::formatFixpoint(char* _buf, int16_t intVal, uint8_t pre
  #endif
 
   strcat(_buf, cstr);
-  return strlen(cstr);  // TODO: make void function, if len not needed?
-}
-
-
-/* set special input value for a channel, via peering event. */
-void HBWDisplay::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
-{
-//  static const byte BUFF_LEN = 13;  // TOOD: use consistent sizes.. what value?
-
-//  char text[BUFF_LEN +1] = {0};
-//  
-// #ifdef DEBUG_OUTPUT
-// hbwdebug(F("set, len: ")); hbwdebug(length); hbwdebug(F(" "));
-////  for(uint8_t i=0; i<length; i++) {  // only read what fits the buffer
-////    text[i] = data[i];
-////   //hbwdebug(data[i]); hbwdebug(F("-"));
-////  }
-//  memcpy(text, data, length < BUFF_LEN ? length : BUFF_LEN);
-// hbwdebug(F("text: ")); hbwdebug(text);
-// hbwdebug(F("\n"));
-//
-// // echo to console
-// parseLine(text, length);
-// #endif
+  return strlen(cstr);
 };
 
 
-// parse input string (_input_line) and replace %variable% with values
-// write directly to display
+/* parse input string (_input_line) and replace %variable% with values
+ * write directly to display
+ */
 void HBWDisplay::parseLine(char* _input_line, uint8_t length)
 {
-  static const byte BUFF_LEN = 25;
-  char outBuff[BUFF_LEN +1] = {0};
+  char outBuff[MAX_DISPLAY_CHARACTER_PER_LINE +1] = {0};  // TODO: use actual display size? (config->num_characters +4*4)
   
   boolean isVar = false;
   unsigned char skipChar = 0;
@@ -461,17 +450,20 @@ void HBWDisplay::parseLine(char* _input_line, uint8_t length)
   {
     if (isVar && !skipChar)
     {
-      if (_input_line[i] == '%') {  // display '%%' as '%'
+      if (_input_line[i] == '%')   // display '%%' as '%'
+      {
         isVar = false;
         skipChar = 1;
       }
-      else if (_input_line[i +1] == '%') {  // variable %n%
+      else if (_input_line[i +1] == '%')   // variable %n%
+      {
         varNum = _input_line[i] -'0';
         skipChar = 2;
   //hbwdebug(F("varNum: %")); hbwdebug(varNum); hbwdebug(F("% len_1\n"));
       }
-      else if (_input_line[i +2] == '%') {  // variable %nn%
-      // TODO add option to use %t0...9% for pre-defined text/or symbols?
+      else if (_input_line[i +2] == '%')   // variable %nn%
+      {
+    // TODO: add option to use %t0...9% for predefined text/or symbols?
         varNum = _input_line[i] -'0';
         varNum *= 10;   // if second digit was found, the first one must be tens digit
         varNum += _input_line[i +1] -'0';
@@ -482,7 +474,7 @@ void HBWDisplay::parseLine(char* _input_line, uint8_t length)
         isVar = false;
       }
 
-      if (varNum > 0 && varNum <= NUMBER_OF_V_CHAN )//(sizeof(**displayVChan) / sizeof(displayVChan[0]))) // TODO: validate if this works!!
+      if (varNum > 0 && varNum <= HBWDisplayVChannel::getNumVChannel())   // check amount of virtual channels, not to call non-existing function
       {
         outBuff_pos += displayVChan[varNum -1]->getStringFromValue((char *)outBuff);
         varNum = 0;
@@ -499,17 +491,14 @@ void HBWDisplay::parseLine(char* _input_line, uint8_t length)
 // hbwdebug(F(" shift:")); hbwdebug(shift);
 // hbwdebug(F(" outBuff_pos:")); hbwdebug(outBuff_pos); hbwdebug(F("\n"));
       
-      //outBuff[i+shift] = _input_line[i];  // use? lcd->print(_input_line[i+shift]);
-      outBuff[outBuff_pos++] = _input_line[i];  // use? lcd->print(_input_line[i+shift]);
+      outBuff[outBuff_pos++] = _input_line[i];
       skipChar = 0;
-      if (outBuff_pos > BUFF_LEN) break;  //TODO: stop if chars (per line) exeeded (or BUFF_LEN)
+      if (outBuff_pos > sizeof(outBuff) -1) break;  // stop if chars (per line) exeed buffer
     }
     else {
-      if (skipChar > 0){
+      if (skipChar > 0) {
         skipChar--;
-        if (skipChar == 0) {
-          isVar = false;
-        }
+        if (skipChar == 0)  isVar = false;
       }
     }
   }
@@ -519,6 +508,7 @@ void HBWDisplay::parseLine(char* _input_line, uint8_t length)
  #endif
   
   lcd->print(outBuff);
+  // TODO: use serial.print instead, to send data to other displays?
 };
 
 
@@ -527,9 +517,9 @@ void HBWDisplay::loop(HBWDevice* device, uint8_t channel)
 {
   static byte currentLine = 0;
   
-  if (millis() - displayLastRefresh > DISPLAY_REFRESH_INTERVAL)
+  if (millis() - displayLastRefresh >= (uint32_t)(config->refresh_rate +1)*1000)
   {
-    if (currentLine >= NUMBER_OF_DISPLAY_LINES) {
+    if (currentLine >= config->num_lines +1) {
       currentLine = 0;
       displayLastRefresh = millis();  // wait, after all lines have been updated
       return;
@@ -537,7 +527,7 @@ void HBWDisplay::loop(HBWDevice* device, uint8_t channel)
     
     if (currentLine == 0) {
       lcd->clear();
-    }    
+    }
     
 //    char lineBuffer[23];
 //    for (byte l=0; l < NUMBER_OF_DISPLAY_LINES; l++) //(sizeof(**displayLine) / sizeof(displayLine[0]))..not working!
@@ -547,62 +537,58 @@ void HBWDisplay::loop(HBWDevice* device, uint8_t channel)
 //      displayLine[l]->getStringFromValue((char*)lineBuffer);
 //      parseLine(lineBuffer, sizeof(lineBuffer));
 //    }
-    char lineBuffer[23] = {0};
+
+    //char lineBuffer[23] = {0};
+    char lineBuffer[LINE_BUFF_LEN] = {0};
     // writing the display takes quite some time, so only update one line of the display each loop. Allowing to handle other stuff that is going on
     // TODO: check if this is still ok with 4 lines
     lcd->setCursor(0, currentLine);
     //memset(lineBuffer, 0, sizeof(lineBuffer));
-    displayLine[currentLine]->getStringFromValue((char*)lineBuffer);
-    parseLine(lineBuffer, sizeof(lineBuffer));
+    displayLine[currentLine]->getStringFromValue((char*)lineBuffer);  // copy (raw) string of current line to buffer
+    parseLine(lineBuffer, sizeof(lineBuffer));    // parse (check for variables to expand) and send to display
     currentLine++;
-    
-  #ifdef DEBUG_OUTPUT
-//  hbwdebug(F("update LCD")); 
-
-//  memset(lineBuffer, 0, sizeof(lineBuffer));
-//  byte b=255;
-//  displayVChan[3]->set(device, 1, &b);
-//  displayVChan[3]->getStringFromValue((char *)lineBuffer);
-//  hbwdebug(F(" b1:")); hbwdebug(lineBuffer);
-  
-//  hbwdebug(F(" t1:")); hbwdebug(displayVChVars[0].n); hbwdebug(F(" t2:")); hbwdebug(displayVChVars[1].n);
-//  hbwdebug(F(" b1:")); hbwdebug(displayVChVars[0].b); hbwdebug(F(" b2:")); hbwdebug(displayVChVars[1].b);
-//  hbwdebug(F("\n"));
-  
-  #endif
   }
 };
+
 
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWDisplayDim::loop(HBWDevice* device, uint8_t channel)
 {
   if (!initDone) {
-    currentValue = config->startup ? 200 : 0; // set startup value (200 = on, 0 = off)
+    if (config->startup)  currentValue = 200; // set startup value (200 = on, 0 = off)
     initDone = true;
   }
 
-    // not critical... so use millis() with modulo...
-  if (millis() % UPDATE_BACKLIGHT_INTERVAL == 0)
+  // fixed intervall and not critical... so use millis() with modulo...
+  if (millis() % LCD_BACKLIGHT_UPDATE_INTERVAL == 0)
   {
-    uint8_t reading = (uint8_t)(analogRead(photoresistorPin) >> 2);  // drop minor two bits (10bit ADC)
-    //brightness = (brightness + (uint8_t) (analogRead(photoresistorPin) >> 2)) /2;  // drop last two bits (10bit ADC)
+    if (displayWakeUp) {
+      displayWakeUp = false;
+      powerOnTime = millis();   // reset timer for "auto_off"
+    }
 
-    // smooth ADC reading, but allow larger steps if current backlight is bright
-    if ((int16_t)(reading - brightness) > 3) {
-      brightness += 1 + (currentValue/30);
-    }
-    else if ((int16_t)(reading - brightness) < -3) {
-      brightness -= 1 + (currentValue/30);
-    }
-    
-    if (config->auto_brightness && photoresistorPin != NOT_A_PIN) {
-      //brightness = (uint8_t) (analogRead(photoresistorPin) >> 2);  // drop last two bits (10bit ADC)
+    if (config->auto_brightness && photoresistorPin != NOT_A_PIN)
+    {
+      int16_t brightnessDiff = (analogRead(photoresistorPin) >> 2) - brightness;
+      
+      // smooth ADC reading, but allow larger steps if backlight is bright, or the measured brightness changed a lot
+      if (brightnessDiff > 4) {
+        brightness += 1 + (currentValue/32) + (brightnessDiff/50);  // if possible divider with power of 2, to use bitshift
+      }
+      else if (brightnessDiff < -4) {
+        brightness -= 1 + (currentValue/32) + ((brightnessDiff * -1)/50);
+      }
+      
       currentValue = map(brightness, 0, 255, 0, 200);
     }
 //hbwdebug(F("Dim reading:")); hbwdebug(reading);
 //hbwdebug(F(" brightness:")); hbwdebug(brightness);
 //hbwdebug(F(" currentValue:")); hbwdebug(currentValue);
 //hbwdebug(F("\n"));
+
+    if (millis() - powerOnTime >= (uint32_t)config->auto_off *60000 && config->auto_off)
+      currentValue = 0;
+    
     analogWrite(backlightPin, map(currentValue, 0, 200, 0, 255));
   }
 };

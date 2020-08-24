@@ -12,20 +12,26 @@
 
 
 #include "HBWired.h"
-//#include <Wire.h> // TWI lib
 #include <LiquidCrystal.h>
 
 
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
-// defined here to use in functions // TODO: replace with proper/flexible solution
-#define NUMBER_OF_V_CHAN 8    // total number of virtual channels (class: HBWDisplayVChNum, HBWDisplayVChBool)
-#define NUMBER_OF_DISPLAY_LINES 2   // number of lines the display has (class: HBWDisplayLine)
-#define CHARACTER_PER_LINE 12
 
 
-static const byte LINE_BUFF_LEN = 14;  // TOOD: use consistent sizes.. what value? CHARACTER_PER_LINE + (CHARACTER_PER_LINE/4)
+#define MAX_DISPLAY_LINES 4   // number of lines the device will allow (class: HBWDisplayLine) - equal amount of channels must be created
+#define MAX_DISPLAY_CHARACTER_PER_LINE 24 //28 possible (with current config..) limit to 20?
 
+#define DISPLAY_CUSTOM_LINES_EESTART 0x320  // EEPROM start address (required space: MAX_DISPLAY_LINES * MAX_DISPLAY_CHARACTER_PER_LINE)
+
+//static const uint8_t LCD_BACKLIGHT_MIN_DIM = 0;   // minimum dimming %
+
+
+static const byte LINE_BUFF_LEN = MAX_DISPLAY_CHARACTER_PER_LINE + (MAX_DISPLAY_CHARACTER_PER_LINE /5);
+
+/*****************************************************************************
+ * Static text
+*/
 // pre-defined display lines. load with set command
 // %2% or %02% calls default_lines[1] (n-1)
 const char default_line1[] PROGMEM = {"Ofen: %1%" "\xDF" "C"};    //Ofen: 99.9°C
@@ -37,10 +43,12 @@ const char * const default_lines[] PROGMEM = {
   default_line4, default_line3, default_line2, default_line1
 };
 
-const char default_line_out_of_range[] PROGMEM = {"not defined"};
+const char undefined[] PROGMEM = {"undefined"};
+const char * const default_line_out_of_range[] PROGMEM = {
+  undefined
+};
 
-
-// pre-defined text (or symbols/custom chars?), access via %t0% ... %t9% (%s1%)? // TODO: implement...
+// pre-defined text (or symbols/custom chars?), access via %t0% ... %t9% (%s1%)? // TODO: implement...?
 //const char text1[] PROGMEM = {"\343C"}; //°
 //const char text2[] PROGMEM = {"Zur\365ck"};//\xF5
 //const char text3[] PROGMEM = {"Ofen "};
@@ -50,19 +58,20 @@ const char default_line_out_of_range[] PROGMEM = {"not defined"};
 //  text1, text2, text3, text4
 //};
 
-// text for bool channels
+// text for "bool_text[][]" array, used in bool channels
 const char text_on[] PROGMEM = {"Ein"};
 const char text_off[] PROGMEM = {"Aus"};
 const char text_open[] PROGMEM = {"Auf"};
 const char text_close[] PROGMEM = {"Zu"};
-const char text_auto[] PROGMEM = {"Aut"};
-const char text_manu[] PROGMEM = {"Man"};
+const char text_auto[] PROGMEM = {"Auto"};
+const char text_manu[] PROGMEM = {"Manu"};
 //const char text_on_sym[] PROGMEM = {"\xDB"};
 //const char text_off_sym[] PROGMEM = {"\xF8"};
 const char text_on_sym[] PROGMEM = {"\xF3"};
 const char text_off_sym[] PROGMEM = {"-"};
 
-#define MAX_LENGTH_FOR_BOOL_TEXT 3
+// default, max. 4 characters will be displayed
+#define MAX_LENGTH_FOR_BOOL_TEXT 4
 
 // this array matches the "display_text" XML configuration: bool_text[display_text][current bool value (0 || 1)]
 PROGMEM const char * const bool_text[][4] = {
@@ -85,11 +94,22 @@ PROGMEM const char * const bool_text[][4] = {
 //  {text_on, text_off}
 //};
 
+//const char smiley[8] PROGMEM = {
+//  B00000,
+//  B10001,
+//  B00000,
+//  B00000,
+//  B10001,
+//  B01110,
+//  B00000,
+//};
+
+/******************************************************************************/
 
 // config of one Display Virtual Numeric (display number variable) channel, address step 1
 struct hbw_config_displayVChNum {
   uint8_t factor:2;   // 1/1, 1/10, 1/100. 1/1000
-  uint8_t digits:2;   // number of decimal places/digits (999, 999.9, 999.99, 99.999) ////, 99999)
+  uint8_t digits:2;   // number of decimal places/digits (99999, 9999.9, 999.99, 99.999)
   uint8_t :4;     //fillup
 };
 
@@ -101,37 +121,33 @@ struct hbw_config_displayVChBool {
 
 // config of one Display line channel, address step 1
 struct hbw_config_display_line {
-//  uint8_t num_characters;  // number of characters per line //TODO: needed? static? -> use to allocate correct "buffer" size?
   uint8_t no_auto_cycle:1;  // default 1=auto_cycle disabled, to rotate different lines //TODO: implement
-  uint8_t default_text:2;  // or less pre-defined options, if one line can be set and saved at runtime?
-  uint8_t :5;     //fillup
+  //uint8_t default_text:2;  // TODO: or less pre-defined options, if one line can be set and saved at runtime? use 3 bit? add custom line 1 - 4? (100 byte @eeprom)
+  uint8_t default_text:3;  // pre-defined text (0-3) or custom line (>3)
+  uint8_t :4;     //fillup
 };
 
-// config of one Display channel, address step 2?
+// config of one Display channel, address step 2
 struct hbw_config_display {
   uint8_t startup:1;  // initial state, 1=ON
   uint8_t auto_cycle:1;  // default 1=auto_cycle enabled, to rotate different screens //TODO: implement
   uint8_t n_invert_display:1;  // default 1=not inverted //TODO: implement
-  uint8_t refresh_rate:4;  //??? dealy or rate? (1-15 seconds?) // TODO: needed? or just an option "auto_refresh"? //TODO: implement?
-  uint8_t :1;     //fillup
-//  uint8_t num_characters;  // number of characters per line //TODO: needed? static? -> use to allocate correct "buffer" size?
-//  uint8_t num_lines;  // number of lines //TODO: needed? static? -> configure by number of display line channels?
-//  uint8_t :2;     //fillup
-  uint8_t dummy;
+  uint8_t refresh_rate:5;  // 1-32 seconds (default 32) (0-31 +1)
+  //uint8_t :1;     //fillup
+  uint8_t num_lines:2;  // number of lines (2bit 0-3 +1 --> 1-4)
+  uint8_t num_characters:3;  // number of characters per line (0-6 *4 +4 --> 4-28)
+  uint8_t :3;     //fillup
+//  uint8_t dummy;
 };
 //typedef struct {
 //  uint8_t startup:1;  // initial state, 1=ON
-//  uint8_t auto_cycle:1;
-//  uint8_t n_invert_display:1;  // default 1=not inverted
-//  uint8_t refresh_delay:4;  //??? dealy or rate? (0-15 seconds?) // TODO: needed? or just an option "auto_refresh"?
-//  uint8_t :2;     //fillup
-//  uint8_t num_characters;  // number of characters per line //TODO: static? -> use to allocate correct "buffer" size?
-//  uint8_t num_lines;  // number of characters per line //TODO: static?
-//  uint8_t dummy;
-//  char line1[21];
-//  char line2[21];
-//  char line3[21];
-//  char line4[21];
+//  uint8_t auto_cycle:1;  // default 1=auto_cycle enabled, to rotate different screens //TODO: implement
+//  uint8_t n_invert_display:1;  // default 1=not inverted //TODO: implement
+//  uint8_t refresh_rate:5;  // 1-32 seconds (default 32) (0-31 +1)
+//  //uint8_t :1;     //fillup
+//  uint8_t num_lines:2;  // number of lines (2bit 0-3 +1 --> 1-4)
+//  uint8_t num_characters:3;  // number of characters per line (0-6 +1 *4 --> 4-28)
+//  uint8_t :3;     //fillup
 //} t_hbw_config_display;
 
 
@@ -146,8 +162,8 @@ struct hbw_config_display {
 struct hbw_config_display_backlight {
   uint8_t startup:1;  // initial state, 1=ON
   uint8_t auto_brightness:1;  // default 1=auto_brightness enabled
-  uint8_t auto_off:5;  // 1..31 minutes standby delay. 0 = always on ( 0 = "special value", not used) //TODO: implement
-  uint8_t :1;     //fillup
+  uint8_t auto_off:4;  // 1..15 minutes standby delay. 0 = always on ( 0 = "special value", NOT_USED)
+  uint8_t :2;     //fillup
   uint8_t dummy;
 };
 
@@ -182,23 +198,24 @@ class HBWDisplayVChannel : public HBWChannel {
     virtual uint8_t getStringFromValue(char* _buffer);
     
 //  private:
-//    boolean newData // TODO: add a flag, to indicate new value has been received by set or setInfo (peering)? How to check? Must be tracked for every variable
-//    static byte num;
+    static byte numTotal;    // count total number of virtual input channels (class: HBWDisplayVChNum, HBWDisplayVChBool)
 //  protected:
 //    HBWDisplayVChannel();
-//
-//  public:
-//    static inline uint8_t getNum()
+
+  public:
+//    static inline void addNumVChannel()
 //    {
-//      return num;
+//      num++;
 //    }
+    static inline uint8_t getNumVChannel()
+    {
+      return numTotal;
+    }
 };
 
 // Class HBWDisplayVChNum (input channel, to peer with external temperatur sensor or set any 16bit value - signed!)
-//class HBWDisplayVChNum : public HBWChannel {
 class HBWDisplayVChNum : public HBWDisplayVChannel {
   public:
-    //HBWDisplayVChNum(hbw_config_displayVChNum* _config, int16_t* _displayVChNumValue);
     HBWDisplayVChNum(hbw_config_displayVChNum* _config);
     virtual uint8_t get(uint8_t* data);
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
@@ -209,17 +226,13 @@ class HBWDisplayVChNum : public HBWDisplayVChannel {
   private:
     hbw_config_displayVChNum* config;
     int16_t currentValue; // "raw" value
-    //int16_t* displayVChNumValue;
     
     uint8_t formatFixpoint(char* _buf, int16_t intVal, uint8_t precision, uint16_t factor);
 };
 
 // Class HBWDisplayVChBool (input channel, to peer with external key channel or set bool value)
-//class HBWDisplayVChBool : public HBWChannel {
 class HBWDisplayVChBool : public HBWDisplayVChannel {
   public:
-    //HBWDisplayVChBool(hbw_config_displayVChBool* _config, char* _displayVChBoolValue);
-    //HBWDisplayVChBool(hbw_config_displayVChBool* _config, t_displayVChanValues _displayVChBoolValue);
     HBWDisplayVChBool(hbw_config_displayVChBool* _config);
     virtual uint8_t get(uint8_t* data);
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
@@ -229,8 +242,6 @@ class HBWDisplayVChBool : public HBWDisplayVChannel {
     
   private:
     hbw_config_displayVChBool* config;
-    //uint8_t* displayVChBoolValue;
-    //char* displayVChBoolValue;    // point to char array (struct) accessible to the display loop()
     boolean currentValue;   // store current value
     uint8_t lastKeyNum;
 
@@ -248,13 +259,16 @@ class HBWDisplayLine : public HBWDisplayVChannel {
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     
     virtual uint8_t getStringFromValue(char* _buffer);  // write current line or default text to "_buffer"
-  
+
+
   private:
     hbw_config_display_line* config;
     boolean useDefault;
-    //char* ptr_line;
-    char line[LINE_BUFF_LEN];   // value received by set command (like "foo: %1%"). Will be displayed when set or called by command value 201
+    char line[LINE_BUFF_LEN];   // value received by set command (like "foo: %1%"). Will be displayed when set or called by command value 0
     uint8_t lastKeyNum;
+
+    static byte numTotal;
+    byte num;
 };
 
 
@@ -266,19 +280,20 @@ class HBWDisplayDim : public HBWChannel {
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+
+    static boolean displayWakeUp;   // allow other channels to "wake up" the backlight
   
   private:
     hbw_config_display_backlight* config;
-    uint8_t backlightPin;  // (PWM) pin for backlight
-    uint8_t photoresistorPin;  // light resistor (mabye not used == NOT_A_PIN)
+    uint8_t backlightPin;  // (PWM!) pin for backlight
+    uint8_t photoresistorPin;  // light resistor (mabye not used == NOT_A_PIN) - pin must be ADC!
     uint8_t brightness;   // read ADC and save average here
     uint8_t currentValue;   // current dimmer level (0...200 -> 0...100%)
-    //uint32_t lastActionTime;
-    //uint8_t nextAction;
+    uint32_t powerOnTime;
     uint8_t lastKeyNum;
     boolean initDone;
     
-    static const uint32_t UPDATE_BACKLIGHT_INTERVAL = 1660;
+    static const uint32_t LCD_BACKLIGHT_UPDATE_INTERVAL = 1660;
 
     // TODO: add notify/logging? Not really needed, should not be enabled in auto_brightness mode anyway
 };
@@ -287,42 +302,26 @@ class HBWDisplayDim : public HBWChannel {
 //TODO: Check if this can be used // template <uint8_t num_HBWDisplayVChannel>
 class HBWDisplay : public HBWChannel {
   public:
-    //HBWDisplay(LiquidCrystal* _display, t_displayVChVars* _displayVChVars, hbw_config_display* _config, uint8_t _backlight_pin = NOT_A_PIN);
-    //HBWDisplay(LiquidCrystal* _display, pfunc_getStringFromValue _displayVChVars, hbw_config_display* _config);
     HBWDisplay(LiquidCrystal* _display, HBWDisplayVChannel** _displayVChan, hbw_config_display* _config, HBWDisplayVChannel** _displayLines);
     virtual void loop(HBWDevice*, uint8_t channel);
     //virtual uint8_t get(uint8_t* data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
     
-	// set 1-10 + data = set display lines (update display immediately?) - additional channel per line? allow peer to load line? -> own channel!
-  // set 11-20 + data = set display lines and save to EEPROM? -> own channel!
 	// set 0 - off?
-	// set 200 (or anything !=0?) - display on?
+	// set 200 (or anything !=0?) - display on? / wakeup?
   // set 255 "toogle" to switch to next screen
-  // set 211...215 - load default text? -> own channel!
-  // set 250 - write buffer to display (refresh)?
   
-    
-    static const uint32_t DISPLAY_REFRESH_INTERVAL = 3000; // 3 seconds // TODO: needed? useful? can virtual channels trigger an update?
-
 
   private:
     hbw_config_display* config;
     LiquidCrystal* lcd;
-    //t_displayVChVars* displayVChVars;
-    HBWDisplayVChannel** displayVChan;  // pointer to array of linked VChannels
-    //pfunc_getStringFromValue displayVChan;
+    HBWDisplayVChannel** displayVChan;  // pointer to array of linked VChannels (input values)
+    HBWDisplayVChannel** displayLine;  // pointer to array of linked VChannels (lines of the display)
     uint32_t displayLastRefresh;    // last time of update
     boolean initDone;
-
-//    char line1[15];  // TODO: make global and just define pointer here?
-//    char line2[15];
-    //t_displayLine* displayLines;
-    HBWDisplayVChannel** displayLine;
-
-    void parseLine(char* _line, uint8_t length);
     
+    void parseLine(char* _line, uint8_t length);
 };
 
 #endif /* HBWDISPLAYLCD_H_ */

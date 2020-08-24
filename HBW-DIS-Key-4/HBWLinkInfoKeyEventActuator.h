@@ -7,6 +7,8 @@
 **
 */
 
+// TODO: put this back into the normal HBWLinkReceiver - find a good way to combine different classes (without wasting space...)
+
 #ifndef HBWLinkInfoKeyEventActuator_h
 #define HBWLinkInfoKeyEventActuator_h
 

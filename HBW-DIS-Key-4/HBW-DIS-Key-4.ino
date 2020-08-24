@@ -4,6 +4,7 @@
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
+// LCD Display mit 4 Tastern
 // 
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -11,25 +12,30 @@
 // Changes
 // v0.01
 // - initial version
-
+// v0.20
+// - add option to configure 1*4 to 4*24 LCD
+// - allow to save custom text line to EERPOM (one per display line channel) and load on start
+// - added auto-off option for display backlight (dim channel)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0001
+#define FIRMWARE_VERSION 0x0014
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 
-//currently defined in "HBWDisplayLCD.h"#define NUMBER_OF_DISPLAY_LINES 2
+
 #define NUMBER_OF_DISPLAY_CHAN 1
 #define NUMBER_OF_DISPLAY_DIM_CHAN 1
+#define NUMBER_OF_DISPLAY_LINES MAX_DISPLAY_LINES // defined in "HBWDisplayLCD.h", max. lines the display can have (set actual amount in display channel config!)
 #define NUMBER_OF_V_TEMP_CHAN 4   // virtual channels to peer with temperature sensor (or set any 2 byte signed value)
 #define NUMBER_OF_V_SWITCH_CHAN 4   // virtual channels to peer as switch (display ON/OFF state), or set by FHEM
-//currently defined in "HBWDisplayLCD.h" #define NUMBER_OF_V_CHAN NUMBER_OF_V_TEMP_CHAN + NUMBER_OF_V_SWITCH_CHAN    // total number of virtual channels
+#define NUMBER_OF_V_CHAN NUMBER_OF_V_TEMP_CHAN + NUMBER_OF_V_SWITCH_CHAN    // total number of virtual channels
 #define NUMBER_OF_KEY_CHAN 4
 #define NUM_LINKS_KEY 20
 #define NUM_LINKS_V_CHAN 32
 #define LINKADDRESSSTART_V_CHAN 0x30  // any actor peering!
 #define LINKADDRESSSTART_KEY 0x13C  // any sensor peering!
+// check DISPLAY_CUSTOM_LINES_EESTART in "HBWDisplayLCD.h" - select a free EEPROM space for this! (or undefine)
 
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
@@ -55,6 +61,8 @@
   #define BUTTON_3 A2
   #define BUTTON_4 A3
 
+  //#define no_used.. 3 //4? //8? WS2812B?
+  
   #define LCD_RS 12
   #define LCD_EN 11
   #define LCD_D4 10
@@ -62,9 +70,9 @@
   #define LCD_D6 7
   #define LCD_D7 6
   
-  #define LCD_BACKLIGHT 5
+  #define LCD_BACKLIGHT_PWM 5
 
-  #define LDR A7
+  #define LDR_PIN A7
   
 //  #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
 //  #define BLOCKED_TWI_SCL A5  // used by I²C - SCL
@@ -87,9 +95,9 @@
   #define LCD_D6 7
   #define LCD_D7 6
   
-  #define LCD_BACKLIGHT 5
+  #define LCD_BACKLIGHT_PWM 5
 
-  #define LDR A7
+  #define LDR_PIN A7
   
 //  #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
 //  #define BLOCKED_TWI_SCL A5  // used by I²C - SCL
@@ -110,12 +118,12 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_display DisCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x07 - 0x (address step 2)
-  hbw_config_display_backlight DisDimCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x09 - 0x (address step 2)
-  hbw_config_display_line DisLineCfg[NUMBER_OF_DISPLAY_LINES]; // 0x0B - 0x (address step 1)
-  hbw_config_key KeyCfg[NUMBER_OF_KEY_CHAN]; // 0x0D - 0x (address step 2)
-  hbw_config_displayVChNum DisTCfg[NUMBER_OF_V_TEMP_CHAN];  // 0x15 - 0x (address step 1)
-  hbw_config_displayVChBool DisBCfg[NUMBER_OF_V_SWITCH_CHAN];  // 0x19 - 0x (address step 1)
+  hbw_config_display DisCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x07 - 0x08 (address step 2)
+  hbw_config_display_backlight DisDimCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x09 - 0x0A (address step 2)
+  hbw_config_display_line DisLineCfg[MAX_DISPLAY_LINES]; // 0x0B - 0x0E (address step 1)
+  hbw_config_key KeyCfg[NUMBER_OF_KEY_CHAN]; // 0x0F - 0x16 (address step 2)
+  hbw_config_displayVChNum DisTCfg[NUMBER_OF_V_TEMP_CHAN];  // 0x17 - 0x1A (address step 1)
+  hbw_config_displayVChBool DisBCfg[NUMBER_OF_V_SWITCH_CHAN];  // 0x1B - 0x1F (address step 1)
 } hbwconfig;
 
 //typedef struct {
@@ -146,56 +154,38 @@ LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 void setup()
 {
-  // create some variables used across different channels
-  //t_displayVChVars displayVChannelVars[2];
+  // create some pointer used across channels
   HBWDisplayVChannel* displayVChannel[NUMBER_OF_V_CHAN];  // pointer to VChannel channels, to access from HBWDisplay class
-  HBWDisplayVChannel* displayLines[NUMBER_OF_DISPLAY_LINES];  // pointer to VChannel channels, to access from HBWDisplay class
+  //HBWDisplayVChannel* displayLines[NUMBER_OF_DISPLAY_LINES];  // pointer to VChannel channels, to access from HBWDisplay class
+  HBWDisplayVChannel* displayLines[MAX_DISPLAY_LINES];  // pointer to VChannel channels, to access from HBWDisplay class
 
-  //t_displayVChanValues dispVChanVars[4] = {NULL};
-  //t_displayLine displayLines[2];
-
-
-  displayLines[0] = new HBWDisplayLine(&(hbwconfig.DisLineCfg[0]));//, (char*)&displayLines[0].line);
-  displayLines[1] = new HBWDisplayLine(&(hbwconfig.DisLineCfg[1]));//, (char*)&displayLines[1].line);
-  channels[2] = displayLines[0];
-  channels[3] = displayLines[1];  
+  static const byte BUTTON_PIN[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4};
   
-  channels[4] = new HBWKey(BUTTON_1, &(hbwconfig.KeyCfg[0]));
-  channels[5] = new HBWKey(BUTTON_2, &(hbwconfig.KeyCfg[1]));
-  channels[6] = new HBWKey(BUTTON_3, &(hbwconfig.KeyCfg[2]));
-  channels[7] = new HBWKey(BUTTON_4, &(hbwconfig.KeyCfg[3]));
+ #if (NUMBER_OF_KEY_CHAN == MAX_DISPLAY_LINES) // this only works in the same loop, if we have same ammount of display lines and key channels! 
+  for(uint8_t i = 0; i < MAX_DISPLAY_LINES; i++) {
+    channels[i + NUMBER_OF_DISPLAY_CHAN + NUMBER_OF_DISPLAY_DIM_CHAN] = displayLines[i] = new HBWDisplayLine(&(hbwconfig.DisLineCfg[i]));
+    channels[i + NUMBER_OF_DISPLAY_CHAN + NUMBER_OF_DISPLAY_DIM_CHAN + NUMBER_OF_DISPLAY_LINES] = new HBWKey(BUTTON_PIN[i], &(hbwconfig.KeyCfg[i]));
+  }
+ #else
+  #error NUMBER_OF_KEY_CHAN channel missmatch!
+ #endif
   
-  displayVChannel[0] = new HBWDisplayVChNum(&(hbwconfig.DisTCfg[0]));//, &displayVChannelVars[0].n);
-  channels[8] = displayVChannel[0];
-  displayVChannel[1] = new HBWDisplayVChNum(&(hbwconfig.DisTCfg[1]));//, &displayVChannelVars[1].n);
-  channels[9] = displayVChannel[1];
-  channels[10] = displayVChannel[2] = new HBWDisplayVChNum(&(hbwconfig.DisTCfg[2]));
-  channels[11] = displayVChannel[3] = new HBWDisplayVChNum(&(hbwconfig.DisTCfg[3]));
-  
-  //channels[3] = new HBWDisplayVChNum(&(hbwconfig.DisTCfg[1]), &displayVChannelVars.t[1]);
-/////////  channels[4] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[0]), dispVChanVars);
-//  channels[4] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[0]), (char*)&displayVChannelVars[0].b);
-//  channels[5] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[1]), (char*)&displayVChannelVars[1].b);
-//  displayVChannel[4] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[0]));//, &dispVChanVars[0].getStrFromVal);
-//  displayVChannel[5] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[1]));//, &dispVChanVars[1].getStrFromVal);
-  channels[12] = displayVChannel[4] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[0]));
-  channels[13] = displayVChannel[5] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[1]));
-  channels[14] = displayVChannel[6] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[2]));
-  channels[15] = displayVChannel[7] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[3]));
+ #if (NUMBER_OF_V_TEMP_CHAN == NUMBER_OF_V_SWITCH_CHAN)
+  for(uint8_t i = 0; i < NUMBER_OF_V_TEMP_CHAN; i++) {
+    channels[i + NUMBER_OF_DISPLAY_CHAN + NUMBER_OF_DISPLAY_DIM_CHAN + NUMBER_OF_DISPLAY_LINES + NUMBER_OF_KEY_CHAN] =\
+      displayVChannel[i] = new HBWDisplayVChNum(&(hbwconfig.DisTCfg[i]));
+    channels[i + NUMBER_OF_DISPLAY_CHAN + NUMBER_OF_DISPLAY_DIM_CHAN + NUMBER_OF_DISPLAY_LINES + NUMBER_OF_KEY_CHAN + NUMBER_OF_V_TEMP_CHAN] =\
+      displayVChannel[NUMBER_OF_V_TEMP_CHAN + i] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[i]));
+  }
+ #else
+  #error Virual input channel missmatch!
+ #endif
 
+  channels[1] = new HBWDisplayDim(&(hbwconfig.DisDimCfg[0]), LCD_BACKLIGHT_PWM, LDR_PIN);
+  
+  // "master" display as last channel, using the pointer to virtual input and display-line channels
   channels[0] = new HBWDisplay(&lcd, (HBWDisplayVChannel**)displayVChannel, &(hbwconfig.DisCfg[0]), (HBWDisplayVChannel**)displayLines);
-  channels[1] = new HBWDisplayDim(&(hbwconfig.DisDimCfg[0]), LCD_BACKLIGHT, LDR);
   
-  //channels[0] = new HBWDisplay(&lcd, dispVChanVars, &(hbwconfig.DisCfg[0]));
-//  channels[5] = new HBWDisplayVChBool(&(hbwconfig.DisBCfg[1]), &displayVChannelVars.b[1]);
-
-
-  
-//  byte buttonPin[NUMBER_OF_KEY_CHAN] = {BUTTON_1, BUTTON_2, BUTTON_3};  // assing pins
-//  for(uint8_t i = 0; i < NUMBER_OF_KEY_CHAN; i++) {
-//    channels[i +NUMBER_OF_TEMP_CHAN +NUMBER_OF_DELTAT_CHAN *3] = new HBWKey(buttonPin[i], &(hbwconfig.KeyCfg[i]));
-//  }
-
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);
@@ -230,6 +220,14 @@ void setup()
   hbwdebug(F(" #num_chan "));
   //hbwdebug(NUMBER_OF_CHAN);
   hbwdebug(sizeof(channels)/2);
+
+  // calculate EEPORM start addresses. to put in XML
+  hbwdebug(F(" #eeStart Ch, Key:"));
+  hbwdebughex(0x0B + sizeof(hbwconfig.DisLineCfg));
+  hbwdebug(F(", Vn:"));
+  hbwdebughex(0x0B + sizeof(hbwconfig.DisLineCfg) + sizeof(hbwconfig.KeyCfg));
+  hbwdebug(F(", Vb:"));
+  hbwdebughex(0x0B + sizeof(hbwconfig.DisLineCfg) + sizeof(hbwconfig.KeyCfg) + sizeof(hbwconfig.DisTCfg));
   hbwdebug(F("\n"));
 #endif
 }

@@ -13,9 +13,9 @@ Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw-dis-key-4.xml
 
 
 Kanäle:
-1x Display
+1x Display (1*4 bis 4*24 LCD)
 1x Dimmer (Display Hintergrundbeleuchtung)
-2x (4x) display_line
+4x display_line (bei zweizeiligen Displays werden nur die beiden ersten Kanäle genutzt)
 4x Key (Taster, Schalter)
 4x display_v_temp	(Speichert Temperaturmesswerte oder beliebige Werte von -32768 bis 32767)
 4x display_v_switch	(Speichert einen binären Wert, 0 oder 1)
@@ -25,7 +25,7 @@ Für die "display_line" Kanäle, welche je eine Zeile des Displays repräsentieren,
 Wenn für eine Zeile "Innen: %1%°C" gesetzt ist, dann wird %1% mit dem Wert des ersten display_v_* Kanals ersetzt. Bei einem Temperaturmesswert würde dann z.B. im Display "Innen: 22.4°C" angezeigt. Mit einem Key (Taster) Peering kann zwischen der vordefinierten Zeile und der per FHEM gesetzten umgeschaltet werden.
 
 Die 8 display_v_* Kanäle können über die Platzhalter %1% bis %8% angezeigt werden. Erhalten diese Kanäle neue Werte (über FHEM oder Peering), so wird dies im Display automatisch aktualisiert.
-Für "display_v_temp" Kanäle können ein Faktor (1; 10; 100; 1000) und Anzeigeformat (999; 999.9; 999.99; 99.999) konfiguriert werden.
+Für "display_v_temp" Kanäle können ein Faktor (1; 10; 100; 1000) und Anzeigeformat (99999; 9999.9; 999.99; 99.999) konfiguriert werden.
 Für "display_v_switch" Kanäle ein Anzeigetext, z.B. Ein/Aus, Auf/Zu, Auto/Manu.
 
 

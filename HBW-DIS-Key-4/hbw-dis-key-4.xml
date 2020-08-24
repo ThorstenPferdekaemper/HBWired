@@ -4,7 +4,7 @@
 	<type name="RS485 Status Display with push button" id="HBW-DIS-Key-4" priority="2">
 		<parameter index="0" size="1" const_value="0x71"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0001" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x0014" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -85,6 +85,9 @@
 	<frame id="SET_OPT_OFF" direction="to_device" type="#x" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" const_value="202"/>
 	</frame>
+	<frame id="SAVE_VALUE" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="220"/>
+	</frame>
 </frames>
 
 <channels>
@@ -132,13 +135,28 @@
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="REFRESH_RATE">
-				<logical type="integer" unit="s" default="7" max="7" min="1">
-					<special_value id="NOT_USED" value="0"/>
-				</logical>
-				<!-- add factor? e.g. 4 seconds stepping? -->
-				<physical size="0.4" type="integer" interface="eeprom">
+				<logical type="integer" unit="s" default="32" max="32" min="1"/>
+				<physical size="0.5" type="integer" interface="eeprom">
 					<address index="+0.3"/>
 				</physical>
+				<conversion type="float_integer_scale" factor="1" offset="-1.0"/>
+			</parameter>
+			<parameter id="DISPLAY_LINES">
+				<logical type="integer" default="4" max="4" min="1"/>
+				<physical size="0.2" type="integer" interface="eeprom">
+					<address index="+1.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="1" offset="-1.0"/>
+			</parameter>
+			<parameter id="CHARACTERS_PER_LINE">
+				<logical type="integer" default="20" max="24" min="4"/>
+				<physical size="0.3" type="integer" interface="eeprom">
+					<address index="+1.2"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.25" offset="-4.0"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="20" device_value="0x7"/>
+				</conversion>
 			</parameter>
 
 		</paramset>
@@ -182,10 +200,10 @@
 				<conversion type="boolean_integer" invert="false"/>
 			</parameter>
 			<parameter id="AUTO_OFF_DELAY">
-				<logical type="integer" unit="min" default="10" max="31" min="1">
+				<logical type="integer" unit="min" default="15" max="15" min="1">
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
-				<physical size="0.5" type="integer" interface="eeprom">
+				<physical size="0.4" type="integer" interface="eeprom">
 					<address index="+0.2"/>
 				</physical>
 			</parameter>
@@ -279,7 +297,7 @@
 		</paramset>
 	</channel>
 	
-	<channel index="3" count="2" physical_index_offset="-1" type="DISPLAY_LINE">
+	<channel index="3" count="4" physical_index_offset="-1" type="DISPLAY_LINE">
 		<paramset id="hbw_dline_ch_master" type="MASTER" address_step="1" address_start="0x0B">
 			<parameter id="AUTO_CYCLE">
 				<logical type="boolean" default="false"/>
@@ -293,9 +311,13 @@
 				<option id="Innen_%4%_C"/>
 				<option id="Aussen_%3%_C"/>
 				<option id="Sp_%2%_C_%5%"/>
-				<option id="Ofen_%1%_C" default="true"/>
+				<option id="Ofen_%1%_C"/>
+				<option id="custom"/>
+				<option id="custom"/>
+				<option id="custom"/>
+				<option id="custom" default="true"/>
 			  </logical>
-			  <physical type="integer" size="0.2" interface="eeprom">
+			  <physical type="integer" size="0.3" interface="eeprom">
 				<address index="+0.1"/>
 			  </physical>
 			</parameter>
@@ -370,14 +392,20 @@
 					<set request="SET_OFF"/>
 				</physical>
 			</parameter>
+			<parameter id="SAVE_CUSTOM_TEXT" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="SAVE_VALUE"/>
+				</physical>
+			</parameter>
 		</paramset>
 	</channel>
 	
-	<channel index="5" type="KEY" count="4" physical_index_offset="-1">	<!-- input key chan -->
+	<channel index="7" type="KEY" count="4" physical_index_offset="-1">	<!-- input key chan -->
 		<link_roles>
 			<source name="SWITCH"/>
 		</link_roles>
-		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x0D" address_step="2">
+		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x0F" address_step="2">
 		    <parameter id="INPUT_LOCKED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
@@ -413,7 +441,7 @@
 			<parameter id="LONG_PRESS_TIME">
 				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
 				<physical size="1.0" type="integer" interface="eeprom">
-					<address index="+1"/>
+					<address index="+1.0"/>
 				</physical>
 				<conversion type="float_integer_scale" factor="10"/>
 				<conversion type="integer_integer_map">
@@ -455,11 +483,18 @@
 				</physical>
 				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
 			</parameter>
+			<parameter id="INSTALL_TEST" operations="event" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TEST_COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+					<event frame="KEY_EVENT_LONG"/>
+				</physical>
+			</parameter>
 		</paramset>
 	</channel>
 	
-	<channel index="9" count="4" physical_index_offset="-1" type="DISPLAY_V_TEMP">	<!--hbw_config_displayVChNum-->
-		<paramset id="hbw_v_temp_ch_master" type="MASTER" address_step="1" address_start="0x15">
+	<channel index="11" count="4" physical_index_offset="-1" type="DISPLAY_V_TEMP">	<!--hbw_config_displayVChNum-->
+		<paramset id="hbw_v_temp_ch_master" type="MASTER" address_step="1" address_start="0x17">
 			<parameter id="FACTOR">
 			  <logical type="option">
 				<option id="1"/>
@@ -473,8 +508,8 @@
 			</parameter>
 			<parameter id="DIGITS">
 			  <logical type="option">
-				<option id="999"/>
-				<option id="999.9"/>
+				<option id="99999"/>
+				<option id="9999.9"/>
 				<option id="999.99 (temp)"/>
 				<option id="99.999" default="true"/>
 			  </logical>
@@ -555,11 +590,11 @@
 		</paramset>
 	</channel>
 	
-	<channel index="13" count="4" physical_index_offset="-1" type="DISPLAY_V_SWITCH">	<!--hbw_config_displayVChBool-->
+	<channel index="15" count="4" physical_index_offset="-1" type="DISPLAY_V_SWITCH">	<!--hbw_config_displayVChBool-->
 		<link_roles>
 			<target name="SWITCH"/>
 		</link_roles>
-		<paramset id="hbw_v_switch_ch_master" type="MASTER" address_step="1" address_start="0x19">
+		<paramset id="hbw_v_switch_ch_master" type="MASTER" address_step="1" address_start="0x1B">
 			<parameter id="DISPLAY_TEXT">
 				<logical type="option">
 					<option id="On/Off"/>
@@ -635,86 +670,5 @@
 			</parameter>
 		</paramset>
 	</channel>
-
-	
-	<!--<channel index="16" type="KEY" count="3" physical_index_offset="-1">
-		<link_roles>
-		   <source name="SWITCH"/>
-		</link_roles>
-		<paramset id="hbw_input_ch_master" type="MASTER" address_step="2" address_start="0x31">
-			<parameter id="INPUT_LOCKED">
-				<logical type="boolean" default="false"/>
-				<physical size="0.1" type="integer" interface="eeprom">
-					<address index="0.0"/>
-				</physical>
-				<conversion type="boolean_integer" invert="true"/>
-			</parameter>
-			<parameter id="INVERTED">
-				<logical type="boolean" default="true"/>
-				<physical size="0.1" type="integer" interface="eeprom">
-					<address index="+0.1"/>
-				</physical>
-				<conversion type="boolean_integer" invert="false"/>
-			</parameter>
-			<parameter id="INPUT_TYPE">
-				<logical type="option">
-					<option id="DOORSENSOR"/>
-					<option id="MOTIONSENSOR"/>
-					<option id="SWITCH"/>
-					<option id="PUSHBUTTON" default="true"/>
-				</logical>
-				<physical size="0.2" type="integer" interface="eeprom">
-					<address index="+0.3"/>
-				</physical>
-			</parameter>
-			<parameter id="LONG_PRESS_TIME">
-				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
-				<physical size="1.0" type="integer" interface="eeprom">
-					<address index="+1"/>
-				</physical>
-				<conversion type="float_integer_scale" factor="10"/>
-				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
-				</conversion>
-			</parameter>
-		</paramset>
-		
-		<paramset type="LINK" id="hmw_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="32" address_start="0x100" address_step="6">
-			<parameter hidden="true" id="CHANNEL" operations="none">
-				<logical type="integer" default="255" max="255" min="0"/>
-				<physical size="1.0" type="integer" interface="eeprom">
-					<address index="+0"/>
-				</physical>
-			</parameter>
-			<parameter hidden="true" id="ACTUATOR" operations="none">
-				<logical type="address"/>
-				<physical type="array">
-					<physical size="4.0" type="integer" interface="eeprom">
-						<address index="+1"/>
-					</physical>
-					<physical size="1.0" type="integer" interface="eeprom">
-						<address index="+5"/>
-					</physical>
-				</physical>
-			</parameter>
-		</paramset>
-		<paramset type="VALUES" id="hbw_input_ch_values">
-			<parameter id="PRESS_SHORT" operations="event" loopback="true" control="BUTTON.SHORT">
-				<logical type="action"/>
-				<physical type="integer" interface="command" value_id="COUNTER">
-					<event frame="KEY_EVENT_SHORT"/>
-				</physical>
-				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
-			</parameter>
-			<parameter id="PRESS_LONG" operations="event" loopback="true" control="BUTTON.LONG">
-				<logical type="action"/>
-				<physical type="integer" interface="command" value_id="COUNTER">
-					<event frame="KEY_EVENT_LONG"/>
-				</physical>
-				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
-			</parameter>
-		</paramset>
-	</channel> -->
 </channels>
-
 </device>

@@ -7,6 +7,7 @@
 **
 */
 
+// TODO: put this back into the normal HBWLinkReceiver - find a good way to combine different classes (without wasting space...)
 
 #ifdef Support_HBWLink_InfoEvent
 template<uint8_t numLinks, uint16_t eepromStart>
