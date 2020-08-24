@@ -13,22 +13,21 @@
 // - initial version
 // v0.02
 // - change to peer: temp (sensor & actuator), removed deltaT virtual Keys (peering conflict)
+// v0.30
+// - allow deltaT channels peering with external switches (key/actuator peer role)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0002
+#define FIRMWARE_VERSION 0x001E
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import .xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 #define NUM_LINKS_TEMP 20    // requires Support_HBWLink_InfoEvent in HBWired.h
-#define LINKADDRESSSTART_TEMP 0x100  // step 6
+#define LINKADDRESSSTART_TEMP 0x100  // pering start_address for any sensor type peers, address_step has to be 6
 #define NUMBER_OF_DELTAT_CHAN 3 // result output channels[, can peer with switch]
 #define NUM_LINKS_DELTATX 6     // allow to peer input channels (T1 & T2) with one temperature sensor each
 #define LINKADDRESSSTART_DELTATX 0x220  // step 7
-//#define NUMBER_OF_KEY_CHAN 3  // input channels - deltaT vKey [pushbutton/switch]
-//#define NUM_LINKS_KEY 12    // 3 DELTA_T KEY[, 9 for pushbutton/switch]
-//#define LINKADDRESSSTART_KEY 0x100 //0x1A2, only one start address possible for all sensor type peers  // step 6
 
 
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
@@ -38,10 +37,9 @@
 
 // HB Wired protocol and module
 #include <HBWired.h>
-//#include <HBWKey.h>
-//#include <HBWLinkKey.h>
 #include <HBWOneWireTempSensors.h>
-#include <HBWLinkInfoEventSensor.h>
+//#include <HBWLinkInfoEventSensor.h>
+#include "HBWLinkKeyInfoEventSensor.h"  // TODO: remove these files and add option to the lib, allowing to combine different LinkSender
 #include <HBWLinkInfoEventActuator.h>
 #include "HBWDeltaT.h"
 
@@ -56,10 +54,6 @@
   #define RELAY_1 5
   #define RELAY_2 6
   #define RELAY_3 7
-
-//  #define BUTTON_1 A1
-//  #define BUTTON_2 A2
-//  #define BUTTON_3 A3
   
   #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
   #define BLOCKED_TWI_SCL A5  // used by I²C - SCL
@@ -75,10 +69,6 @@
   #define RELAY_1 A1
   #define RELAY_2 A2
   #define RELAY_3 A3 //NOT_A_PIN
-
-//  #define BUTTON_1 6
-//  #define BUTTON_2 NOT_A_PIN
-//  #define BUTTON_3 NOT_A_PIN
 
   #include "FreeRam.h"
   #include <HBWSoftwareSerial.h>
@@ -124,17 +114,12 @@ class HBDTControlDevice : public HBWDevice {
               {
                 d_ow = oneWire;
                 tempSensorconfig = _tempSensorconfig;
-//                linkSenderInfo = _linkSenderTemp;
-//                linkReceiverInfo = _linkReceiverTemp;
     };
     virtual void afterReadConfig();
     
     private:
       OneWire* d_ow;
       hbw_config_onewire_temp** tempSensorconfig;
-
-//HBWLinkSender* linkSenderTemp;
-//HBWLinkReceiver* linkReceiverTemp;
 };
 
 // device specific defaults
@@ -143,18 +128,6 @@ void HBDTControlDevice::afterReadConfig()
   if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
   
   HBWOneWireTemp::sensorSearch(d_ow, tempSensorconfig, (uint8_t) NUMBER_OF_TEMP_CHAN, (uint8_t) ADDRESS_START_CONF_TEMP_CHAN);
-
-
-//static const uint16_t sAddr = 0x100;
-//hbwdebug(F("EE@ 0x100"));hbwdebug(F("\n"));
-//static const uint8_t Esize = 64;
-//byte eeFoo[Esize];
-//readEEPROM(eeFoo, sAddr, Esize);
-//for(byte i = 0; i < Esize; i++) {
-//hbwdebughex(eeFoo[i]);
-//if (i % 6 == 0 && i != 0) hbwdebug(F("\n"));
-//} hbwdebug(F("\n"));
-
 };
 
 HBDTControlDevice* device = NULL;
@@ -185,11 +158,6 @@ void setup()
     channels[i +NUMBER_OF_TEMP_CHAN + NUMBER_OF_DELTAT_CHAN *2] = deltaTxCh[i +NUMBER_OF_DELTAT_CHAN];
   }
   
-//  static const uint8_t buttonPin[NUMBER_OF_KEY_CHAN] = {BUTTON_1, BUTTON_2, BUTTON_3};  // assing pins
-//  for(uint8_t i = 0; i < NUMBER_OF_KEY_CHAN; i++) {
-//    channels[i +NUMBER_OF_TEMP_CHAN +NUMBER_OF_DELTAT_CHAN *3] = new HBWKey(buttonPin[i], &(hbwconfig.KeyCfg[i]));
-//  }
-
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);
@@ -198,12 +166,9 @@ void setup()
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
-//                             new HBWLinkKey(NUM_LINKS_KEY + NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
-                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
+                             new HBWLinkKeyInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
                              new HBWLinkInfoEventActuator<NUM_LINKS_DELTATX, LINKADDRESSSTART_DELTATX>(),
                              g_ow, tempConfig
-//                            , new HBWLinkInfoEventSensor(NUM_LINKS_TEMP + NUM_LINKS_KEY,LINKADDRESSSTART_TEMP),
-//                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_DELTATX)
                              );
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
@@ -216,12 +181,9 @@ void setup()
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
-//                             new HBWLinkKey(NUM_LINKS_KEY + NUM_LINKS_TEMP,LINKADDRESSSTART_TEMP), NULL,
-                             new HBWLinkInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
+                             new HBWLinkKeyInfoEventSensor<NUM_LINKS_TEMP, LINKADDRESSSTART_TEMP>(),
                              new HBWLinkInfoEventActuator<NUM_LINKS_DELTATX, LINKADDRESSSTART_DELTATX>(),
                              g_ow, tempConfig
-//                            , new HBWLinkInfoEventSensor(NUM_LINKS_TEMP + NUM_LINKS_KEY,LINKADDRESSSTART_TEMP),
-//                             new HBWLinkInfoEventActuator(NUM_LINKS_DELTATX,LINKADDRESSSTART_DELTATX)
                              );
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
