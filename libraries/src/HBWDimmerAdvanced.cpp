@@ -23,7 +23,6 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
   oldValue = 0;
   oldOnValue = 0;
   clearFeedback();
-  lastFeedbackTime = 0;
   
   StateMachine.init();
 
