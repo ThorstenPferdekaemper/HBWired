@@ -1,3 +1,12 @@
+/* 
+ *  HBWKeyVirtual.h
+ *  
+ *  HBWKeyVirtual can be used to read actor channels, like switch or dimmer
+ *  It will send a short KeyEvent, if the attached channel (mappedChan) state not 0
+ *  and long KeyEvent for state equals 0.
+ *  HBWKeyVirtual can be peered like any normal key channel (using HBWLinkKey.h)
+ */
+
 #ifndef HBWKeyVirtual_h
 #define HBWKeyVirtual_h
 
@@ -8,12 +17,13 @@
 #define DEBUG_OUTPUT
 
 
+// config of each virtual key channel, address step 1
 struct hbw_config_key_virt {
-  uint8_t input_locked:1;   // 0x07:0    1=LOCKED, 0=UNLOCKED
+  uint8_t input_locked:1;   // 0x07:0    default 1=LOCKED, 0=UNLOCKED
   uint8_t n_inverted:1;     // 0x07:1    0=inverted, 1=not inverted
-  uint8_t       :6;         // 0x07:2-7
-  //TODO: add option to force update on start? (forceUpdate = !config->update_on_start;)
-  //uint8_t dummy;    //TODO: use for OFF_DELAY_TIME? (0-254 seconds?)
+  uint8_t n_update_on_start:1;     // 0x07:2    0 = send key event on device start, 1 = don't
+  uint8_t       :5;         // 0x07:3-7
+  //TODO: use 3 bit for OFF_DELAY_TIME? (0..7 seconds?)
 };
 
 
@@ -30,12 +40,12 @@ class HBWKeyVirtual : public HBWChannel {
     
     uint8_t keyPressNum;
     uint32_t keyPressedMillis;  // Zeit, zu der die Taste gedrueckt wurde (fuer's Entprellen)
-    boolean sendLong;
+    boolean sendLong;          // Zu sendender "Tastendruck" long (=true) oder short
     boolean lastSentLong;      // Zuletzt gesender "Tastendruck" long oder short
-    //boolean forceUpdate;
+    boolean updateDone;
 
     static const uint16_t OFF_DELAY_TIME = 2600;  // ms
-    static const uint16_t POLLING_WAIT_TIME = 330;  // get linked channel state every 330 ms
+    static const uint16_t POLLING_WAIT_TIME = 330;  // get linked channel state not faster than 330 ms
 };
 
 #endif

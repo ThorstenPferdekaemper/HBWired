@@ -1,5 +1,5 @@
 /*
- * HBWSenSC.cpp
+ * HBWSenSC.h
  * 
  * sensor/shutter contact
  * Query to this type of channel will return "contact_closed" or "contact_open" (boolean)
@@ -18,14 +18,13 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define DEBOUNCE_TIME 88  // ms/10
 
-
+// config of each sensor channel, address step 1
 struct hbw_config_senSC {
-  uint8_t n_input_locked:1;   // 0x07:0    0=LOCKED, 1=UNLOCKED (default)
-  uint8_t n_inverted:1;       // 0x07:1    0=inverted, 1=not inverted (default)
-  uint8_t notify_disabled:1;  // 0x07:2    0=ENABLED, 1=DISABLED (default)
-  uint8_t       :5;           // 0x07:3-7
+  uint8_t input_locked:1;   // +0.0    0=UNLOCKED, 1=LOCKED (default)
+  uint8_t n_inverted:1;       // +0.1    0=inverted, 1=not inverted (default)
+  uint8_t notify_disabled:1;  // +0.2    0=ENABLED, 1=DISABLED (default)
+  uint8_t       :5;           // +0.3-7
 };
 
 
@@ -35,14 +34,14 @@ class HBWSenSC : public HBWChannel {
     HBWSenSC(uint8_t _pin, hbw_config_senSC* _config, boolean _activeHigh = false);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
-    virtual void afterReadConfig();
+    // virtual void afterReadConfig();
     
   private:
     uint8_t pin;   // Pin
     hbw_config_senSC* config;
     uint32_t keyPressedMillis;  // Zeit, zu der die Taste gedrueckt wurde (fuer's Entprellen)
     boolean currentValue;
-    boolean currentState;
+    boolean initDone;
     boolean activeHigh;    // activeHigh=true -> input active high, else active low
 
     uint8_t nextFeedbackDelay;  // use 10th of ms here, to save memory
@@ -52,6 +51,8 @@ class HBWSenSC : public HBWChannel {
       boolean reading  = (digitalRead(pin) ^ config->n_inverted);
       return (activeHigh ^ reading);
     }
+	
+	static const uint8_t DEBOUNCE_TIME = 88;  // ms/10 (88 = 880ms); max. 225 (2250 ms)
 };
 
 #endif

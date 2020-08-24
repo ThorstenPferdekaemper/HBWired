@@ -1,7 +1,7 @@
 /*
  * HBWKeyVirtual.cpp
  *
- * Updated (www.loetmeister.de): 5.08.2019
+ * Updated (www.loetmeister.de): 9.08.2020
  * 
  */
 
@@ -12,9 +12,9 @@ HBWKeyVirtual::HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config) 
 mappedChan(_mappedChan),
 config(_config)
 {
-  keyPressNum = 0;
+  keyPressNum = 1;    // first num send has to be 1 (0 would be ignored on the actor)
   keyPressedMillis = 0;
-  //forceUpdate = false;  //TODO: add option to force update on start/config changes?
+  updateDone = false;
 }
 
 
@@ -26,17 +26,19 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
   if (millis() - keyPressedMillis < POLLING_WAIT_TIME)  return;
 
   uint8_t value;
-  device->get(mappedChan, &value);  // check length?
+  device->get(mappedChan, &value);  // check length? switch or dimmer use only 1 byte
 
-  if (value == 0) {
-    sendLong = true ^ !config->n_inverted;
-  }
-  else {
-     sendLong = false ^ !config->n_inverted;
-  }
+  value = (value == 0) ? false : true;
+  sendLong = (value == config->n_inverted) ? true : false;
+
+  //sendLong = value ? false : true;
   
+   if (!config->n_update_on_start && !updateDone) {
+       lastSentLong = !sendLong;  // force to send key event on device start (disabled by defaullt)
+       updateDone = true;
+   }
   
-  if (lastSentLong != sendLong){ //|| forceUpdate) {
+  if (lastSentLong != sendLong){
     // send short key event immediately, delay long key event (off delay)
     if (millis() - keyPressedMillis > OFF_DELAY_TIME || !sendLong) {
         
@@ -50,9 +52,7 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
       if (device->sendKeyEvent(channel, keyPressNum, sendLong) != HBWDevice::BUS_BUSY) {
         keyPressNum++;
         lastSentLong = sendLong;
-      //device->sendKeyEvent(channel, keyPressNum, sendLong);
       }
-      //forceUpdate = false;
     }
   }
   else {

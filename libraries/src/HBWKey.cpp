@@ -14,7 +14,7 @@
 // Class HBWKey
 HBWKey::HBWKey(uint8_t _pin, hbw_config_key* _config, boolean _activeHigh) {
   keyPressedMillis = 0;
-  keyPressNum = 0;
+  keyPressNum = 1;
   pin = _pin;
   config = _config;
   activeHigh = _activeHigh;
@@ -75,16 +75,16 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
          keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
+          device->sendKeyEvent(channel, keyPressNum, false);
           keyPressNum++;
           lastSentLong = now;
-          device->sendKeyEvent(channel, keyPressNum, false);
         }
       }
       else {
         if (lastSentLong) {
+          device->sendKeyEvent(channel, keyPressNum, false);
           keyPressNum++;
           lastSentLong = 0;
-          device->sendKeyEvent(channel, keyPressNum, false);
         }
         keyPressedMillis = 0;
       }
@@ -100,8 +100,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           // entprellen, nur senden, wenn laenger als 50ms gedrueckt
           // aber noch kein "long" gesendet
           if (now - keyPressedMillis >= KEY_DEBOUNCE_TIME && !lastSentLong) {
-            keyPressNum++;
             device->sendKeyEvent(channel, keyPressNum, false);
+            keyPressNum++;
           }
           keyPressedMillis = 0;
         }
@@ -113,16 +113,16 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           // muessen wir ein "long" senden?
           if (lastSentLong) {   // schon ein LONG gesendet
             if (now - lastSentLong >= 300) {  // alle 300ms wiederholen
+              device->sendKeyEvent(channel, keyPressNum, true);  // long press
               // keyPressNum nicht erhoehen
               lastSentLong = now;
-              device->sendKeyEvent(channel, keyPressNum, true);  // long press
             }
           }
           else if (now - keyPressedMillis >= long(config->long_press_time) * 100) {
             // erstes LONG
+            device->sendKeyEvent(channel, keyPressNum, true);  // long press
             keyPressNum++;
             lastSentLong = now;
-            device->sendKeyEvent(channel, keyPressNum, true);  // long press
           };
         }
         else {

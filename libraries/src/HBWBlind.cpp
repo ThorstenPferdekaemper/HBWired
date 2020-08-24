@@ -43,7 +43,13 @@ void HBWChanBl::afterReadConfig() {
 
 void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
-  if (lastKeyNum == data[1] && length == 2) return;  // irgnore same keyNumber, surpress repeated long press (peering)
+  if (length == 2)
+  {
+    if (lastKeyNum == data[1])  // ignore repeated key press
+      return;
+    else
+      lastKeyNum = data[1];
+  }
   
   // blind control
   if((*data) == 0xFF) { // toggle
@@ -134,7 +140,6 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       }
     }
   }
-  lastKeyNum = data[1];  // store keyNum for next call
 };
 
 
