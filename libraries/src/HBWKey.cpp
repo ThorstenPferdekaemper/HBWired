@@ -14,7 +14,7 @@
 // Class HBWKey
 HBWKey::HBWKey(uint8_t _pin, hbw_config_key* _config, boolean _activeHigh) {
   keyPressedMillis = 0;
-  keyPressNum = 1;
+  keyPressNum = 0;
   pin = _pin;
   config = _config;
   activeHigh = _activeHigh;
@@ -56,6 +56,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+          if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
           if (device->sendKeyEvent(channel, keyPressNum, !buttonState) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             oldButtonState = buttonState;
@@ -69,6 +70,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   
     case SWITCH:
   // sends a short KeyEvent, each time the switch changes the polarity
+      if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
       if (buttonState) {
         if (!keyPressedMillis) {
          // Taste war vorher nicht gedrueckt
@@ -100,8 +102,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           // entprellen, nur senden, wenn laenger als 50ms gedrueckt
           // aber noch kein "long" gesendet
           if (now - keyPressedMillis >= KEY_DEBOUNCE_TIME && !lastSentLong) {
-            device->sendKeyEvent(channel, keyPressNum, false);
             keyPressNum++;
+            device->sendKeyEvent(channel, keyPressNum, false);
           }
           keyPressedMillis = 0;
         }
@@ -120,8 +122,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           }
           else if (now - keyPressedMillis >= long(config->long_press_time) * 100) {
             // erstes LONG
-            device->sendKeyEvent(channel, keyPressNum, true);  // long press
             keyPressNum++;
+            device->sendKeyEvent(channel, keyPressNum, true);  // long press
             lastSentLong = now;
           };
         }
@@ -135,6 +137,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   
     case MOTIONSENSOR:
   // sends a short KeyEvent for raising or falling edge - not both
+      if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
       if (buttonState) {
         if (!keyPressedMillis) {
          // Taste war vorher nicht gedrueckt
