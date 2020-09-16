@@ -29,7 +29,7 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
   device->get(mappedChan, &value);  // check length? switch or dimmer use only 1 byte
 
   value = (value == 0) ? false : true;
-  sendLong = (value == config->n_inverted) ? true : false;
+  sendLong = (value == config->n_inverted) ? false : true;
 
   //sendLong = value ? false : true;
   

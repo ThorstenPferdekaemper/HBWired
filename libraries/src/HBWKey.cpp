@@ -70,22 +70,21 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   
     case SWITCH:
   // sends a short KeyEvent, each time the switch changes the polarity
-      if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
       if (buttonState) {
         if (!keyPressedMillis) {
          // Taste war vorher nicht gedrueckt
          keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
-          device->sendKeyEvent(channel, keyPressNum, false);
           keyPressNum++;
+          device->sendKeyEvent(channel, keyPressNum, false);
           lastSentLong = now;
         }
       }
       else {
         if (lastSentLong) {
-          device->sendKeyEvent(channel, keyPressNum, false);
           keyPressNum++;
+          device->sendKeyEvent(channel, keyPressNum, false);
           lastSentLong = 0;
         }
         keyPressedMillis = 0;
@@ -115,8 +114,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           // muessen wir ein "long" senden?
           if (lastSentLong) {   // schon ein LONG gesendet
             if (now - lastSentLong >= 300) {  // alle 300ms wiederholen
-              device->sendKeyEvent(channel, keyPressNum, true);  // long press
               // keyPressNum nicht erhoehen
+              device->sendKeyEvent(channel, keyPressNum, true);  // long press
               lastSentLong = now;
             }
           }
@@ -137,13 +136,13 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   
     case MOTIONSENSOR:
   // sends a short KeyEvent for raising or falling edge - not both
-      if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
       if (buttonState) {
         if (!keyPressedMillis) {
          // Taste war vorher nicht gedrueckt
          keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
+          if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
           if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             lastSentLong = now;

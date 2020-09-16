@@ -49,10 +49,10 @@ const char * const default_line_out_of_range[] PROGMEM = {
 };
 
 // pre-defined text (or symbols/custom chars?), access via %t0% ... %t9% (%s1%)? // TODO: implement...?
-//const char text1[] PROGMEM = {"\343C"}; //°
+//const char text1[] PROGMEM = {""};
 //const char text2[] PROGMEM = {"Zur\365ck"};//\xF5
-//const char text3[] PROGMEM = {"Ofen "};
-//const char text4[] PROGMEM = {"Fenster "};
+//const char text3[] PROGMEM = {""};
+//const char text4[] PROGMEM = {""};
 
 //const char * const default_text[] PROGMEM = {
 //  text1, text2, text3, text4
@@ -197,16 +197,14 @@ class HBWDisplayVChannel : public HBWChannel {
 //    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual uint8_t getStringFromValue(char* _buffer);
     
-//  private:
+  private:
     static byte numTotal;    // count total number of virtual input channels (class: HBWDisplayVChNum, HBWDisplayVChBool)
-//  protected:
-//    HBWDisplayVChannel();
 
   public:
-//    static inline void addNumVChannel()
-//    {
-//      num++;
-//    }
+    static inline void addNumVChannel()
+    {
+      numTotal++;
+    }
     static inline uint8_t getNumVChannel()
     {
       return numTotal;
@@ -260,7 +258,6 @@ class HBWDisplayLine : public HBWDisplayVChannel {
     
     virtual uint8_t getStringFromValue(char* _buffer);  // write current line or default text to "_buffer"
 
-
   private:
     hbw_config_display_line* config;
     boolean useDefault;
@@ -269,6 +266,12 @@ class HBWDisplayLine : public HBWDisplayVChannel {
 
     static byte numTotal;
     byte num;
+    
+  public:
+    static inline uint8_t getNumVChannel()
+    {
+      return numTotal;
+    }
 };
 
 

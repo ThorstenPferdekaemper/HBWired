@@ -29,7 +29,7 @@ HBWDimmerAdvanced::HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config)
   currentOnLevelPrio = ON_LEVEL_PRIO_LOW;
   rampStepCounter = 0;
   offDelaySingleStep = false;
-  stateFlags.byte = 0;
+  // stateFlags.byte = 0;
 };
 
 
@@ -202,6 +202,9 @@ uint8_t HBWDimmerAdvanced::dimUpDown(uint8_t const * const data, boolean dimUp)
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDimmerAdvanced::get(uint8_t* data)
 {
+  state_flags stateFlags;
+  stateFlags.byte = 0;
+  
   if (oldValue == currentValue)
     stateFlags.element.upDown = 0;
   else if (oldValue < currentValue)
@@ -213,7 +216,12 @@ uint8_t HBWDimmerAdvanced::get(uint8_t* data)
     stateFlags.element.working = true;  // state up or down also shows channel as "working"
   else
     stateFlags.element.working = false;
-  
+
+  // if (currentValue >= StateMachine.onMinLevel)
+    // stateFlags.element.state = true;
+  // else
+    // stateFlags.element.state = false;
+
   oldValue = currentValue;
   
   *data++ = currentValue;
@@ -319,10 +327,10 @@ void HBWDimmerAdvanced::prepareOnOffRamp(uint8_t rampTime, uint8_t level)
 /* standard public function - called by main loop for every channel in sequential order */
 void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
- //*** state machine begin ***//
-  
   unsigned long now = millis();
 
+ //*** state machine begin ***//
+  
   if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || !StateMachine.noStateChange()) {
     
     if (StateMachine.getNextState() == FORCE_STATE_CHANGE) {
@@ -574,6 +582,6 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
   //*** state machine end ***//
 
   
-  // feedback trigger set?
+  // handle feedback (sendInfoMessage)
   checkFeedback(device, channel);
 }

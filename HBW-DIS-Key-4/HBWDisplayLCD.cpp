@@ -10,7 +10,7 @@
 #include <EEPROM.h>
 
 
-/* global */
+/* global/static */
 boolean HBWDisplayDim::displayWakeUp = true;  // wakeup on start - if config->startup allows
 byte HBWDisplayVChannel::numTotal = 0;
 byte HBWDisplayLine::numTotal = 0;
@@ -23,7 +23,7 @@ byte HBWDisplayLine::numTotal = 0;
 
 HBWDisplayVChNum::HBWDisplayVChNum(hbw_config_displayVChNum* _config)
 {
-  HBWDisplayVChannel::numTotal++;
+  HBWDisplayVChannel::addNumVChannel();
   config = _config;
   currentValue = 0;
 };
@@ -31,7 +31,7 @@ HBWDisplayVChNum::HBWDisplayVChNum(hbw_config_displayVChNum* _config)
 
 HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config)
 {
-  HBWDisplayVChannel::numTotal++;
+  HBWDisplayVChannel::addNumVChannel();
   config = _config;
   currentValue = false;
   lastKeyNum = 0;
@@ -85,7 +85,7 @@ void HBWDisplay::afterReadConfig()
 /* temp */
   
   if (!initDone) {
-    // write custom characters to display
+    // send custom characters to display
 //    lcd->createChar(0, t_smiley);
     
     // set up the LCD's number of columns and rows:
@@ -145,6 +145,7 @@ void HBWDisplayVChBool::setInfo(HBWDevice* device, uint8_t length, uint8_t const
 void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
   /* just store the new value. The display loop can fetch it, when needed */
+  
   if (length == 2)
   {
     if (lastKeyNum == data[1])  // ignore repeated key press
@@ -160,9 +161,6 @@ void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * c
 
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("setVChBool: ")); hbwdebug(data[0]);
-//  hbwdebug(F(" display_text: ")); hbwdebug(config->display_text);
-//  hbwdebug(F(" sizeBoolVal: ")); hbwdebug(sizeof(t_displayVChVars{0}.b));
-//  hbwdebug(F(" strlenBoolVal: ")); hbwdebug(strlen(displayVChBoolValue));
   hbwdebug(F("\n"));
   #endif
 };
@@ -232,7 +230,6 @@ void HBWDisplayLine::set(HBWDevice* device, uint8_t length, uint8_t const * cons
   // 255 - toggle backligh
 void HBWDisplayDim::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  HBWDisplayDim::displayWakeUp = true;
  #ifdef DEBUG_OUTPUT
  hbwdebug(F("setDim: "));
  #endif
@@ -244,28 +241,30 @@ void HBWDisplayDim::set(HBWDevice* device, uint8_t length, uint8_t const * const
     else
       lastKeyNum = data[1];
   }
+
+  HBWDisplayDim::displayWakeUp = true;
   
   if (data[0] > 200)
   {
     switch (data[0]) {
       case 202:  // auto_brightness off
         config->auto_brightness = false;
-       #ifdef DEBUG_OUTPUT
-       hbwdebug(F("auto_brightness off"));
-       #endif
+   #ifdef DEBUG_OUTPUT
+   hbwdebug(F("auto_brightness off"));
+   #endif
         break;
       case 204:  // auto_brightness on
         config->auto_brightness = true;
-       #ifdef DEBUG_OUTPUT
-       hbwdebug(F("auto_brightness on"));
-       #endif
+   #ifdef DEBUG_OUTPUT
+   hbwdebug(F("auto_brightness on"));
+   #endif
         break;
-      case 255:   // toggle
-        currentValue = currentValue > 0 ? 0 : 200;
-        config->auto_brightness = false;  // auto_brightness off
-       #ifdef DEBUG_OUTPUT
-       hbwdebug(F("toggle"));
-       #endif
+      case 255:   // toggle on/off, only when not in auto_brightness
+        if (config->auto_brightness == false)
+          currentValue = currentValue > 0 ? 0 : 200;
+   #ifdef DEBUG_OUTPUT
+   hbwdebug(F("toggle"));
+   #endif
         break;
     }
   }
@@ -323,7 +322,7 @@ uint8_t HBWDisplayVChNum::get(uint8_t* data)
 uint8_t HBWDisplayVChannel::getStringFromValue(char* _buffer) { return 0; };
 
 
-/* read string from Progmem or RAM for each line of the display */
+/* read RAW string from Progmem or RAM for each line of the display */
 uint8_t HBWDisplayLine::getStringFromValue(char* _buffer)
 {
   char cstr[LINE_BUFF_LEN];
@@ -408,7 +407,7 @@ uint8_t HBWDisplayVChNum::formatFixpoint(char* _buf, int16_t intVal, uint8_t pre
   rval = intVal - (lval * factor);
 
   if (precision == 0) {
-    //sprintf_P(cstr, PSTR("%s%u"), sign, lval);
+//    sprintf_P(cstr, PSTR("%s%u"), sign, lval);
     sprintf(cstr, "%s%u", sign, lval);
   }
   else {
@@ -519,7 +518,7 @@ void HBWDisplay::loop(HBWDevice* device, uint8_t channel)
   
   if (millis() - displayLastRefresh >= (uint32_t)(config->refresh_rate +1)*1000)
   {
-    if (currentLine >= config->num_lines +1) {
+    if (currentLine >= config->num_lines +1 || currentLine >= HBWDisplayLine::getNumVChannel()) {
       currentLine = 0;
       displayLastRefresh = millis();  // wait, after all lines have been updated
       return;

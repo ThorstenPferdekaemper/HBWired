@@ -4,7 +4,7 @@
 		<type name="RS485 2-channel PID Valve actuator" id="HBW-CC-VD2" priority="2">
 			<parameter index="0" size="1" const_value="0x97"/>
 			<parameter index="1" size="1" const_value="1"/>
-			<parameter index="2" size="2" cond_op="GE" const_value="0x0004"/>
+			<parameter index="2" size="2" cond_op="GE" const_value="0x0028"/>
 		</type>
 	</supported_types>
 	<paramset type="MASTER" id="HBW-CC-VD2_dev_master">

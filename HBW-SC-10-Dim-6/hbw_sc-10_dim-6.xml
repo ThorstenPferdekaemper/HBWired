@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-SC-10-Dim-6" name="RS485 6-channel master dimming actuator and 10 Digital inputs">
 		<parameter const_value="0x96" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="1" size="1" index="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0005" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
+		<parameter const_value="0x0032" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -794,11 +794,11 @@
 	<channel index="7" physical_index_offset="-1" count="10" type="SENSOR">	<!-- input sensor contact chan -->
 		<paramset type="MASTER" id="hmw_sensor_ch_master" address_start="0x13" address_step="1">
 		    <parameter id="INPUT_LOCKED">
-				<logical type="boolean" default="true"/>
+				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
 					<address index="+0.0"/>
 				</physical>
-				<conversion type="boolean_integer" invert="false"/>
+				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="INVERTED">
 				<logical type="boolean" default="false"/>
@@ -919,6 +919,22 @@
 					<event frame="KEY_EVENT_LONG"/>
 				</physical>
 				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<!--<parameter id="SENSOR" operations="read,event" control="DOOR_SENSOR.STATE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="STATE">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL" auth_violate_policy="reject"/>
+				</physical>
+				<conversion type="boolean_integer" threshold="1" false="0" true="255"/>
+			</parameter> -->
+			<parameter id="INSTALL_TEST" operations="event" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TEST_COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+					<event frame="KEY_EVENT_LONG"/>
+					<event frame="INFO_LEVEL"/>
+				</physical>
 			</parameter>
 		</paramset>
 	</channel>

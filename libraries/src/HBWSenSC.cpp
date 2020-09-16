@@ -25,25 +25,6 @@ HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config, boolean _activeHigh)
 };
 
 
-// channel specific settings or defaults
-// void HBWSenSC::afterReadConfig() {
-
-  // //avoid notify messages on device start
-  // if (initDone == false) {
-    // currentValue = readScInput();
-    // initDone = true;
-  // }
-  
-// #ifdef DEBUG_OUTPUT
-  // hbwdebug(F("cfg SCPin:"));
-  // hbwdebug(pin);
-  // hbwdebug(F(" val:"));
-  // hbwdebug(currentValue);
-  // hbwdebug(F("\n"));
-// #endif
-// };
-
-
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWSenSC::get(uint8_t* data) {
   
@@ -62,12 +43,13 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
     initDone = true;
   }
   
-  if (config->input_locked) return;   // channel locked?
+  if (!config->n_input_locked) return;   // channel locked?
+  
+  uint32_t now = millis();
   
   boolean buttonState = readScInput();
   
   if (buttonState != currentValue) {
-    uint32_t now = millis();
     
     if (!keyPressedMillis) {
       // Taste war vorher nicht gedrueckt

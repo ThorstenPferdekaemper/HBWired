@@ -50,7 +50,7 @@ struct hbw_config_valve {
   uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED; locked channels will retain level/error_pos. Set error_pos to 0 to disable a channel completely
   uint8_t n_inverted:1;   // +0.2   inverted logic (use NO valves, NC is default)
   uint8_t :5;     //fillup //0x..:3-8
-  uint8_t error_pos;
+  uint8_t error_pos;  // default/error position
   uint8_t valveSwitchTime;   // (factor 10! max 2540 seconds) Time the valve needs to reach 100% (NC:open or NO:closed state)
   uint8_t dummy :8;
   // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
