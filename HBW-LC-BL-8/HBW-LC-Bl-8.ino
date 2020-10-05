@@ -27,7 +27,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x001F
+#define FIRMWARE_VERSION 0x0020
 #define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 8
@@ -59,10 +59,10 @@
 
 #define BLIND5_ACT A5
 #define BLIND5_DIR A4
-#define BLIND6_ACT A3
-#define BLIND6_DIR A2
-#define BLIND7_ACT A0
-#define BLIND7_DIR A1
+#define BLIND6_ACT A2
+#define BLIND6_DIR A3
+#define BLIND7_ACT A1
+#define BLIND7_DIR A0
 #define BLIND8_ACT 12
 #define BLIND8_DIR 11
 
