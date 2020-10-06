@@ -63,8 +63,8 @@
 #define BLIND6_DIR A3
 #define BLIND7_ACT A1
 #define BLIND7_DIR A0
-#define BLIND8_ACT 12
-#define BLIND8_DIR 11
+#define BLIND8_ACT 11
+#define BLIND8_DIR 12
 
 #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (using internal 1.1 volt reference)
 
