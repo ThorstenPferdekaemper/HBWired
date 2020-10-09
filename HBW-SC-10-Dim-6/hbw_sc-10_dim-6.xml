@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-SC-10-Dim-6" name="RS485 6-channel master dimming actuator and 10 Digital inputs">
 		<parameter const_value="0x96" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="1" size="1" index="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0005" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
+		<parameter const_value="0x0032" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -372,7 +372,7 @@
 			</parameter>
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<special_value id="NOT_USED" value="378000"/><!-- TODO: fixme! FEHM not showing NOT_USED state.. -->
+					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+18"/>
@@ -920,10 +920,26 @@
 				</physical>
 				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
 			</parameter>
+			<!--<parameter id="SENSOR" operations="read,event" control="DOOR_SENSOR.STATE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="STATE">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL" auth_violate_policy="reject"/>
+				</physical>
+				<conversion type="boolean_integer" threshold="1" false="0" true="255"/>
+			</parameter> -->
+			<parameter id="INSTALL_TEST" operations="event" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TEST_COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+					<event frame="KEY_EVENT_LONG"/>
+					<event frame="INFO_LEVEL"/>
+				</physical>
+			</parameter>
 		</paramset>
 	</channel>
 	
-	<channel index="27" type="DIMMER KEY" count="6" physical_index_offset="-1">	<!-- virtual input key chan, triggered by dimmmer chan -->
+	<channel index="27" type="DIMMER_V_KEY" count="6" physical_index_offset="-1">	<!-- virtual input key chan, triggered by dimmmer chan -->
 		<link_roles>
 			<source name="SWITCH"/>
 		</link_roles>
@@ -939,6 +955,13 @@
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
 					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<parameter id="KEY_EVENT_ON_START">
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.2"/>
 				</physical>
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>

@@ -111,7 +111,6 @@ void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWValve::get(uint8_t* data)
 {
-  // MSB first
   *data++ = valveLevel;
   *data = stateFlags.byte;
 
@@ -134,12 +133,12 @@ void HBWValve::setPidsInAuto(bool newAuto)
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWValve::loop(HBWDevice* device, uint8_t channel)
 {
-	uint32_t now = millis();
-
   // startup handling. Only relevant if all channel remain at same error pos.
   if (outputChangeLastTime == 0 && outputChangeNextDelay == OUTPUT_STARTUP_DELAY) {
     outputChangeNextDelay = OUTPUT_STARTUP_DELAY * (channel + 1);
   }
+
+  uint32_t now = millis();
 
   if (now - outputChangeLastTime >= (uint32_t)outputChangeNextDelay *100)
   {
@@ -158,8 +157,8 @@ void HBWValve::switchstate(bool State)
   outputChangeNextDelay = set_timer(isFirstState, nextState);
   nextState = (State == VENTON ? VENTOFF : VENTON);
   stateFlags.element.status = (nextState ^ config->n_inverted);
-  isFirstState = false;
   digitalWrite(pin, stateFlags.element.status);
+  isFirstState = false;
   
  #ifdef DEBUG_OUTPUT
   hbwdebug(F("switchtstate, pin: ")); hbwdebug(pin);

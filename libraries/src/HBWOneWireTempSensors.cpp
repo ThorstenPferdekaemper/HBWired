@@ -203,7 +203,7 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
 
   uint32_t now = millis();
-  static uint8_t level[2];
+  uint8_t level[2];
 
   if (lastSentTime == 0)
     lastSentTime = now + (channel *OW_POLL_FREQUENCY/2);  // init with different time, to not spam the bus (will vary over time anyway...)

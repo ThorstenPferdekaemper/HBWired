@@ -6,7 +6,7 @@ DeltaT Regler + 6 OneWire Temperatursensoren.
 Das Modul HHBW-CC-DT3-T6 wurde für eine Ofensteuerung entwickelt. Eine Umwälzpumpe wird ab einer bestimmten Mindesttemperatur und Temperaturdifferenz ein- bzw. Ausgeschaltet.
 Basis ist ein Arduino NANO mit RS485-Interface.
 
-Damit FHEM das Homebrew-Device richtig erkennt, muss die HBW_CC_DT3_T6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x9C aus).
+Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_cc_dt3_t6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x9C aus).
 
 Es können bis zu 6 OneWire Temperatursensoren angeschlossen werden.
 Unterstützte 1-Wire® Temperatursensoren:
@@ -14,12 +14,16 @@ DS18S20 Gerätecode 0x10
 DS18B20 Gerätecode 0x28
 DS1822  Gerätecode 0x22
 
+Direktes Peering:
+Die tempsensor Kanäle können mit delta_t1, delta_t2 verknüpft werden, oder anderen externen Kanälen. (delta_t1/delta_t2 sollte nur jeweils ein Sensor zugewiesen werden!)
+Der delta_t Kanaltyp kann mit Aktor Kanälen verknüpft werden, z.B. externe Relais. (delta_t sendet short/long keyEvents)
+
 
 Kanäle:
-3 DeltaT Relais Ausgänge (Relais, o.ä.)
-3 DeltaT1 'virtuelle' Temperatureingänge
-3 DeltaT2 'virtuelle' Temperatureingänge
-6 OneWire Temperatursensoren
+3x DeltaT Relais Ausgänge (Relais, o.ä.)
+3x DeltaT1 'virtuelle' Temperatureingänge
+3x DeltaT2 'virtuelle' Temperatureingänge
+6x OneWire Temperatursensoren
 
 
 DeltaT Konfiguration:
@@ -38,7 +42,7 @@ Standard-Pinbelegung:
 2  - RS485 Enable
 13 - Status LED
 A6 - Bedientaster (Reset)
-10 - OneWire Bus (parasitäre Stromversorgung)
+10 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
  5 - RELAY_1
  6 - RELAY_2
  7 - RELAY_3
@@ -50,7 +54,7 @@ A6 - Bedientaster (Reset)
 3  - RS485 Enable
 13 - Status LED
 8  - Bedientaster (Reset)
-10 - OneWire Bus (parasitäre Stromversorgung)
+10 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
 A1 - RELAY_1
 A2 - RELAY_2
 A3 - RELAY_3

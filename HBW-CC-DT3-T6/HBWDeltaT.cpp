@@ -17,10 +17,11 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
  deltaT2(_delta_t2)
 {
   deltaT = 0xFF;
-  outputChangeLastTime = DELTA_CALCULATION_WAIT_TIME;
+  outputChangeLastTime = 0;
   deltaCalcLastTime = MIN_CHANGE_WAIT_TIME; // wait some time to get input values
   clearFeedback();
   stateFlags.byte = 0;
+  keyPressNum = 1;
   initDone = false;
 };
 
@@ -39,11 +40,11 @@ void HBWDeltaT::afterReadConfig()
   if (initDone == false)
   {
   // All off on init, but consider inverted setting
-    initDone = true;
     digitalWrite(pin, config->n_inverted ? LOW : HIGH);   // 0=inverted, 1=not inverted
     pinMode(pin,OUTPUT);
     currentState = OFF;
     nextState = currentState;  //(if key support for HBWDeltaT; TODO: reset peered actors???)
+    initDone = true;
   }
   else {
   // Do not reset outputs on config change (EEPROM re-reads), but update its state
@@ -129,7 +130,7 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
  #ifdef DEBUG_OUTPUT
   hbwdebug(F(" ch: ")); hbwdebug(channel);
   hbwdebug(F(" deltaT: ")); hbwdebug(deltaT);
-  hbwdebug("\n");
+  hbwdebug(F("\n"));
  #endif
   }
   
@@ -153,15 +154,14 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
   if (currentState == nextState)  return false; // no change - quit
 
   digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output
-  // TODO: check if peering is needed/useful. Currently not reliable...
-  //if (device->busIsIdle()) {
-      // don't continue if bus is not idle. sendKeyEvent would probably fail
-     //keyPressNum++;
-    //device->sendKeyEvent(channel, keyPressNum, currentState);  // peering (ignore inversion... can be done in peering)
-    //return false?;
-  //}
+
+  // allow peering with external switches
+  if (device->sendKeyEvent(channel, keyPressNum, !nextState) != HBWDevice::BUS_BUSY) {
+    keyPressNum++;
+    currentState = nextState; // TODO: check if this ok, as it will result into retries, as long as the bus is busy (retry interval: MIN_CHANGE_WAIT_TIME)
+  }
   
-  currentState = nextState;
+//  currentState = nextState;
   stateFlags.element.status = currentState;
 
   // set trigger to send info/notify message in loop()
@@ -184,7 +184,7 @@ bool HBWDeltaT::calculateNewState()
     // check if valid temp is available
     // T1
     int16_t t1 = deltaT1->currentTemperature;
-    if (t1 <= ERROR_TEMP || t1 > config->maxT1) {
+    if (t1 <= ERROR_TEMP || t1 >= config->maxT1) {
       nextState = OFF;
       return false;
     }

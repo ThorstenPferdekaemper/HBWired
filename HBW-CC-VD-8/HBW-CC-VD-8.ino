@@ -1,6 +1,6 @@
 //*******************************************************************
 //
-// HBW-CC-VD-8, RS485 8-channel PID Valve actuator
+// HBW-CC-VD-8, RS485 8-channel PID Valve actuator and temperature sensor
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
@@ -17,13 +17,13 @@
 // - temperature channels and peering added
 // v0.03
 // - valve changed to "time proportioning control" with own lib (HBWValve.h)
-// v0.04
+// v0.40
 // - changed hbw_config_pid windowSize (CYCLE_TIME) to 10 seconds stepping (max 2540 seconds) (HBWPids.h)
 // - added hbw_config_pid setPoint, to allow default setPoint 0...25.4°C (HBWPids.h)
 
 
 #define HARDWARE_VERSION 0x02
-#define FIRMWARE_VERSION 0x0004
+#define FIRMWARE_VERSION 0x0028
 #define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator

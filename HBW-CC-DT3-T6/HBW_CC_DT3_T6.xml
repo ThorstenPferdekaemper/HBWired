@@ -4,7 +4,7 @@
 	<type name="RS485 3 Channel Delta Temperature and 6 One Wire Channel Temperature Module" id="HBW-CC-DT3-T6" priority="2">
 		<parameter index="0" size="1" const_value="0x9C"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x001E" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -52,7 +52,7 @@
 	<!--
 	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/>
-	</frame>
+	</frame>-->
 	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
 		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
 		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
@@ -71,7 +71,7 @@
 	</frame>
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
 		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
-	</frame>-->
+	</frame>
 </frames>
 
 <channels>
@@ -197,9 +197,9 @@
 	</channel>
 	
 	<channel index="7" count="3" physical_index_offset="-1" type="DELTA_T">
-		<!--<link_roles>
+		<link_roles>
 		   <source name="SWITCH"/>
-		</link_roles>-->
+		</link_roles>
 		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x5B" address_step="6">
 			<parameter id="LOGGING">
 				<logical type="option">
@@ -265,7 +265,6 @@
 				</conversion>
 			</parameter>
 		</paramset>
-		<!--
 		<paramset type="LINK" id="hmw_deltat_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="32" address_start="0x100" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">
 				<logical type="integer" min="0" max="255" default="255"/>
@@ -284,7 +283,7 @@
 					</physical>
 				</physical>
 			</parameter>
-		</paramset> -->
+		</paramset>
 		<paramset type="VALUES" id="hmw_deltat_ch_values">
 			<parameter id="DELTAT" operations="read,event" control="none"> <!--control="DELTAT.LEVEL"-->
 				<logical type="float" default="0.0" min="0.0" max="25.5" unit="&#x2103;"/>
@@ -294,7 +293,6 @@
 				</physical>
 				<conversion type="float_integer_scale" factor="10"/>
 			</parameter>
-			
 			<parameter id="STATE" operations="read,event" ui_flags="internal">
 				<logical type="option">
 					<option id="OFF" default="true"/>
@@ -375,6 +373,12 @@
 					<value_map device_value="0x06" parameter_value="6"/>
 					<value_map device_value="0x07" parameter_value="7"/>
 				</conversion>
+			</parameter>
+			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="INHIBIT">
+					<set request="SET_LOCK"/>
+				</physical>
 			</parameter>
 		</paramset>
 	</channel>

@@ -37,6 +37,7 @@
 #define SWITCH_DIRECTION 5
 
 
+//address step 7
 struct hbw_config_blind {
   byte logging:1;                         // 0x07:0    0x0E  0x15  0x1C
   byte        :7;                         // 0x07:1-7  0x0E
@@ -60,7 +61,7 @@ class HBWChanBl : public HBWChannel {
     void getCurrentPosition();
     uint8_t blindDir;   // direction relay
     uint8_t blindAct;   // activity relay
-    hbw_config_blind* config; // logging
+    hbw_config_blind* config;
    
     byte blindNextState;
     byte blindCurrentState;

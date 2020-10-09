@@ -18,7 +18,7 @@
 #include "HBWlibStateMachine.h"
 #include "HBWired.h"
 
-//#define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
+#define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
 
 #define RAMP_MIN_STEP_WIDTH 250//160 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 250ms
 
@@ -147,15 +147,15 @@ class HBWDimmerAdvanced : public HBWChannel {
       return (peerConfigOffDtime & BITMASK_OffDelayOldTime) >> 4;
     }
     
-    union tag_state_flags {
-      struct state_flags {
+    union state_flags {
+      struct s_state_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
         uint8_t upDown  :2; // dim up = 1 or down = 2
         uint8_t working :1; // true, if working
-        uint8_t   :1;
+        uint8_t status  :1; // outputs on or off?
       } element;
       uint8_t byte:8;
-    } stateFlags;
+    };
 
   protected:
   
