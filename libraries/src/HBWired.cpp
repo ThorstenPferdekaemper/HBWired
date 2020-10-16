@@ -46,6 +46,7 @@ void HBWDevice::setOwnAddress(uint32_t address) {
   ownAddress = address;
   randomSeed(ownAddress);
   minIdleTime = random(DIFS_CONSTANT, DIFS_CONSTANT+DIFS_RANDOM);
+  pendingActions.announced = false;	// (re)send announce message
 }
 
 
@@ -454,9 +455,13 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
           case 'z':                                              // start discovery mode
             pendingActions.zeroCommunicationActive = true;
             break;
-            //case 'K':  // 0x4B Key-Event
+          // case 'K':  // 0x4B Key-Event
             // broadcast key events sind für long_press interressant
             //  if (frameDataLength == 4) {...}
+			// if (frameData[3] & 0x01) {    // long press broadcast only
+              // receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] >>2, true);
+			// }
+            // break;
         }
         return;
       };
@@ -811,7 +816,6 @@ void HBWDevice::determineSerial(byte* buf) {
 void HBWDevice::readConfig() {         // read config from EEPROM	
    // read EEPROM
    readEEPROM(config, 0x01, configSize);
-   
    // turn around central address
    uint32_t addr = *((uint32_t*)(config + 1));
    for(uint8_t i = 0; i < 4; i++)
