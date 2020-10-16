@@ -50,10 +50,10 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (optional)
   
-  #define ONEWIRE_PIN	10 // Onewire Bus
+  #define ONEWIRE_PIN	A3 // Onewire Bus
   #define RELAY_1 5
   #define RELAY_2 6
-  #define RELAY_3 7
+  #define RELAY_3 3
   
   #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
   #define BLOCKED_TWI_SCL A5  // used by I²C - SCL
@@ -66,9 +66,9 @@
   #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (optional)
 
   #define ONEWIRE_PIN	10 // Onewire Bus
-  #define RELAY_1 A1
-  #define RELAY_2 A2
-  #define RELAY_3 A3 //NOT_A_PIN
+  #define RELAY_1 5
+  #define RELAY_2 6
+  #define RELAY_3 A2
 
   #include "FreeRam.h"
   #include <HBWSoftwareSerial.h>
@@ -78,7 +78,7 @@
 #define LED LED_BUILTIN        // Signal-LED
 
 
-#define NUMBER_OF_CHAN NUMBER_OF_TEMP_CHAN + (NUMBER_OF_DELTAT_CHAN *3) //+ NUMBER_OF_KEY_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_TEMP_CHAN + (NUMBER_OF_DELTAT_CHAN *3)
 
 
 struct hbw_config {
