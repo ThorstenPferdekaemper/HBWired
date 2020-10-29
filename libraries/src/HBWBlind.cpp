@@ -36,9 +36,9 @@ HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _co
 
 // channel specific settings or defaults
 void HBWChanBl::afterReadConfig() {
-    if (config->blindTimeTopBottom == 0xFFFF) config->blindTimeTopBottom = 200;
-    if (config->blindTimeBottomTop == 0xFFFF) config->blindTimeBottomTop = 200;
-    if (config->blindTimeChangeOver == 0xFF) config->blindTimeChangeOver = 20;
+    if (config->blindTimeTopBottom == 0xFFFF) config->blindTimeTopBottom = 500;
+    if (config->blindTimeBottomTop == 0xFFFF) config->blindTimeBottomTop = 500;
+    if (config->blindTimeChangeOver == 0xFF) config->blindTimeChangeOver = 5;
 }
 
 void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
