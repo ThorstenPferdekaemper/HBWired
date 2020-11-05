@@ -46,7 +46,7 @@ void HBWDevice::setOwnAddress(uint32_t address) {
   ownAddress = address;
   randomSeed(ownAddress);
   minIdleTime = random(DIFS_CONSTANT, DIFS_CONSTANT+DIFS_RANDOM);
-  pendingActions.announced = false;	// (re)send announce message
+  pendingActions.announced = false;	// (re)send broadcast announce message
 }
 
 
@@ -486,7 +486,12 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
       switch(frameData[0]){
          case '@':             // 0x40                 // HBW-specifics
            if(frameData[1] == 'a' && frameDataLength == 6) {  // 0x61 "a" -> address set
-        	 // TODO: Avoid "central" addresses (like 0000...)
+        	 hbwdebug(F("@: Set Address\n"));
+        	 // Avoid "central" addresses (like 0000... 000FF)
+        	 if (frameData[2] == 0 && frameData[3] == 0 && frameData[4] == 0) {
+        	 	 hbwdebug(F("@: rejected\n"));
+        	 	 break;
+        	 }
         	 for(byte i = 0; i < 4; i++)
         	   writeEEPROM(E2END - 3 + i, frameData[i + 2], true);
            };
@@ -905,7 +910,6 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    configPin = NOT_A_PIN;  //inactive by default
    configButtonStatus = 0;
    readConfig();	// read config
-   pendingActions.announced = false;	// was initial broadcast announce message send?
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
 }
   
