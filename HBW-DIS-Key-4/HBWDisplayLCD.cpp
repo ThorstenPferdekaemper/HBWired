@@ -168,7 +168,6 @@ void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * c
 /* set special input value for a channel, via peering event. */
 void HBWDisplayLine::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  HBWDisplayDim::displayWakeUp = true;
   if (length == 2)  // peering has 2 bytes
   {
     if (lastKeyNum == data[1])  // ignore repeated key press
@@ -176,6 +175,8 @@ void HBWDisplayLine::set(HBWDevice* device, uint8_t length, uint8_t const * cons
     else
       lastKeyNum = data[1];
   }
+  
+  HBWDisplayDim::displayWakeUp = true;
   
   if (length > 2 )  // need to set min. 3 characters (should be ok, to set "foo" or even a single variable, like "%1%")
   {
@@ -559,7 +560,7 @@ void HBWDisplayDim::loop(HBWDevice* device, uint8_t channel)
   }
 
   // fixed intervall and not critical... so use millis() with modulo...
-  if (millis() % LCD_BACKLIGHT_UPDATE_INTERVAL == 0)
+  if (millis() % LCD_BACKLIGHT_UPDATE_INTERVAL == 0 || displayWakeUp)
   {
     if (displayWakeUp) {
       displayWakeUp = false;
