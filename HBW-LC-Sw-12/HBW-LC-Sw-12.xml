@@ -43,6 +43,12 @@
 	<frame id="ANALOG_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
 	</frame>
+	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
+		<parameter type="integer" index="12.0" size="1.0" param="INHIBIT"/>
+	</frame>
+	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
+		<parameter type="integer" index="11.0" size="1.0" param="TOGGLE_FLAG"/>
+	</frame>
 </frames>
 
 <channels>
