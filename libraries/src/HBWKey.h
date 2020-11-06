@@ -13,6 +13,7 @@
 // SWITCH        > sends a short KeyEvent, each time the input (e.g. wall switch) changes the polarity
 // PUSHBUTTON    > sends a short KeyEvent on short press and (repeated) long KeyEvent on long press
 
+#define ENABLE_SENSOR_STATE  // allow to query key channels as SENSOR (returns DOOR_SENSOR.STATE - open/closed)
 
 // config, address step 2
 struct hbw_config_key {
@@ -30,6 +31,7 @@ class HBWKey : public HBWChannel {
   public:
     HBWKey(uint8_t _pin, hbw_config_key* _config, boolean _activeHigh = false);
     virtual void loop(HBWDevice*, uint8_t channel);
+    virtual uint8_t get(uint8_t* data);
     virtual void afterReadConfig();
     
     enum InputType

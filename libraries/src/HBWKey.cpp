@@ -38,6 +38,17 @@ void HBWKey::afterReadConfig(){
 };
 
 
+/* standard public function - returns length of data array. Data array contains current channel reading */
+#ifdef ENABLE_SENSOR_STATE
+uint8_t HBWKey::get(uint8_t* data) {
+  
+  (*data) = keyPressedMillis ? 200 : 0;  // use keyPressedMillis, that already reflect activeHigh and inverted option
+  (*data++) = 0;  // state flags not used, but included in INFO_LEVEL frame type
+  return 2;
+};
+#endif
+
+
 void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   
   if (!config->n_input_locked)  return;  // skip locked channels
