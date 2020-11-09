@@ -48,10 +48,11 @@ class HBWKey : public HBWChannel {
     uint32_t lastSentLong;      // Zeit, zu der das letzte Mal longPress gesendet wurde
     uint8_t keyPressNum;
     hbw_config_key* config;
+    boolean buttonState;
     boolean oldButtonState;
     boolean activeHigh;    // activeHigh=true -> input active high, else active low
     
-    static const uint32_t KEY_DEBOUNCE_TIME = 65;  // ms
+    static const uint32_t KEY_DEBOUNCE_TIME = 85;  // ms
     static const uint32_t SWITCH_DEBOUNCE_TIME = 145;  // ms
     static const uint32_t DOORSENSOR_DEBOUNCE_TIME = 330;  // ms
 };

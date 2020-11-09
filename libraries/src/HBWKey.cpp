@@ -41,10 +41,9 @@ void HBWKey::afterReadConfig(){
 /* standard public function - returns length of data array. Data array contains current channel reading */
 #ifdef ENABLE_SENSOR_STATE
 uint8_t HBWKey::get(uint8_t* data) {
-  
-  (*data) = keyPressedMillis ? 200 : 0;  // use keyPressedMillis, that already reflect activeHigh and inverted option
-  (*data++) = 0;  // state flags not used, but included in INFO_LEVEL frame type
-  return 2;
+  /* make input state available with DOOR_SENSOR.STATE control. Use Frame INFO_LEVEL or STATE_LEVEL */
+  (*data) =  buttonState ? 200 : 0;
+  return 1;
 };
 #endif
 
@@ -56,8 +55,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   uint32_t now = millis();
   if (now == 0) now = 1;  // do not allow time=0 for the below code // AKA  "der Teufel ist ein Eichhoernchen"
   
-  bool buttonState = (digitalRead(pin) ^ !config->n_inverted);
-  buttonState = activeHigh ^ buttonState;
+  buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
   
   switch (config->input_type) {
     case DOORSENSOR:
