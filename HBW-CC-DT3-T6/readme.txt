@@ -3,7 +3,7 @@ Homematic Wired Homebrew Delta Temperature and Switch Module
 
 DeltaT Regler + 6 OneWire Temperatursensoren.
 
-Das Modul HHBW-CC-DT3-T6 wurde für eine Ofensteuerung entwickelt. Eine Umwälzpumpe wird ab einer bestimmten Mindesttemperatur und Temperaturdifferenz ein- bzw. Ausgeschaltet.
+Das Modul HBW-CC-DT3-T6 wurde für eine Ofensteuerung entwickelt. Eine Umwälzpumpe wird ab einer bestimmten Mindesttemperatur und Temperaturdifferenz ein- bzw. Ausgeschaltet.
 Basis ist ein Arduino NANO mit RS485-Interface.
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_cc_dt3_t6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x9C aus).
@@ -32,7 +32,7 @@ DELTA_TEMP: 0.0 - 25.4°C
 T1_MAX: -200.0 - 200.0°C
 T2_MIN: -200.0 - 200.0°C
 
-* DeltaT wird berechnet als T2 - T1, die Hysterese wird vom delta Wert subtrahiert, wenn die Temperaturdifferenz unterhalb von DELTA_TEMP liegt, ansonsten addiert. Der Ausgang wechselt sofort auf "Aus", wenn T1_MAX überschritten oder T2_MIN unterschritten wird.
+* DeltaT wird berechnet als T2 - T1. Die Hysterese wird vom delta Wert subtrahiert, wenn die Temperaturdifferenz unterhalb von DELTA_TEMP liegt, ansonsten addiert. Der Ausgang wechselt sofort auf "Aus", wenn T1_MAX überschritten oder T2_MIN unterschritten wird.
 
 
 Standard-Pinbelegung:
@@ -42,10 +42,10 @@ Standard-Pinbelegung:
 2  - RS485 Enable
 13 - Status LED
 A6 - Bedientaster (Reset)
-10 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
+A3 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
  5 - RELAY_1
  6 - RELAY_2
- 7 - RELAY_3
+ 3 - RELAY_3
 
 
 "Debug"-Pinbelegung:
@@ -55,7 +55,6 @@ A6 - Bedientaster (Reset)
 13 - Status LED
 8  - Bedientaster (Reset)
 10 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
-A1 - RELAY_1
-A2 - RELAY_2
-A3 - RELAY_3
-  
+5 - RELAY_1
+6 - RELAY_2
+A2 - RELAY_3

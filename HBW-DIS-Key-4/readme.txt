@@ -1,8 +1,6 @@
 Homematic Wired Homebrew Display Module + 4 Key Input
 =====================================================
 
---- still in development ---
-
 Das Modul HBW-DIS-Key-4 bindet ein LCD Character Display an den Bus an. Die Anzahl der Zeilen und Zeichen pro Zeile kann angepasst werden.
 Zusätzlich sind 4 Tasterkanäle vorhanden.
 Die Tasterkanäle unterstützen Direktverknüpfungen (Peering). Ebenso können die virtuellen Switch- und Temperaturkanäle mit Sensoren direkt verknüpft werden.
@@ -13,12 +11,12 @@ Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw-dis-key-4.xml
 
 
 Kanäle:
-1x Display (1*4 bis 4*24 LCD)
-1x Dimmer (Display Hintergrundbeleuchtung)
+1x display "Master Kanal" (mit Konfigurationsmöglichkeit der Displaygröße, 1*4 bis 4*24 LCD)
+1x dimmer (Display Hintergrundbeleuchtung, mit Auto-off & automatischer Helligkeit)
 4x display_line (bei zweizeiligen Displays werden nur die beiden ersten Kanäle genutzt)
-4x Key (Taster, Schalter)
-4x display_v_temp	(Speichert Temperaturmesswerte oder beliebige Werte von -32768 bis 32767)
-4x display_v_switch	(Speichert einen binären Wert, 0 oder 1)
+4x key (Taster)
+4x display_v_temp (Speichert Temperaturmesswerte oder beliebige Werte von -32768 bis 32767)
+4x display_v_switch (Speichert einen binären Wert, 0 oder 1)
 
 
 Für die "display_line" Kanäle, welche je eine Zeile des Displays repräsentieren, kann mit FHEM ein Wert übertragen werden (siehe FHEM RAW Befehle weiter unten) oder es wird einer der vordefinierten Zeilen angezeigt.
