@@ -32,7 +32,7 @@ DELTA_TEMP: 0.0 - 25.4°C
 T1_MAX: -200.0 - 200.0°C
 T2_MIN: -200.0 - 200.0°C
 
-* DeltaT wird berechnet als T2 - T1. Die Hysterese wird vom delta Wert subtrahiert, wenn die Temperaturdifferenz unterhalb von DELTA_TEMP liegt, ansonsten addiert. Der Ausgang wechselt sofort auf "Aus", wenn T1_MAX überschritten oder T2_MIN unterschritten wird.
+* DeltaT wird berechnet als T2 - T1. Die Hysterese wird vom delta Wert subtrahiert, wenn die Temperaturdifferenz unterhalb von DELTA_TEMP liegt, ansonsten addiert (Als Option zuschaltbar). Der Ausgang wechselt sofort auf "Aus", wenn T1_MAX überschritten oder T2_MIN unterschritten wird. Alternativ kann hier auch die Hysterese angewendet werden.
 
 
 Standard-Pinbelegung:

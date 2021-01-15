@@ -15,10 +15,13 @@
 // - change to peer: temp (sensor & actuator), removed deltaT virtual Keys (peering conflict)
 // v0.30
 // - allow deltaT channels peering with external switches (key/actuator peer role)
+// v0.40
+// - add config to apply hysteresis on maxT1, minT2 and OFF transistion
+// - add config for output change frequency (CYCLE_TIME)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x001E
+#define FIRMWARE_VERSION 0x0028
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import .xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
@@ -87,9 +90,9 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x5A (address step 14)
-  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6C (address step 6)
-  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x6D - 0x72 (address step 2)
-  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x73 - 0x78 (address step 2)
+  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6F (address step 7)
+  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x70 - 0x72 (address step 1)
+  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x73 - 0x75 (address step 1)
 } hbwconfig;
 
 

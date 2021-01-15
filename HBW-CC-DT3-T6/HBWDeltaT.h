@@ -26,11 +26,11 @@
 #define OFF LOW
 #define ON HIGH
 
-static const uint16_t MIN_CHANGE_WAIT_TIME = 30000;  // don't set new output state faster than: 30 seconds // TODO: make it part of config?
-static const uint16_t  DELTA_CALCULATION_WAIT_TIME = 3100;  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds)
+static const uint16_t START_DELAY = 20000;
+static const uint16_t  DELTA_CALCULATION_WAIT_TIME = 3100;  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds - usually 10 seconds max)
 
 
-// config of one DeltaT channel, address step 6
+// config of one DeltaT channel, address step 7
 struct hbw_config_DeltaT {
   uint8_t logging:1;      // +0.0   1=on 0=off
   uint8_t locked:1;     // +0.1   1=LOCKED, 0=UNLOCKED
@@ -39,13 +39,17 @@ struct hbw_config_DeltaT {
   uint8_t deltaT;   // temperature delta (factor 10), max. 254 = 25.4°C
   int16_t maxT1;   // centi celcius (factor 100)
   int16_t minT2;   // centi celcius (factor 100)
+  uint8_t min_output_change_wait_time:3;  // 5 seconds stepping, allowing 5 - 40 seconds (0...7 +1) *5
+  uint8_t n_enableHysMaxT1:1;  // apply hysteresis on maxT1, 1=off (default) 0=on
+  uint8_t n_enableHysMinT2:1;  // apply hysteresis on minT2, 1=off (default) 0=on
+  uint8_t n_enableHysOFF:1;  // apply hysteresis on OFF transition, too. 1=off (default) 0=on
+  uint8_t :2;     //fillup
 };
 
-// config of one DeltaTx channel, address step 2
+// config of one DeltaTx channel, address step 1
 struct hbw_config_DeltaTx {
-  uint8_t unused:4;
-  uint8_t :4;     //fillup
-  uint8_t dummy:8;
+  uint8_t unused;  // no config right now
+  //uint8_t :4;     //fillup
 };
 
 
