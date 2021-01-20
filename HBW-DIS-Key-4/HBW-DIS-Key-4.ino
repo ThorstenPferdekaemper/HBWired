@@ -19,7 +19,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0014
+#define FIRMWARE_VERSION 0x0015
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 
@@ -222,12 +222,16 @@ void setup()
   hbwdebug(sizeof(channels)/2);
 
   // calculate EEPORM start addresses. to put in XML
-  hbwdebug(F(" #eeStart Ch, Key:"));
-  hbwdebughex(0x0B + sizeof(hbwconfig.DisLineCfg));
+  hbwdebug(F(" #eeStart Chan, Dis:"));
+  hbwdebughex(0x07);
+  hbwdebug(F(", Dim:"));
+  hbwdebughex(0x07 + sizeof(hbwconfig.DisCfg) + sizeof(hbwconfig.DisDimCfg));
+  hbwdebug(F(", Key:"));
+  hbwdebughex(0x07 + sizeof(hbwconfig.DisCfg) + sizeof(hbwconfig.DisDimCfg) + sizeof(hbwconfig.DisLineCfg));
   hbwdebug(F(", Vn:"));
-  hbwdebughex(0x0B + sizeof(hbwconfig.DisLineCfg) + sizeof(hbwconfig.KeyCfg));
+  hbwdebughex(0x0B + sizeof(hbwconfig.DisCfg) + sizeof(hbwconfig.DisDimCfg) + sizeof(hbwconfig.DisLineCfg) + sizeof(hbwconfig.KeyCfg));
   hbwdebug(F(", Vb:"));
-  hbwdebughex(0x0B + sizeof(hbwconfig.DisLineCfg) + sizeof(hbwconfig.KeyCfg) + sizeof(hbwconfig.DisTCfg));
+  hbwdebughex(0x07 + sizeof(hbwconfig.DisCfg) + sizeof(hbwconfig.DisDimCfg) + sizeof(hbwconfig.DisLineCfg) + sizeof(hbwconfig.KeyCfg) + sizeof(hbwconfig.DisTCfg));
   hbwdebug(F("\n"));
 #endif
 }
@@ -236,6 +240,7 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };
 
 

@@ -292,13 +292,14 @@ class HBWDisplayDim : public HBWChannel {
     uint8_t photoresistorPin;  // light resistor (mabye not used == NOT_A_PIN) - pin must be ADC!
     uint8_t brightness;   // read ADC and save average here
     uint8_t currentValue;   // current dimmer level (0...200 -> 0...100%)
+    uint32_t backlightLastUpdate;    // last time of update
     uint32_t powerOnTime;
     uint8_t lastKeyNum;
     boolean initDone;
     
     static const uint32_t LCD_BACKLIGHT_UPDATE_INTERVAL = 1660;
 
-    // TODO: add notify/logging? Not really needed, should not be enabled in auto_brightness mode anyway
+    // TODO: add notify/logging? Not really needed, should be disabled in auto_brightness mode anyway
 };
 
 // Class HBWDisplay (master channel)
