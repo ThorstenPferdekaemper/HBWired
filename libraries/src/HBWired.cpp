@@ -219,7 +219,7 @@ void HBWDevice::sendFrameSingle() {
       sendFrameByte(crc16checksum / 0x100);
       sendFrameByte(crc16checksum & 0xFF);
 
-      serial->flush();                  // othwerwise, enable pin will go low too soon
+      serial->flush();                  // otherwise, enable pin will go low too soon
       digitalWrite(txEnablePin, LOW);
 
       frameStatus |= FRAME_SENTACKWAIT;
@@ -497,12 +497,13 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
            };
            readAddressFromEEPROM();
            break;
-         /* case '!':                                                             // reset the Module
+         #if defined (Support_ModuleReset)
+         case '!':                                                             // reset the Module
             // reset the Module jump after the bootloader
         	// Nur wenn das zweite Zeichen auch ein "!" ist
-        	// TODO: Wirklich machen, aber wie geht das?
-            // if(frameData[1] == '!') { resetSoftware(); };   //  then goto 0
-            break;  */
+            if(frameData[1] == '!') { pendingActions.resetSystem = true; };  // don't reset immediately, send ACK first
+            break;
+         #endif
          case 'A':                                                             // Announce
         	txFrame.data[0] = 'i';
 			onlyAck = false;
@@ -911,6 +912,12 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    configButtonStatus = 0;
    readConfig();	// read config
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
+   #ifdef Support_ModuleReset
+   pendingActions.resetSystem = false;
+   #endif
+   #ifdef Support_WDT
+   wdt_enable(WDTO_1S);
+   #endif
 }
   
 
@@ -976,14 +983,24 @@ uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
 // The loop function is called in an endless loop
 void HBWDevice::loop()
 {
+  if (pendingActions.resetSystem) {
+   #if defined (Support_ModuleReset)
+    #if defined (Support_WDT)
+    // wdt_wdt_enable(WDTO_15MS);
+    while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
+    #else
+    resetSoftware();  // otherwise jump to reset vector
+    #endif
+   #endif
+  }
   // read device and channel config, on init and if triggered by ReadConfig()
-   if (pendingActions.afterReadConfig) {
-		afterReadConfig();
-		for(uint8_t i = 0; i < numChannels; i++) {
-			channels[i]->afterReadConfig();
-		}
-		pendingActions.afterReadConfig = false;
-	}
+  if (pendingActions.afterReadConfig) {
+    afterReadConfig();
+    for(uint8_t i = 0; i < numChannels; i++) {
+      channels[i]->afterReadConfig();
+    }
+    pendingActions.afterReadConfig = false;
+  }
 // Daten empfangen und alles, was zur Kommunikationsschicht gehört
 // processEvent vom Modul wird als Callback aufgerufen
 // Daten empfangen (tut nichts, wenn keine Daten vorhanden)
@@ -1008,6 +1025,9 @@ void HBWDevice::loop()
    handleConfigButton();
 // Rx & Tx LEDs
    handleStatusLEDs();
+   #ifdef Support_WDT
+   wdt_reset();
+   #endif
 };
 
 

@@ -10,6 +10,7 @@
 
 #include "Arduino.h"
 #include "hardware.h"
+#include "avr/wdt.h"
 
 #define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
 
@@ -17,6 +18,8 @@
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
 // #define Support_HBWLink_InfoEvent
 
+// #define Support_ModuleReset  // enable reset comand, to restart module "!!" (hexstring 2121)
+// #define Support_WDT  // enable 1 second watchdog timer
 
 
 class HBWDevice;
@@ -243,7 +246,7 @@ class HBWDevice {
 	{
 		uint8_t afterReadConfig : 1;
 		uint8_t announced : 1;
-		// uint8_t resetSystem : 1;
+		uint8_t resetSystem : 1;
 		// uint8_t startBooter : 1;
 		// uint8_t startFirmware : 1;
 		uint8_t zeroCommunicationActive : 1;
@@ -251,7 +254,7 @@ class HBWDevice {
 	static s_PendingActions pendingActions;
 	
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
-	// Arduino Reset via Software function declaration, point to zero register
+	// Arduino Reset via Software function declaration, point to address 0 (reset vector)
 	void (* resetSoftware)(void) = 0;
 	
 	// Senden
