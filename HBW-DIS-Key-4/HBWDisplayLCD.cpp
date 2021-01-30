@@ -43,6 +43,7 @@ HBWDisplayDim::HBWDisplayDim(hbw_config_display_backlight* _config, uint8_t _bac
   config = _config;
   backlightPin = _backlight_pin;
   photoresistorPin = _photoresistor_pin;
+  backlightLastUpdate = 0;
   lastKeyNum = 0;
   initDone = false;
   currentValue = 0;
@@ -557,14 +558,18 @@ void HBWDisplayDim::loop(HBWDevice* device, uint8_t channel)
   if (!initDone) {
     if (config->startup)  currentValue = 200; // set startup value (200 = on, 0 = off)
     initDone = true;
+    return;
   }
 
-  // fixed intervall and not critical... so use millis() with modulo...
-  if (millis() % LCD_BACKLIGHT_UPDATE_INTERVAL == 0 || displayWakeUp)
+  uint32_t now = millis();
+
+  if (now - backlightLastUpdate > LCD_BACKLIGHT_UPDATE_INTERVAL || displayWakeUp)
   {
+    backlightLastUpdate = now;
+    
     if (displayWakeUp) {
       displayWakeUp = false;
-      powerOnTime = millis();   // reset timer for "auto_off"
+      powerOnTime = now;   // reset timer for "auto_off"
     }
 
     if (config->auto_brightness && photoresistorPin != NOT_A_PIN)
@@ -573,7 +578,7 @@ void HBWDisplayDim::loop(HBWDevice* device, uint8_t channel)
       
       // smooth ADC reading, but allow larger steps if backlight is bright, or the measured brightness changed a lot
       if (brightnessDiff > 4) {
-        brightness += 1 + (currentValue/32) + (brightnessDiff/50);  // if possible divider with power of 2, to use bitshift
+        brightness += 1 + (currentValue/32) + (brightnessDiff/50);  // try using divider with power of 2, to use bitshift
       }
       else if (brightnessDiff < -4) {
         brightness -= 1 + (currentValue/32) + ((brightnessDiff * -1)/50);
@@ -581,13 +586,15 @@ void HBWDisplayDim::loop(HBWDevice* device, uint8_t channel)
       
       currentValue = map(brightness, 0, 255, 0, 200);
     }
-//hbwdebug(F("Dim reading:")); hbwdebug(reading);
+
+    // overwrite current value, to turn of the backlight, if auto-off applies
+    if (now - powerOnTime >= (uint32_t)config->auto_off *60000 && config->auto_off)
+      currentValue = 0;
+
+//hbwdebug(F("Dim LDR:")); hbwdebug(analogRead(photoresistorPin) >> 2);
 //hbwdebug(F(" brightness:")); hbwdebug(brightness);
 //hbwdebug(F(" currentValue:")); hbwdebug(currentValue);
 //hbwdebug(F("\n"));
-
-    if (millis() - powerOnTime >= (uint32_t)config->auto_off *60000 && config->auto_off)
-      currentValue = 0;
     
     analogWrite(backlightPin, map(currentValue, 0, 200, 0, 255));
   }

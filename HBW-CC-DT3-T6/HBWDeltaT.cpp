@@ -18,10 +18,10 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
 {
   deltaT = 0xFF;
   outputChangeLastTime = 0;
-  deltaCalcLastTime = MIN_CHANGE_WAIT_TIME; // wait some time to get input values
+  deltaCalcLastTime = 0;
   clearFeedback();
   stateFlags.byte = 0;
-  keyPressNum = 1;
+  keyPressNum = 0;
   initDone = false;
 };
 
@@ -57,7 +57,10 @@ void HBWDeltaT::afterReadConfig()
 
  #ifdef DEBUG_OUTPUT
   hbwdebug(F("Conf, maxT1: ")); hbwdebug((int16_t)config->maxT1); hbwdebug(F(" minT2: ")); hbwdebug((int16_t)config->minT2);
-  hbwdebug(F(" deltaHys: ")); hbwdebug(config->deltaHys); hbwdebug(F(" deltaT: ")); hbwdebug(config->deltaT);
+  hbwdebug(F(" deltaHys: ")); hbwdebug(config->deltaHys);
+  hbwdebug(F(" Hys@maxT1? ")); hbwdebug(!config->n_enableHysMaxT1); hbwdebug(F(" @minT2? ")); hbwdebug(!config->n_enableHysMinT2);
+  hbwdebug(F(" deltaT: ")); hbwdebug(config->deltaT); hbwdebug(F(" Hys@OFF? ")); hbwdebug(!config->n_enableHysOFF);
+  hbwdebug(F(" change_wait: ")); hbwdebug(config->output_change_wait_time);
   hbwdebug(F("\n"));
  #endif
 };
@@ -119,7 +122,7 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 {
   stateFlags.element.mode = calculateNewState();  // calculate new deltaT value, set channel mode (active/inactive)
   
-  if (millis() - outputChangeLastTime >= MIN_CHANGE_WAIT_TIME)
+  if (millis() - outputChangeLastTime >= ((uint16_t)(config->output_change_wait_time +1) *5000))
   {
     if (setOutput(device, channel)) // will only set output if state is different
     {
@@ -156,12 +159,12 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
   digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output
 
   // allow peering with external switches
+  if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
   if (device->sendKeyEvent(channel, keyPressNum, !nextState) != HBWDevice::BUS_BUSY) {
     keyPressNum++;
-    currentState = nextState; // TODO: check if this ok, as it will result into retries, as long as the bus is busy (retry interval: MIN_CHANGE_WAIT_TIME)
+    currentState = nextState; // retry, as long as the bus is busy (retry interval: 'output_change_wait_time')
   }
   
-//  currentState = nextState;
   stateFlags.element.status = currentState;
 
   // set trigger to send info/notify message in loop()
@@ -180,29 +183,40 @@ bool HBWDeltaT::calculateNewState()
   if (millis() - deltaCalcLastTime >= DELTA_CALCULATION_WAIT_TIME)
   {
     deltaCalcLastTime = millis();
-    
-    // check if valid temp is available
-    // T1
+        
     int16_t t1 = deltaT1->currentTemperature;
-    if (t1 <= ERROR_TEMP || t1 >= config->maxT1) {
-      nextState = OFF;
-      return false;
-    }
-    // T2
     int16_t t2 = deltaT2->currentTemperature;
-    if (t2 <= ERROR_TEMP || t2 < config->minT2) {
+    
+    // check if valid temps are available
+    if (t1 <= ERROR_TEMP || t2 <= ERROR_TEMP) {
       nextState = OFF;
       return false;
     }
-    
+
     deltaT = (t2 - t1) / 10;  // don't consider hundredth
+
+    // check for limits
+    if (t1 >= config->maxT1 || t2 < config->minT2) {
+      nextState = OFF;
+      return true;
+    }
     
-    if ((int16_t)(deltaT >= config->deltaT)) {
-      if ((int16_t)(deltaT - config->deltaHys) >= config->deltaT)
+    // check delta temperature
+    if ((int16_t)(deltaT > config->deltaT))
+    {
+      if ((int16_t)(deltaT - config->deltaHys) >= config->deltaT) {
         nextState = ON;
+        if (currentState == OFF) {
+          // delay ON transition for deltaHys value, if enabled
+          if (!config->n_enableHysMaxT1 && (int16_t)(config->maxT1 - t1) < (config->deltaHys *10) && (int16_t)(config->maxT1 - t1) >= 0)
+            nextState = OFF;
+          if (!config->n_enableHysMinT2 && (int16_t)(t2 - config->minT2) < (config->deltaHys *10) && (int16_t)(t2 - config->minT2) >= 0)
+            nextState = OFF;
+        }
+      }
     }
     else {
-      if ((int16_t)(deltaT + config->deltaHys) <= config->deltaT)
+      if ((int16_t)(deltaT + (config->deltaHys *(!config->n_enableHysOFF))) <= config->deltaT)
         nextState = OFF;
     }
     return true;

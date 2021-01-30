@@ -38,4 +38,13 @@
 #endif
 
 
+/* sleep macro. Timer for millis() must keep running! Don't sleep too deep... */
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+// "idle" sleep mode (mode 0)
+#include <avr/sleep.h>
+#define POWERSAVE() set_sleep_mode(0); \
+                    sleep_mode();
+//#elif defined (__AVR_ATmega644P__)... // TODO: add others
+#endif
+
 #endif /* hardware */

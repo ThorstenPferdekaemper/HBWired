@@ -71,9 +71,7 @@ boolean HBWDevice::parseFrame () { // returns true, if event needs to be process
     // Absenderadresse mus stimmen
     if(seqNumReceived == seqNumSent && senderAddress == txFrame.targetAddress) {
       // "ackwait" zuruecksetzen (ansonsten wird auf den Timeout vertraut)
-      #ifdef HBW_DEBUG
-        hbwdebug(F("R: ACK\n"));
-      #endif
+      hbwdebug(F("R: ACK\n"));
       frameStatus &= ~FRAME_SENTACKWAIT;
     }
   }
@@ -180,9 +178,7 @@ void HBWDevice::sendFrameSingle() {
         txFrame.controlByte |= (txSeqNum << 5);
       };
 
-      #ifdef HBW_DEBUG
-        hbwdebug(F("T: ")); hbwdebughex(FRAME_STARTBYTE);
-      #endif
+      hbwdebug(F("T: ")); hbwdebughex(FRAME_STARTBYTE);
       digitalWrite(txEnablePin, HIGH);
       
       serial->write(FRAME_STARTBYTE);  // send startbyte
@@ -219,13 +215,11 @@ void HBWDevice::sendFrameSingle() {
       sendFrameByte(crc16checksum / 0x100);
       sendFrameByte(crc16checksum & 0xFF);
 
-      serial->flush();                  // othwerwise, enable pin will go low too soon
+      serial->flush();                  // otherwise, enable pin will go low too soon
       digitalWrite(txEnablePin, LOW);
 
       frameStatus |= FRAME_SENTACKWAIT;
-      #ifdef HBW_DEBUG  
-        hbwdebug(F("\n"));
-      #endif
+      hbwdebug(F("\n"));
 } // sendFrameSingle
 
 
@@ -234,9 +228,7 @@ void HBWDevice::sendFrameSingle() {
 // TX-Pin needs to be HIGH before calling this
 void HBWDevice::sendFrameByte(byte sendByte, uint16_t* checksum) {
   // Debug
-  #ifdef HBW_DEBUG
-    hbwdebug(":"); hbwdebughex(sendByte);
-  #endif
+  hbwdebug(":"); hbwdebughex(sendByte);
   // calculate checksum, if needed
   if(checksum)
   crc16Shift(sendByte, checksum);
@@ -351,9 +343,7 @@ void HBWDevice::receive(){
             if(frameDataLength > MAX_RX_FRAME_LENGTH) // Maximale Puffergöße checken.
             {
                 frameStatus &= ~FRAME_START;
-              #ifdef HBW_DEBUG
                 hbwdebug(F("E: MsgTooLong\n"));
-              #endif
             }
          }else{                   // Daten empfangen
             frameData[framePointer] = rxByte;   // Daten in Puffer speichern
@@ -367,16 +357,12 @@ void HBWDevice::receive(){
                   frameDataLength -= 2;
                   // es liegt eine neue Nachricht vor
                   frameComplete = true;
-                  #ifdef HBW_DEBUG
-                    hbwdebug(F("\n"));
-                  #endif
+                  hbwdebug(F("\n"));
                   // auch wenn noch Daten im Puffer sind, muessen wir erst einmal
                   // die gerade gefundene Nachricht verarbeiten
                   return;
                }else{
-                 #ifdef HBW_DEBUG
                    hbwdebug(F("E: CRC\n"));
-                 #endif
                }
             }
          }
@@ -497,12 +483,13 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
            };
            readAddressFromEEPROM();
            break;
-         /* case '!':                                                             // reset the Module
+         #if defined (Support_ModuleReset)
+         case '!':                                                             // reset the Module
             // reset the Module jump after the bootloader
         	// Nur wenn das zweite Zeichen auch ein "!" ist
-        	// TODO: Wirklich machen, aber wie geht das?
-            // if(frameData[1] == '!') { resetSoftware(); };   //  then goto 0
-            break;  */
+            if(frameData[1] == '!') { pendingActions.resetSystem = true; };  // don't reset immediately, send ACK first
+            break;
+         #endif
          case 'A':                                                             // Announce
         	txFrame.data[0] = 'i';
 			onlyAck = false;
@@ -522,9 +509,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
         	// TODO: Check requested length...
             if(frameDataLength == 4) {                                // Length of incoming data must be 4
                onlyAck = false;
-               #ifdef HBW_DEBUG
-                 hbwdebug(F("C: Read EEPROM\n"));
-               #endif
+               hbwdebug(F("C: Read EEPROM\n"));
                adrStart = ((uint16_t)(frameData[1]) << 8) | frameData[2];  // start adress of eeprom
                for(byte i = 0; i < frameData[3]; i++) {
             	   txFrame.data[i] = EEPROM.read(adrStart + i);
@@ -539,9 +524,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
          case 'W':                                                               // Write EEPROM
             if(frameDataLength == frameData[3] + 4) {
-              #ifdef HBW_DEBUG
-                hbwdebug(F("C: Write EEPROM\n"));
-              #endif
+               hbwdebug(F("C: Write EEPROM\n"));
                adrStart = ((uint16_t)(frameData[1]) << 8) | frameData[2];  // start adress of eeprom
                for(byte i = 4; i < frameDataLength; i++){
             	 writeEEPROM(adrStart+i-4, frameData[i]);
@@ -558,9 +541,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             break;
        #endif
          case 'h':                                 // 0x68 get Module type and hardware version
-            #ifdef HBW_DEBUG
-              hbwdebug(F("T: HWVer,Typ\n"));
-            #endif
+            hbwdebug(F("T: HWVer,Typ\n"));
             onlyAck = false;
             txFrame.data[0] = deviceType;
             txFrame.data[1] = hardware_version;
@@ -578,9 +559,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             // TODO: ???
         	break; */
          case 'v':                                                               // get firmware version
-            #ifdef HBW_DEBUG
-              hbwdebug(F("T: FWVer\n")); 
-            #endif
+            hbwdebug(F("T: FWVer\n")); 
             onlyAck = false;
             txFrame.data[0] = firmware_version / 0x100;
             txFrame.data[1] = firmware_version & 0xFF;
@@ -911,6 +890,12 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    configButtonStatus = 0;
    readConfig();	// read config
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
+   #ifdef Support_ModuleReset
+   pendingActions.resetSystem = false;
+   #endif
+   #ifdef Support_WDT
+   wdt_enable(WDTO_1S);
+   #endif
 }
   
 
@@ -976,14 +961,24 @@ uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
 // The loop function is called in an endless loop
 void HBWDevice::loop()
 {
+  if (pendingActions.resetSystem) {
+   #if defined (Support_ModuleReset)
+    #if defined (Support_WDT)
+    // wdt_wdt_enable(WDTO_15MS);
+    while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
+    #else
+    resetSoftware();  // otherwise jump to reset vector
+    #endif
+   #endif
+  }
   // read device and channel config, on init and if triggered by ReadConfig()
-   if (pendingActions.afterReadConfig) {
-		afterReadConfig();
-		for(uint8_t i = 0; i < numChannels; i++) {
-			channels[i]->afterReadConfig();
-		}
-		pendingActions.afterReadConfig = false;
-	}
+  if (pendingActions.afterReadConfig) {
+    afterReadConfig();
+    for(uint8_t i = 0; i < numChannels; i++) {
+      channels[i]->afterReadConfig();
+    }
+    pendingActions.afterReadConfig = false;
+  }
 // Daten empfangen und alles, was zur Kommunikationsschicht gehört
 // processEvent vom Modul wird als Callback aufgerufen
 // Daten empfangen (tut nichts, wenn keine Daten vorhanden)
@@ -1008,6 +1003,9 @@ void HBWDevice::loop()
    handleConfigButton();
 // Rx & Tx LEDs
    handleStatusLEDs();
+   #ifdef Support_WDT
+   wdt_reset();
+   #endif
 };
 
 
