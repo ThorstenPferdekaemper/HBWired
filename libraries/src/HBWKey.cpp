@@ -107,7 +107,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
         // "Taste war auch vorher nicht gedrueckt" kann ignoriert werden
           // Taste war vorher gedrueckt?
         if (keyPressedMillis) {
-          // entprellen, nur senden, wenn laenger als 50ms gedrueckt
+          // entprellen, nur senden, wenn laenger als KEY_DEBOUNCE_TIME gedrueckt
           // aber noch kein "long" gesendet
           if (now - keyPressedMillis >= KEY_DEBOUNCE_TIME && !lastSentLong) {
             keyPressNum++;
