@@ -277,7 +277,7 @@
 				</physical>
 				<conversion type="float_integer_scale" factor="10"/>
 				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0xff"/>
+					<value_map to_device="false" from_device="true" parameter_value="30" device_value="0xff"/>
 				</conversion>
 			</parameter>
 		</paramset>

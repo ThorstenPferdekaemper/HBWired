@@ -25,7 +25,7 @@ void HBWKeyDoorbell::afterReadConfig()
   else  pinMode(pin, INPUT);
 
   if (config->suppress_num == 255) config->suppress_num = 4;
-  if (config->suppress_time == 255) config->suppress_time = 3;
+  if (config->suppress_time == 255) config->suppress_time = 30;
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("cfg DBPin:"));
@@ -48,7 +48,7 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
   
   buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
   
-  if (now - lastKeyPressedMillis >= (uint32_t)config->suppress_time *1000) {
+  if (now - lastKeyPressedMillis >= (uint32_t)config->suppress_time *100) {
     repeatCounter = 0;  // reset repeat counter if no key press happened
   }
 
