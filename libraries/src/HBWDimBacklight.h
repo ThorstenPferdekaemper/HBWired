@@ -24,7 +24,7 @@
 struct hbw_config_dim_backlight {
   uint8_t startup:1;  // initial state, 1=ON
   uint8_t auto_brightness:1;  // default 1=auto_brightness enabled
-  uint8_t auto_off:4;  // 1..17 minutes standby delay. 0 = always on ( 0 = "special value", NOT_USED)
+  uint8_t auto_off:4;  // 1..15 minutes standby delay. 0 = always on ( 0 = "special value", NOT_USED)
   uint8_t :2;     //fillup
   uint8_t dummy;
 };

@@ -200,7 +200,7 @@
 				<conversion type="boolean_integer" invert="false"/>
 			</parameter>
 			<parameter id="AUTO_OFF_DELAY">
-				<logical type="integer" unit="min" default="17" max="17" min="1">
+				<logical type="integer" unit="min" default="15" max="15" min="1">
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="0.4" type="integer" interface="eeprom">
