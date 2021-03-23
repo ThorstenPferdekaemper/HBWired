@@ -19,7 +19,7 @@ HBWDimBacklight::HBWDimBacklight(hbw_config_dim_backlight* _config, uint8_t _bac
   backlightPin = _backlight_pin;
   photoresistorPin = _photoresistor_pin;
   backlightLastUpdate = 0;
-  lastKeyNum = 0;
+  lastKeyNum = 255;
   initDone = false;
   currentValue = 0;
 };
@@ -32,7 +32,7 @@ HBWDimBacklight::HBWDimBacklight(hbw_config_dim_backlight* _config, uint8_t _bac
 //  //photoresistorPin = _photoresistor_pin;
 //  brightnessChan = _brightnessChan;
 //  backlightLastUpdate = 0;
-//  lastKeyNum = 0;
+//  lastKeyNum = 255;
 //  initDone = false;
 //  currentValue = 0;
 //};

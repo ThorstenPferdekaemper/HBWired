@@ -35,7 +35,7 @@ HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config)
   HBWDisplayVChannel::addNumVChannel();
   config = _config;
   currentValue = false;
-  lastKeyNum = 0;
+  lastKeyNum = 255;
 };
 
 
@@ -45,7 +45,7 @@ HBWDisplayVChBool::HBWDisplayVChBool(hbw_config_displayVChBool* _config)
 //  backlightPin = _backlight_pin;
 //  photoresistorPin = _photoresistor_pin;
 //  backlightLastUpdate = 0;
-//  lastKeyNum = 0;
+//  lastKeyNum = 255;
 //  initDone = false;
 //  currentValue = 0;
 //};
@@ -55,7 +55,7 @@ HBWDisplayLine::HBWDisplayLine(hbw_config_display_line* _config)
 {
   config = _config;
   useDefault = true;
-  lastKeyNum = 0;
+  lastKeyNum = 255;
 
   num = numTotal++;
 };

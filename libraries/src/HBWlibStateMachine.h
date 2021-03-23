@@ -35,10 +35,9 @@
 #define BITMASK_OffDelayBlink B00000100
 #define BITMASK_RampStartStep B11110000
 
-
 class HBWlibStateMachine {
     public:
-    /* convert time value stored in EEPROM to milliseconds (used for state machine) */
+    /* convert time value stored in EEPROM to milliseconds - 1 byte value (used for state machine) */
     inline uint32_t convertTime(uint8_t timeValue) {
       
       uint8_t factor = timeValue & 0xC0;    // mask out factor (higest two bits)
@@ -54,6 +53,31 @@ class HBWlibStateMachine {
           break;
         case 128:        // x1000
           return (uint32_t)timeValue *1000000;
+          break;
+    //    case 192:        // not used value
+    //      return 0; // TODO: check how to handle this properly, what does on/off time == 0 mean? infinite on/off??
+    //      break;
+    //TODO: check; case 255: // not used value?
+      }
+      return 0;
+    };
+
+    /* convert time value stored in EEPROM to milliseconds - 2 byte value (used for state machine) */
+    inline uint32_t convertTime(uint16_t timeValue) {
+      
+      uint8_t factor = timeValue >> 14;    // mask out factor (higest two bits)
+      timeValue &= 0x3FFF;    // keep time value only
+    
+      // factors: 0.1,1,60,1000 (last one is not used)
+      switch (factor) {
+        case 0:          // x0.1
+          return (uint32_t)timeValue *100;
+          break;
+        case 1:          // x1
+          return (uint32_t)timeValue *1000;
+          break;
+        case 2:         // x60
+          return (uint32_t)timeValue *60000;
           break;
     //    case 192:        // not used value
     //      return 0; // TODO: check how to handle this properly, what does on/off time == 0 mean? infinite on/off??
@@ -92,6 +116,7 @@ class HBWlibStateMachine {
     /* on & off values could de different per device type (e.g. switch, dimmer) and need to be provided to the function *
     * TODO: check if possible to use global definition in the sketch or device specific definition file with Arduino... */
     inline uint8_t getJumpTarget(uint8_t bitshift, const uint8_t jt_on_value, const uint8_t jt_off_value) {
+    // uint8_t getJumpTarget(uint8_t bitshift) {
       
       uint8_t nextJump = ((jumpTargets.DWORD >>bitshift) & B00000111);
       
@@ -114,6 +139,7 @@ class HBWlibStateMachine {
       return nextJump;
     };
     
+	
     /* set required variables - that not get set before used elsewhere */
     inline void init() {
       onTime = 0xFF;
@@ -122,10 +148,11 @@ class HBWlibStateMachine {
       stateTimerRunning = false;
       stateChangeWaitTime = 0;
       lastStateChangeTime = 0;
-      lastKeyNum = 0;
+      lastKeyNum = 255;  // key press counter uses only 6 bit, so init value of 255 makes sure first press (count 0) is accepted
       currentState = UNKNOWN_STATE;
     }
     
+	// TODO: replace peer params with struct? (memcpy(&peerParams, data, NUM_PEER_PARAMS)
     union {
       uint32_t DWORD;
       uint8_t jt_hi_low[4];
