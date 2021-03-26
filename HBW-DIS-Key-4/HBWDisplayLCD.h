@@ -275,33 +275,6 @@ class HBWDisplayLine : public HBWDisplayVChannel {
 };
 
 
-//// dimmer channel for display backlight (or overall brightness, e.g. for OLED?)
-//// Class HBWDisplayDim
-//class HBWDisplayDim : public HBWChannel {
-//  public:
-//    HBWDisplayDim(hbw_config_display_backlight* _config, uint8_t _backlight_pin, uint8_t _photoresistor_pin = NOT_A_PIN);
-//    virtual void loop(HBWDevice*, uint8_t channel);
-//    virtual uint8_t get(uint8_t* data);
-//    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-//
-//    static boolean displayWakeUp;   // allow other channels to "wake up" the backlight
-//  
-//  private:
-//    hbw_config_display_backlight* config;
-//    uint8_t backlightPin;  // (PWM!) pin for backlight
-//    uint8_t photoresistorPin;  // light resistor (mabye not used == NOT_A_PIN) - pin must be ADC!
-//    uint8_t brightness;   // read ADC and save average here
-//    uint8_t currentValue;   // current dimmer level (0...200 -> 0...100%)
-//    uint32_t backlightLastUpdate;    // last time of update
-//    uint32_t powerOnTime;
-//    uint8_t lastKeyNum;
-//    boolean initDone;
-//    
-//    static const uint32_t LCD_BACKLIGHT_UPDATE_INTERVAL = 1660;
-//
-//    // TODO: add notify/logging? Not really needed, should be disabled in auto_brightness mode anyway
-//};
-
 // Class HBWDisplay (master channel)
 //TODO: Check if this can be used // template <uint8_t num_HBWDisplayVChannel>
 class HBWDisplay : public HBWChannel {
