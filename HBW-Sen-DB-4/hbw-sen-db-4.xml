@@ -262,7 +262,7 @@
 				</conversion>
 			</parameter>
 			<parameter id="SUPPRESS_NUM">
-				<logical type="integer" unit="s" default="4" max="15" min="0"/>
+				<logical type="integer" default="4" max="15" min="0"/>
 				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+2.0"/>
 				</physical>

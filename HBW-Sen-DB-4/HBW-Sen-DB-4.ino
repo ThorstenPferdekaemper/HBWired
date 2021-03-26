@@ -10,13 +10,13 @@
 //
 //*******************************************************************
 // Changes
-// v0.01
+// v0.10
 // - initial version
 
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000A
+#define FIRMWARE_VERSION 0x000B
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 // + 1 türsummer?
@@ -45,16 +45,16 @@
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   
-  #define BUTTON_1 A0
-  #define BUTTON_2 A1
-  #define BUTTON_3 A2
-  #define BUTTON_4 A3
+  #define BUTTON_1 8
+  #define BUTTON_2 12
+  #define BUTTON_3 7
+  #define BUTTON_4 4
 
   //#define BUZZER 6
   
-  #define BACKLIGHT_PWM 5
+  #define BACKLIGHT_PWM 9
 
-  #define LDR_PIN A7
+  #define LDR_PIN A0
   
 //  #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
 //  #define BLOCKED_TWI_SCL A5  // used by I²C - SCL

@@ -25,7 +25,7 @@ void HBWKeyDoorbell::afterReadConfig()
   else  pinMode(pin, INPUT);
 
   if (config->suppress_num == 255) config->suppress_num = 4;
-  if (config->suppress_time == 255) config->suppress_time = 30;
+  if (config->suppress_time == 255) config->suppress_time = 30;  // 3.0 seconds
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("cfg DBPin:"));
@@ -49,10 +49,11 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
   buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
   
   if (now - lastKeyPressedMillis >= (uint32_t)config->suppress_time *100) {
-    repeatCounter = 0;  // reset repeat counter if no key press happened
+    lastKeyPressedMillis = now;
+    repeatCounter = 0;  // reset repeat counter when suppress time has passed
   }
 
-// sends short KeyEvent on short press and (repeated) long KeyEvent on long press
+ // sends short KeyEvent on short press and (repeated) long KeyEvent on long press
   if (buttonState) {
     // d.h. Taste nicht gedrueckt
     // "Taste war auch vorher nicht gedrueckt" kann ignoriert werden
@@ -65,7 +66,6 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
         if (repeatCounter == 0)
         {
           keyPressNum++;
-          if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
           if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY)
           {
             repeatCounter = config->suppress_num;
@@ -98,7 +98,6 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
         if (repeatCounter == 0) {
           // erstes LONG
           keyPressNum++;
-          if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
           if (device->sendKeyEvent(channel, keyPressNum, true) != HBWDevice::BUS_BUSY)  // long press
           {
             lastSentLong = now;
@@ -113,7 +112,6 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
       // Taste war vorher nicht gedrueckt
       keyPressedMillis = now;
       lastSentLong = 0;
-      lastKeyPressedMillis = now;
     }
   }
 };
