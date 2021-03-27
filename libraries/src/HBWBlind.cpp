@@ -31,7 +31,7 @@ HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _co
   blindDirection = UP;
   blindSearchingForRefPosition = false;
   blindPositionRequested = 0;
-  lastKeyNum = 0;
+  lastKeyNum = 255;
 };
 
 // channel specific settings or defaults

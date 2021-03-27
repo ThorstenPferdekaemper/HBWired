@@ -48,6 +48,7 @@
 #include <HBWLinkKey.h>
 //#include <HBWLinkInfoEventActuator.h>
 #include "HBWLinkInfoKeyEventActuator.h"  // special version, combining Key and Info event types
+#include <HBWDimBacklight.h>
 #include "HBWDisplayLCD.h"
 
 
@@ -119,7 +120,7 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_display DisCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x07 - 0x08 (address step 2)
-  hbw_config_display_backlight DisDimCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x09 - 0x0A (address step 2)
+  hbw_config_dim_backlight DisDimCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x09 - 0x0A (address step 2)
   hbw_config_display_line DisLineCfg[MAX_DISPLAY_LINES]; // 0x0B - 0x0E (address step 1)
   hbw_config_key KeyCfg[NUMBER_OF_KEY_CHAN]; // 0x0F - 0x16 (address step 2)
   hbw_config_displayVChNum DisTCfg[NUMBER_OF_V_TEMP_CHAN];  // 0x17 - 0x1A (address step 1)
@@ -181,7 +182,7 @@ void setup()
   #error Virual input channel missmatch!
  #endif
 
-  channels[1] = new HBWDisplayDim(&(hbwconfig.DisDimCfg[0]), LCD_BACKLIGHT_PWM, LDR_PIN);
+  channels[1] = new HBWDimBacklight(&(hbwconfig.DisDimCfg[0]), LCD_BACKLIGHT_PWM, LDR_PIN);
   
   // "master" display as last channel, using the pointer to virtual input and display-line channels
   channels[0] = new HBWDisplay(&lcd, (HBWDisplayVChannel**)displayVChannel, &(hbwconfig.DisCfg[0]), (HBWDisplayVChannel**)displayLines);

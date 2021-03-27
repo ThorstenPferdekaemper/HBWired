@@ -20,11 +20,11 @@
 
 
 #define MAX_DISPLAY_LINES 4   // number of lines the device will allow (class: HBWDisplayLine) - equal amount of channels must be created
-#define MAX_DISPLAY_CHARACTER_PER_LINE 24 //28 possible (with current config..) limit to 20?
+#define MAX_DISPLAY_CHARACTER_PER_LINE 24 //28 possible (with current code..) limit to 20?
 
-#define DISPLAY_CUSTOM_LINES_EESTART 0x320  // EEPROM start address (required space: MAX_DISPLAY_LINES * MAX_DISPLAY_CHARACTER_PER_LINE)
-
-//static const uint8_t LCD_BACKLIGHT_MIN_DIM = 0;   // minimum dimming %
+#define DISPLAY_CUSTOM_LINES_EESTART 0x320  // EEPROM start address to store one custom string per line
+                                            // required space: MAX_DISPLAY_LINES * MAX_DISPLAY_CHARACTER_PER_LINE
+                                            // if uncommented, it will also remove the option to save custom text to EEPROM
 
 
 static const byte LINE_BUFF_LEN = MAX_DISPLAY_CHARACTER_PER_LINE + (MAX_DISPLAY_CHARACTER_PER_LINE /5);
@@ -274,33 +274,6 @@ class HBWDisplayLine : public HBWDisplayVChannel {
     }
 };
 
-
-// dimmer channel for display backlight (or overall brighness, e.g. for OLED?)
-// Class HBWDisplayDim
-class HBWDisplayDim : public HBWChannel {
-  public:
-    HBWDisplayDim(hbw_config_display_backlight* _config, uint8_t _backlight_pin, uint8_t _photoresistor_pin = NOT_A_PIN);
-    virtual void loop(HBWDevice*, uint8_t channel);
-    virtual uint8_t get(uint8_t* data);
-    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
-
-    static boolean displayWakeUp;   // allow other channels to "wake up" the backlight
-  
-  private:
-    hbw_config_display_backlight* config;
-    uint8_t backlightPin;  // (PWM!) pin for backlight
-    uint8_t photoresistorPin;  // light resistor (mabye not used == NOT_A_PIN) - pin must be ADC!
-    uint8_t brightness;   // read ADC and save average here
-    uint8_t currentValue;   // current dimmer level (0...200 -> 0...100%)
-    uint32_t backlightLastUpdate;    // last time of update
-    uint32_t powerOnTime;
-    uint8_t lastKeyNum;
-    boolean initDone;
-    
-    static const uint32_t LCD_BACKLIGHT_UPDATE_INTERVAL = 1660;
-
-    // TODO: add notify/logging? Not really needed, should be disabled in auto_brightness mode anyway
-};
 
 // Class HBWDisplay (master channel)
 //TODO: Check if this can be used // template <uint8_t num_HBWDisplayVChannel>
