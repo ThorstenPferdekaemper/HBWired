@@ -24,10 +24,12 @@
 // - added one analog channel for bus voltage measurement
 // v0.31
 // - more configuration options for analog channel (need new XML)
+// v0.33
+// - added idle powersave
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0020
+#define FIRMWARE_VERSION 0x0021
 #define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 8
@@ -141,4 +143,5 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };
