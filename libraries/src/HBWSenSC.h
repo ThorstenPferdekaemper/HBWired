@@ -25,6 +25,7 @@ struct hbw_config_senSC {
   uint8_t n_inverted:1;       // +0.1    0=inverted, 1=not inverted (default)
   uint8_t notify_disabled:1;  // +0.2    0=ENABLED, 1=DISABLED (default)
   uint8_t       :5;           // +0.3-7
+  //uint8_t       :3;           // make DEBOUNCE_TIME configurable? (200ms steps, start at 0 = 200.. 7 = 1400)
 };
 
 

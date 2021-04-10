@@ -35,9 +35,11 @@
 #define BITMASK_OffDelayBlink B00000100
 #define BITMASK_RampStartStep B11110000
 
+// template<uint8_t jt_on_value, uint8_t jt_off_value>
 class HBWlibStateMachine {
     public:
-    /* convert time value stored in EEPROM to milliseconds - 1 byte value (used for state machine) */
+
+    /* convert time value stored in EEPROM to milliseconds - 1 byte value */
     inline uint32_t convertTime(uint8_t timeValue) {
       
       uint8_t factor = timeValue & 0xC0;    // mask out factor (higest two bits)
@@ -62,7 +64,7 @@ class HBWlibStateMachine {
       return 0;
     };
 
-    /* convert time value stored in EEPROM to milliseconds - 2 byte value (used for state machine) */
+    /* convert time value stored in EEPROM to milliseconds - 2 byte value */
     inline uint32_t convertTime(uint16_t timeValue) {
       
       uint8_t factor = timeValue >> 14;    // mask out factor (higest two bits)
@@ -116,6 +118,8 @@ class HBWlibStateMachine {
     /* on & off values could de different per device type (e.g. switch, dimmer) and need to be provided to the function *
     * TODO: check if possible to use global definition in the sketch or device specific definition file with Arduino... */
     inline uint8_t getJumpTarget(uint8_t bitshift, const uint8_t jt_on_value, const uint8_t jt_off_value) {
+// template<uint8_t jt_on_value, uint8_t jt_off_value>
+    // inline uint8_t getJumpTarget<jt_on_value, jt_off_value>(uint8_t bitshift) {
     // uint8_t getJumpTarget(uint8_t bitshift) {
       
       uint8_t nextJump = ((jumpTargets.DWORD >>bitshift) & B00000111);

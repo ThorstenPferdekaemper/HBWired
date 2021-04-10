@@ -391,7 +391,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
   #ifdef DEBUG_OUTPUT
     hbwdebug(F("chan:"));
     hbwdebughex(channel);
-    hbwdebug(F(" cs:"));
+    hbwdebug(F(" state: "));
     hbwdebughex(StateMachine.getCurrentState());
   #endif
       
@@ -418,7 +418,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
           break;
       }
   #ifdef DEBUG_OUTPUT
-    hbwdebug(F(" ns:"));
+    hbwdebug(F(" -> "));
     hbwdebughex(StateMachine.getNextState());
     hbwdebug(F("\n"));
   #endif

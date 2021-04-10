@@ -18,13 +18,10 @@ HBWSwitchSerialAdvanced::HBWSwitchSerialAdvanced(uint8_t _relayPos, uint8_t _led
   ledPos =_ledPos;
   config = _config;
   shiftRegister = _shiftRegister;
-  nextFeedbackDelay = 0;
-  lastFeedbackTime = 0;
-  
-  relayOperationTimeStart = 0;
-  operateRelay = false;
+  relayOperationPending = false;
   
   StateMachine.init();
+  clearFeedback();
 //  StateMachine.setCurrentState(UNKNOWN_STATE); - not needed, as using LED shiftRegister state for init and re-reads
 };
 
@@ -33,7 +30,7 @@ HBWSwitchSerialAdvanced::HBWSwitchSerialAdvanced(uint8_t _relayPos, uint8_t _led
 // (This function is called after device read config from EEPROM)
 void HBWSwitchSerialAdvanced::afterReadConfig() {
 
-  uint8_t level = shiftRegister->get(ledPos);  // read current state (is zero/LOW on device reset), but keep state on EEPROM re-read!
+  uint8_t level = shiftRegister->get(ledPos);  // read current state (is zero/LOW on device reset), but keeps state on EEPROM re-read!
   
   //perform intial reset (or set if inverterted) for all relays - bistable relays may have random state!
   if (level) {   // set to 0 or 1
@@ -45,20 +42,8 @@ void HBWSwitchSerialAdvanced::afterReadConfig() {
     StateMachine.setCurrentState(JT_OFF);
   }
 // TODO: add zero crossing function?
-
-  if (level) { // on - perform set
-    shiftRegister->set(relayPos +1, LOW);    // reset coil
-    shiftRegister->set(relayPos, HIGH);      // set coil
-  }
-  else {  // off - perform reset
-    shiftRegister->set(relayPos, LOW);      // set coil
-    shiftRegister->set(relayPos +1, HIGH);  // reset coil
-  }
-
+  operateRelay(level);
   StateMachine.keepCurrentState(); // no action for state machine needed
-
-  relayOperationTimeStart = millis();  // Relay coils must be removed from power after some ms (bistable relays!)
-  operateRelay = true;
 }
 
 
@@ -69,7 +54,7 @@ void HBWSwitchSerialAdvanced::set(HBWDevice* device, uint8_t length, uint8_t con
     uint8_t currentKeyNum = data[7];
 
 #ifdef DEBUG_OUTPUT
-  hbwdebug(F("aV: "));
+  hbwdebug(F("cKeyNum: "));
   hbwdebughex(currentKeyNum);
   hbwdebug(F("\n"));
 #endif
@@ -88,7 +73,7 @@ void HBWSwitchSerialAdvanced::set(HBWDevice* device, uint8_t length, uint8_t con
         StateMachine.keepCurrentState(); // avoid state machine to run
         
 #ifdef DEBUG_OUTPUT
-  hbwdebug(F("Tg to: "));
+  hbwdebug(F("Toggle-> "));
   hbwdebughex(level);
   hbwdebug(F("\n"));
 #endif
@@ -113,7 +98,7 @@ void HBWSwitchSerialAdvanced::set(HBWDevice* device, uint8_t length, uint8_t con
       StateMachine.forceStateChange(); // force update
 
 #ifdef DEBUG_OUTPUT
-  hbwdebug(F("onT: "));
+  hbwdebug(F("onTime: "));
   hbwdebughex(StateMachine.onTime);
   hbwdebug(F("\n"));
 #endif
@@ -130,9 +115,9 @@ void HBWSwitchSerialAdvanced::set(HBWDevice* device, uint8_t length, uint8_t con
 };
 
 // set actual outputs
-void HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t const * const data) {
-  
-  if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
+void HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t const * const data)
+{
+  if (config->output_unlocked && relayOperationPending == false) { // not LOCKED and no relay operation pending
     byte level = *(data);
 
     if (level > 200) // toggle
@@ -148,86 +133,92 @@ void HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t const * const
       StateMachine.setCurrentState(JT_OFF);   // update for state machine
     }
 // TODO: add zero crossing function?. Just set portStatus[]? + add portStatusDesired[]?
-// call same function from afterReadConfig()...
-
-    if (level) { // on - perform set
-      shiftRegister->set(relayPos +1, LOW);    // reset coil
-      shiftRegister->set(relayPos, HIGH);      // set coil
-    }
-    else {  // off - perform reset
-      shiftRegister->set(relayPos, LOW);      // set coil
-      shiftRegister->set(relayPos +1, HIGH);  // reset coil
-    }
-    
-    relayOperationTimeStart = millis();  // Relay coil power must be removed after some ms (bistable Relays!!)
-    operateRelay = true;
+    operateRelay(level);
   }
   // Logging
-  // (logging is considered for locked channels)
-  if (!nextFeedbackDelay && config->logging) {
-    lastFeedbackTime = millis();
-    nextFeedbackDelay = device->getLoggingTime() * 100;
-  }
+  setFeedback(device, config->logging);
 };
 
 
+void HBWSwitchSerialAdvanced::operateRelay(uint8_t _newLevel)
+{
+//  if (relayOperationPending)
+//    return;
+
+  /* if no relay operation is pending, allow so set new state */
+  if (_newLevel) { // on - perform set
+    shiftRegister->set(relayPos +1, LOW);    // reset coil
+    shiftRegister->set(relayPos, HIGH);      // set coil
+  }
+  else {  // off - perform reset
+    shiftRegister->set(relayPos, LOW);      // set coil
+    shiftRegister->set(relayPos +1, HIGH);  // reset coil
+  }
+  
+  relayOperationTimeStart = millis();  // relay coil power must be removed after some ms (bistable relays!!)
+  relayOperationPending = true;
+};
+
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWSwitchSerialAdvanced::get(uint8_t* data) {
-// read current state from (LED) shift register array
+  // read current state from (LED) shift register array
   if (shiftRegister->get(ledPos))
     (*data) = 200;
   else
     (*data) = 0;
+  
   return 1;
 };
 
 
-void HBWSwitchSerialAdvanced::loop(HBWDevice* device, uint8_t channel) {
-  
+void HBWSwitchSerialAdvanced::loop(HBWDevice* device, uint8_t channel)
+{
   unsigned long now = millis();
 
   /* important to remove power from latching relay after some milliseconds!! */
-  if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && operateRelay == true) {
-  // time to remove power from all coils?
+  if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && relayOperationPending == true) {
+  // time to remove power from all coils // TODO: implement as timer interrupt routine?
     shiftRegister->setNoUpdate(relayPos +1, LOW);    // reset coil
     shiftRegister->setNoUpdate(relayPos, LOW);       // set coil
     shiftRegister->updateRegisters();
     
-    operateRelay = false;
+    relayOperationPending = false;
   }
-  
+
+  // TODO: move state machine loop to lib HBWlibSwitchAdvanced - shared with HBWSwitchAdvanced //sm_loop(device, channel, currentLevel);?
+    
  //*** state machine begin ***//
 
-  if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || StateMachine.getCurrentState() != StateMachine.getNextState()) {
+  if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || !StateMachine.noStateChange()) {
 
-    if (StateMachine.getCurrentState() == StateMachine.getNextState())  // no change to state, so must be time triggered
+    if (StateMachine.noStateChange())  // no change to state, so must be time triggered
       StateMachine.stateTimerRunning = false;
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("chan:"));
   hbwdebughex(channel);
-  hbwdebug(F(" cs:"));
+  hbwdebug(F(" state:"));
   hbwdebughex(StateMachine.getCurrentState());
 #endif
     
     // check next jump from current state
     switch (StateMachine.getCurrentState()) {
       case JT_ONDELAY:      // jump from on delay state
-        StateMachine.setNextState(StateMachine.getJumpTarget(0, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(0));
         break;
       case JT_ON:       // jump from on state
-        StateMachine.setNextState(StateMachine.getJumpTarget(3, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(3));
         break;
       case JT_OFFDELAY:    // jump from off delay state
-        StateMachine.setNextState(StateMachine.getJumpTarget(6, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(6));
         break;
       case JT_OFF:      // jump from off state
-        StateMachine.setNextState(StateMachine.getJumpTarget(9, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(9));
         break;
     }
 
 #ifdef DEBUG_OUTPUT
-  hbwdebug(F(" ns:"));
+  hbwdebug(F("->"));
   hbwdebughex(StateMachine.getNextState());
   hbwdebug(F("\n"));
 #endif
@@ -320,21 +311,5 @@ void HBWSwitchSerialAdvanced::loop(HBWDevice* device, uint8_t channel) {
   }
   //*** state machine end ***//
   
-  
-  if(!nextFeedbackDelay)  // feedback trigger set?
-    return;
-  now = millis(); // current timestamp needed!
-  if (now - lastFeedbackTime < nextFeedbackDelay)
-    return;
-  lastFeedbackTime = now;  // at least last time of trying
-  // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-  // we know that the level has only 1 byte here
-  uint8_t level;
-  get(&level);
-  uint8_t errcode = device->sendInfoMessage(channel, 1, &level);   
-  if (errcode == HBWDevice::BUS_BUSY)  // bus busy
-  // try again later, but insert a small delay
-    nextFeedbackDelay = 250;
-  else
-    nextFeedbackDelay = 0;
+  checkFeedback(device, channel);
 };

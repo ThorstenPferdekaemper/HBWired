@@ -20,7 +20,7 @@
 // v0.40
 // - changed hbw_config_pid windowSize (CYCLE_TIME) to 10 seconds stepping (max 2540 seconds) (HBWPids.h)
 // - added hbw_config_pid setPoint, to allow default setPoint 0...25.4°C (HBWPids.h)
-// v0.40
+// v0.41
 // - added idle powersave
 
 

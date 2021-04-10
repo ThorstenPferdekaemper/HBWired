@@ -6,6 +6,10 @@
 #include <inttypes.h>
 #include "HBWired.h"
 
+#define OFF_STATE 0
+#define ON_STATE 1
+#define UNKNOWN_STATE 0xFE
+
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
 //       callbacks fuer die einzelnen Kanaele aufzurufen 
 //       und den Kanaelen nur den Anfang "ihres" EEPROMs zu sagen
@@ -27,9 +31,11 @@ class HBWSwitch : public HBWChannel {
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
 
-  private:
+  protected:
     uint8_t pin;
     uint8_t currentState;    // keep track of logical state, not real IO
+
+  private:
     hbw_config_switch* config; // logging
 };
 

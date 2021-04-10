@@ -25,7 +25,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0004
+#define FIRMWARE_VERSION 0x0028
 #define HMW_DEVICETYPE 0x93
 
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output

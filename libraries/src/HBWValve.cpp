@@ -57,7 +57,7 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 // slighlty customized set() function, to allow PID channels to set level in automatic mode
 void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data, bool setByPID)
 {
-  if (!config->unlocked || !setByPID) return;
+  if (!config->unlocked || !setByPID) return;  // locked channels can still be set by PID, but are blocked for external changes
 
 /* TODO: Check if we allow setting level always (even when inAuto), but use the AUTO flag to fallback to error_pos if no set() was called
  * for some time when inAuto (? switch_time *x?). PIDs should still sync the inAuto flag, to not overwrite manual set levels */
@@ -198,7 +198,7 @@ bool HBWValve::first_on_or_off(uint16_t ontimer, uint16_t offtimer)
 
 bool HBWValve::init_new_state()
 {
-  onTimer = set_ontimer(valveLevel); // reduce by 0...15%? e.g. (valveLevel > config->valvePctCap) ? (valveLevel - config->valvePctCap) : 0)
+  onTimer = set_ontimer(valveLevel); // TODO?: option to reduce by 0...15%? e.g. (valveLevel > config->valvePctCap) ? (valveLevel - config->valvePctCap) : 0)
   offTimer = set_offtimer(onTimer);
   
   #ifdef DEBUG_OUTPUT
