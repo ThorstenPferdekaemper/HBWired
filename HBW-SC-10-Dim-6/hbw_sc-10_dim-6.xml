@@ -343,7 +343,9 @@
 					<option id="SET_TO_OFF" default="true"/>
 					<option id="NO_CHANGE"/>
 				</logical>
-				<physical type="integer" size="0.1" interface="eeprom" index="+17.0"/> <!-- TODO: works like this? - check! -->
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+17.0"/>
+				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_LEVEL_PRIO"> <!-- defines prio of onlevel and ontime -->
 				<logical type="option">
