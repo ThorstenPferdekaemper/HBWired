@@ -17,10 +17,12 @@
 // - fix: initConfigPins() in afterReadConfig() geändert.
 // v1.03
 // - erweitertes peering hinzugefügt (HBWLinkSwitchAdvanced.h, HBWSwitchAdvanced.h) - Benötigt passende XML!
+// v1.04
+// - state flag added
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0067
+#define FIRMWARE_VERSION 0x0068
 #define HMW_DEVICETYPE 0x83
 
 #define NUM_CHANNELS 8

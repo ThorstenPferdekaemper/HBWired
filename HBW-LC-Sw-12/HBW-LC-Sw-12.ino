@@ -22,10 +22,12 @@
 // - Added analog inputs
 // v0.4
 // - Added OE (output enable), to avoid shift register outputs flipping at start up
+// v0.41
+// - state flag added
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0028
+#define FIRMWARE_VERSION 0x0029
 #define HMW_DEVICETYPE 0x93
 
 //#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
@@ -187,4 +189,5 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };

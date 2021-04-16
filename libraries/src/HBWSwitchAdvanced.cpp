@@ -66,7 +66,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     }
     else if (StateMachine.lastKeyNum == currentKeyNum && !StateMachine.peerParam_getLongMultiexecute()) {
       // repeated key event for ACTION_TYPE == 1 (ACTION_TYPE == 0 already filtered by receiveKeyEvent, HBWLinkReceiver)
-      // must be long press, but LONG_MULTIEXECUTE not enabled
+      // repeated long press, but LONG_MULTIEXECUTE not enabled
     }
     else if (StateMachine.absoluteTimeRunning && ((StateMachine.currentStateIs(JT_ON) && StateMachine.peerParam_onTimeMinimal()) || (StateMachine.currentStateIs(JT_OFF) && StateMachine.peerParam_offTimeMinimal()))) {
         //do nothing in this case
@@ -74,6 +74,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     else {
       // assign values based on EEPROM layout
 	  // TODO: replace with struct? (memcpy(&peerParams, data, NUM_PEER_PARAMS)
+	  // FIXME: move ON/OFF_TIME_MINIMAL check here? .. actually this needs full check of JT, etc.? setting the peering parameters here will overwrite all values, like offTime, when it should not (e.g. when new onTime was rejected)
       StateMachine.onDelayTime = data[1];
       StateMachine.onTime = data[2];
       StateMachine.offDelayTime = data[3];
@@ -96,11 +97,10 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
 
 uint8_t HBWSwitchAdvanced::get(uint8_t* data) {
   
-  if (digitalRead(pin) ^ config->n_inverted)
-    (*data) = 0;
-  else
-    (*data) = 200;
-  return 1;
+  (*data++) = (digitalRead(pin) ^ config->n_inverted) ? 0 : 200;
+  *data = StateMachine.stateTimerRunning ? 64 : 0;  // state flag 'working'
+  
+  return 2;
 };
 
 
@@ -149,16 +149,16 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
     // check next jump from current state
     switch (StateMachine.getCurrentState()) {
       case JT_ONDELAY:      // jump from on delay state
-		StateMachine.setNextState(getJumpTarget(0));
+        StateMachine.setNextState(getJumpTarget(0));
         break;
       case JT_ON:       // jump from on state
-		StateMachine.setNextState(getJumpTarget(3));
+        StateMachine.setNextState(getJumpTarget(3));
         break;
       case JT_OFFDELAY:    // jump from off delay state
-		StateMachine.setNextState(getJumpTarget(6));
+        StateMachine.setNextState(getJumpTarget(6));
         break;
       case JT_OFF:      // jump from off state
-		StateMachine.setNextState(getJumpTarget(9));
+        StateMachine.setNextState(getJumpTarget(9));
         break;
     }
 #ifdef DEBUG_OUTPUT
@@ -176,8 +176,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
     switch (StateMachine.getNextState()) {
       case JT_ONDELAY:
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
-        StateMachine.lastStateChangeTime = now;
-        StateMachine.stateTimerRunning = true;
+        StateMachine.setLastStateChangeTime(now);;
         // StateMachine.setCurrentState(JT_ONDELAY);
         break;
         
@@ -189,8 +188,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         
       case JT_OFFDELAY:
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
-        StateMachine.lastStateChangeTime = now;
-        StateMachine.stateTimerRunning = true;
+        StateMachine.setLastStateChangeTime(now);;
         // StateMachine.setCurrentState(JT_OFFDELAY);
         break;
         
@@ -200,13 +198,12 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         StateMachine.stateTimerRunning = false;
         break;
         
-      case ON_TIME_ABSOLUTE:
+      case ON_TIME_ABSOLUTE:  // ABSOLUTE time will always be applied
         newLevel = 200;
         setNewLevel = true;
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
-        StateMachine.lastStateChangeTime = now;
+        StateMachine.setLastStateChangeTime(now);
         StateMachine.absoluteTimeRunning = true;
-        StateMachine.stateTimerRunning = true;
         StateMachine.setNextState(JT_ON);
         break;
         
@@ -214,30 +211,27 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         //newLevel = 0; // 0 is default
         setNewLevel = true;
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
-        StateMachine.lastStateChangeTime = now;
+        StateMachine.setLastStateChangeTime(now);
         StateMachine.absoluteTimeRunning = true;
-        StateMachine.stateTimerRunning = true;
         StateMachine.setNextState(JT_OFF);
         break;
         
-      case ON_TIME_MINIMAL:
-        newLevel = 200;
-        setNewLevel = true;
-        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
+      case ON_TIME_MINIMAL:  // new MINIMAL time will only be applied if current remaining time is shorter
+        if ((StateMachine.stateChangeWaitTime - (now - StateMachine.lastStateChangeTime)) < StateMachine.convertTime(StateMachine.onTime) || StateMachine.stateTimerRunning == false ) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
+          StateMachine.setLastStateChangeTime(now);
+          newLevel = 200;
+          setNewLevel = true;
         }
         StateMachine.setNextState(JT_ON);
         break;
         
       case OFF_TIME_MINIMAL:
         //newLevel = 0; // 0 is default
-        setNewLevel = true;
-        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
+        if ((StateMachine.stateChangeWaitTime - (now - StateMachine.lastStateChangeTime)) < StateMachine.convertTime(StateMachine.offTime) || StateMachine.stateTimerRunning == false ) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
+          StateMachine.setLastStateChangeTime(now);
+          setNewLevel = true;
         }
         StateMachine.setNextState(JT_OFF);
         break;
