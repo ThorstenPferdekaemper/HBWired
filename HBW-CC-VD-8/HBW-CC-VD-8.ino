@@ -20,10 +20,12 @@
 // v0.40
 // - changed hbw_config_pid windowSize (CYCLE_TIME) to 10 seconds stepping (max 2540 seconds) (HBWPids.h)
 // - added hbw_config_pid setPoint, to allow default setPoint 0...25.4°C (HBWPids.h)
+// v0.41
+// - added idle powersave
 
 
 #define HARDWARE_VERSION 0x02
-#define FIRMWARE_VERSION 0x0028
+#define FIRMWARE_VERSION 0x0029
 #define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
@@ -203,6 +205,7 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };
 
 

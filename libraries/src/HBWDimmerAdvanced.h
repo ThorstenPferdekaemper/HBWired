@@ -72,11 +72,12 @@
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
 //       callbacks fuer die einzelnen Kanaele aufzurufen 
 //       und den Kanaelen nur den Anfang "ihres" EEPROMs zu sagen
+// config of one dimmer channel, address step 2
 struct hbw_config_dim {
-  uint8_t logging:1;              // 0x0000
+  uint8_t logging:1;              // send feedback (logging)
   uint8_t pwm_range:3;            // 1-7 = 40-100%, 0=disabled
   uint8_t voltage_default:1;      // 0-10V (default) or 1-10V mode
-  uint8_t        :3;              // 0x0000
+  uint8_t        :3;              // 
   uint8_t dummy;
 };
 
@@ -108,7 +109,7 @@ class HBWDimmerAdvanced : public HBWChannel {
     hbw_config_dim* config; // logging
     uint8_t currentValue;
     uint8_t oldOnValue;
-    uint8_t oldValue;  // used to determine direction for state flags
+    boolean dimmingDirectionUp;  // used to determine direction for state flags
     HBWlibStateMachine StateMachine;
     
     void setOutputNoLogging(uint8_t newValue);
@@ -152,11 +153,15 @@ class HBWDimmerAdvanced : public HBWChannel {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
         uint8_t upDown  :2; // dim up = 1 or down = 2
         uint8_t working :1; // true, if working
-        uint8_t status  :1; // outputs on or off?
-      } element;
+        uint8_t status  :1; // outputs on or off? - not used
+      } state;
       uint8_t byte:8;
     };
 
+    uint8_t getJumpTarget(uint8_t bitshift) {
+      return StateMachine.getJumpTarget(bitshift, JT_ON, JT_OFF);
+    };
+    bool checkOnLevelPrio(void);
   protected:
   
 };

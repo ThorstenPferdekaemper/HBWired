@@ -389,7 +389,6 @@ void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled) {
   if (!nextFeedbackDelay && loggingEnabled) {
     lastFeedbackTime = millis();
     nextFeedbackDelay = device->getLoggingTime() * 100;
-    // nextFeedbackDelay = HBWDevice::getLoggingTime() * 100;
   }
 };
 void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
@@ -667,7 +666,7 @@ byte HBWDevice::broadcastAnnounce(byte channel) {
    txFrame.targetAddress = 0xFFFFFFFF;  // broadcast
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 16;      // Length
-   txFrame.data[0] = 0x41;         // 'i'
+   txFrame.data[0] = 0x41;         // 'A'
    txFrame.data[1] = channel;      // Sensornummer
    txFrame.data[2] = deviceType;
    txFrame.data[3] = hardware_version;
@@ -994,9 +993,9 @@ void HBWDevice::loop()
   };
   // send announce message, if not done yet
   handleBroadcastAnnounce();
-// feedback from switches and handle keys
+// feedback from individual channels (like switches and keys)
    static uint8_t loopCurrentChannel = 0;
-   channels[loopCurrentChannel]->loop(this,loopCurrentChannel);
+   channels[loopCurrentChannel]->loop(this, loopCurrentChannel);
    loopCurrentChannel++;
    if (loopCurrentChannel >= numChannels) loopCurrentChannel = 0;
 // config Button

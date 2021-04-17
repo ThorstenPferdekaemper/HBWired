@@ -28,6 +28,8 @@
 // - added one analog channel for bus voltage measurement
 // v0.51
 // - more configuration options for analog channel (need new XML)
+// v0.52
+// - added idle powersave
 
 
 #define HARDWARE_VERSION 0x01
@@ -172,4 +174,5 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };

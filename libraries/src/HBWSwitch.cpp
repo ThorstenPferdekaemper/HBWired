@@ -1,10 +1,6 @@
 
 #include "HBWSwitch.h"
 
-#define OFF_STATE 0
-#define ON_STATE 1
-#define UNKNOWN_STATE 0xFE
-
 // Switches
 HBWSwitch::HBWSwitch(uint8_t _pin, hbw_config_switch* _config) {
     pin = _pin;

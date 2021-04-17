@@ -1,5 +1,5 @@
 /* 
-* HBWSwitchAdvanced
+* HBWSwitchAdvanced.h
 *
 * Als Alternative zu HBWSwitch & HBWLinkSwitchSimple sind mit
 * HBWSwitchAdvanced & HBWLinkSwitchAdvanced folgende Funktionen möglich:
@@ -18,7 +18,7 @@
 #include "HBWired.h"
 
 
-//#define NO_DEBUG_OUTPUT   // disable debug output on serial/USB
+#define DEBUG_OUTPUT   // debug output on serial/USB
 
 
 // peering/link values must match the XML/EEPROM values!
@@ -44,8 +44,8 @@ struct hbw_config_switch {
 class HBWSwitchAdvanced : public HBWChannel {
   public:
     HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config);
-    virtual uint8_t get(uint8_t* data);   
-    virtual void loop(HBWDevice*, uint8_t channel);   
+    virtual uint8_t get(uint8_t* data);
+    virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
     
@@ -53,7 +53,11 @@ class HBWSwitchAdvanced : public HBWChannel {
     uint8_t pin;
     hbw_config_switch* config; // logging
     HBWlibStateMachine StateMachine;
-
+    uint8_t getJumpTarget(uint8_t bitshift) {
+      return StateMachine.getJumpTarget(bitshift, JT_ON, JT_OFF);
+    };
+  
+  protected:
     void setOutput(HBWDevice* device, uint8_t const * const data);
 };
 

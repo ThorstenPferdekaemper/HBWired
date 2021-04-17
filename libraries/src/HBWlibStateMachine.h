@@ -35,9 +35,11 @@
 #define BITMASK_OffDelayBlink B00000100
 #define BITMASK_RampStartStep B11110000
 
+// template<uint8_t jt_on_value, uint8_t jt_off_value>
 class HBWlibStateMachine {
     public:
-    /* convert time value stored in EEPROM to milliseconds - 1 byte value (used for state machine) */
+
+    /* convert time value stored in EEPROM to milliseconds - 1 byte value */
     inline uint32_t convertTime(uint8_t timeValue) {
       
       uint8_t factor = timeValue & 0xC0;    // mask out factor (higest two bits)
@@ -62,7 +64,7 @@ class HBWlibStateMachine {
       return 0;
     };
 
-    /* convert time value stored in EEPROM to milliseconds - 2 byte value (used for state machine) */
+    /* convert time value stored in EEPROM to milliseconds - 2 byte value */
     inline uint32_t convertTime(uint16_t timeValue) {
       
       uint8_t factor = timeValue >> 14;    // mask out factor (higest two bits)
@@ -116,6 +118,8 @@ class HBWlibStateMachine {
     /* on & off values could de different per device type (e.g. switch, dimmer) and need to be provided to the function *
     * TODO: check if possible to use global definition in the sketch or device specific definition file with Arduino... */
     inline uint8_t getJumpTarget(uint8_t bitshift, const uint8_t jt_on_value, const uint8_t jt_off_value) {
+// template<uint8_t jt_on_value, uint8_t jt_off_value>
+    // inline uint8_t getJumpTarget<jt_on_value, jt_off_value>(uint8_t bitshift) {
     // uint8_t getJumpTarget(uint8_t bitshift) {
       
       uint8_t nextJump = ((jumpTargets.DWORD >>bitshift) & B00000111);
@@ -131,8 +135,6 @@ class HBWlibStateMachine {
       if (stateTimerRunning && nextState == FORCE_STATE_CHANGE) { // timer still running, but update forced // TODO: integrate into above "if". ?Fix: not checking time for 0xFF?
         if (currentState == jt_on_value)
           nextJump = getOnTimeMode();
-          // TODO: add peerConfigParam.element.onLevelPrio
-          // does HIGH onLevelPrio overwrites ON_TIME_ABSOLUTE and vice versa?
         else if (currentState == jt_off_value)
           nextJump = getOffTimeMode();
       }
@@ -146,6 +148,7 @@ class HBWlibStateMachine {
       offTime = 0xFF;
       jumpTargets.DWORD = 0;
       stateTimerRunning = false;
+      absoluteTimeRunning = false;
       stateChangeWaitTime = 0;
       lastStateChangeTime = 0;
       lastKeyNum = 255;  // key press counter uses only 6 bit, so init value of 255 makes sure first press (count 0) is accepted
@@ -215,29 +218,35 @@ class HBWlibStateMachine {
       return (peerParamActionType & BITMASK_OnTimeMode) ? ON_TIME_ABSOLUTE : ON_TIME_MINIMAL;  // on time ABSOLUTE or MINIMAL?
     }
     inline uint8_t peerParam_offTimeMinimal() {
-      return (peerParamActionType & BITMASK_OffTimeMode) ? false : true;  // off time MINIMAL?
+      return (peerParamActionType & BITMASK_OffTimeMode) ? false : true;  // off time MINIMAL == 0
     }
     inline uint8_t peerParam_onTimeMinimal() {
-      return (peerParamActionType & BITMASK_OnTimeMode) ? false : true;  // on time MINIMAL?
+      return (peerParamActionType & BITMASK_OnTimeMode) ? false : true;  // on time MINIMAL == 0
+    }
+    inline uint8_t peerParam_offTimeAbsolute() {
+      return (peerParamActionType & BITMASK_OffTimeMode) ? true : false;  // off time ABSOLUTE == 1
+    }
+    inline uint8_t peerParam_onTimeAbsolute() {
+      return (peerParamActionType & BITMASK_OnTimeMode) ? true : false;  // on time ABSOLUTE == 1
     }
     
     inline void writePeerConfigParam(uint8_t value) {
       peerConfigParam = value;
     }
     inline boolean peerParam_onDelayModeSetToOff() {
-      return (peerConfigParam & BITMASK_OnDelayMode) == 0;
+      return (boolean)(peerConfigParam & BITMASK_OnDelayMode) == 0;
     }
     inline boolean peerParam_onDelayModeNoChange() {
-      return (peerConfigParam & BITMASK_OnDelayMode) == 1;
+      return (boolean)(peerConfigParam & BITMASK_OnDelayMode) == 1;
     }
     inline boolean peerParam_getOnLevelPrio() {
       return peerConfigParam & BITMASK_OnLevelPrio;
     }
     inline boolean peerParam_onLevelPrioIsLow() {
-      return (peerConfigParam & BITMASK_OnLevelPrio) == ON_LEVEL_PRIO_LOW;
+      return (boolean)(peerConfigParam & BITMASK_OnLevelPrio) == ON_LEVEL_PRIO_LOW;
     }
     inline boolean peerParam_onLevelPrioIsHigh() {
-      return (peerConfigParam & BITMASK_OnLevelPrio) == ON_LEVEL_PRIO_HIGH;
+      return (boolean)(peerConfigParam & BITMASK_OnLevelPrio) == ON_LEVEL_PRIO_HIGH;
     }
     inline boolean peerParam_offDelayBlinkEnabled() {
       return peerConfigParam & BITMASK_OffDelayBlink;
@@ -246,8 +255,9 @@ class HBWlibStateMachine {
       return (peerConfigParam & BITMASK_RampStartStep) >> 4;
     }
 
-    inline void setLastStateChangeTime_now() {
-      lastStateChangeTime = millis();
+    inline void setLastStateChangeTime(uint32_t now) {
+      lastStateChangeTime = now;
+      stateTimerRunning = true;
     }
 
   private:

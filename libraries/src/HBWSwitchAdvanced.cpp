@@ -1,5 +1,5 @@
 /* 
-* HBWSwitchAdvanced
+* HBWSwitchAdvanced.cpp
 *
 * Als Alternative zu HBWSwitch & HBWLinkSwitchSimple sind mit
 * HBWSwitchAdvanced & HBWLinkSwitchAdvanced folgende Funktionen möglich:
@@ -18,14 +18,7 @@ HBWSwitchAdvanced::HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config) {
   pin = _pin;
   config = _config;
   clearFeedback();
-  
-  StateMachine.onTime = 0xFF;
-  StateMachine.offTime = 0xFF;
-  StateMachine.jumpTargets.DWORD = 0;
-  StateMachine.stateTimerRunning = false;
-  StateMachine.stateChangeWaitTime = 0;
-  StateMachine.lastStateChangeTime = 0;
-  StateMachine.setCurrentState(UNKNOWN_STATE);
+  StateMachine.init();
 };
 
 
@@ -52,12 +45,12 @@ void HBWSwitchAdvanced::afterReadConfig() {
 
 void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
-  if (length >= 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
+  if (length == 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
     
     StateMachine.writePeerParamActionType(*(data));
     uint8_t currentKeyNum = data[7];
 
-    if (StateMachine.peerParam_getActionType() >1) {   // ACTION_TYPE
+    if (StateMachine.peerParam_getActionType() >1) {   // ACTION_TYPE > INACTIVE
       if (!StateMachine.stateTimerRunning && StateMachine.lastKeyNum != currentKeyNum) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
         byte level;
         if (StateMachine.peerParam_getActionType() == 2)   // TOGGLE_TO_COUNTER
@@ -73,13 +66,15 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     }
     else if (StateMachine.lastKeyNum == currentKeyNum && !StateMachine.peerParam_getLongMultiexecute()) {
       // repeated key event for ACTION_TYPE == 1 (ACTION_TYPE == 0 already filtered by receiveKeyEvent, HBWLinkReceiver)
-      // must be long press, but LONG_MULTIEXECUTE not enabled
+      // repeated long press, but LONG_MULTIEXECUTE not enabled
     }
     else if (StateMachine.absoluteTimeRunning && ((StateMachine.currentStateIs(JT_ON) && StateMachine.peerParam_onTimeMinimal()) || (StateMachine.currentStateIs(JT_OFF) && StateMachine.peerParam_offTimeMinimal()))) {
         //do nothing in this case
     }
     else {
       // assign values based on EEPROM layout
+	  // TODO: replace with struct? (memcpy(&peerParams, data, NUM_PEER_PARAMS)
+	  // FIXME: move ON/OFF_TIME_MINIMAL check here? .. actually this needs full check of JT, etc.? setting the peering parameters here will overwrite all values, like offTime, when it should not (e.g. when new onTime was rejected)
       StateMachine.onDelayTime = data[1];
       StateMachine.onTime = data[2];
       StateMachine.offDelayTime = data[3];
@@ -93,8 +88,8 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   }
   else {  // set value - no peering event, overwrite any timer //TODO check: ok to ignore absolute on/off time running? how do original devices handle this?
     //if (!stateTimerRunning)??
-    setOutput(device, data);
     StateMachine.stateTimerRunning = false;
+    setOutput(device, data);
     StateMachine.keepCurrentState(); // avoid state machine to run
   }
 };
@@ -102,72 +97,72 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
 
 uint8_t HBWSwitchAdvanced::get(uint8_t* data) {
   
-  if (digitalRead(pin) ^ config->n_inverted)
-    (*data) = 0;
-  else
-    (*data) = 200;
-  return 1;
+  (*data++) = (digitalRead(pin) ^ config->n_inverted) ? 0 : 200;
+  *data = StateMachine.stateTimerRunning ? 64 : 0;  // state flag 'working'
+  
+  return 2;
 };
 
 
 void HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t const * const data) {
   
   if (config->output_unlocked) {  //0=LOCKED, 1=UNLOCKED
-    if(*data > 200) {   // toggle
-      digitalWrite(pin, digitalRead(pin) ? LOW : HIGH);
+  byte level = *(data);
+  
+    if(level > 200) {   // toggle
+	  level = !digitalRead(pin);
     }
-    else {   // on or off
-      if (*data) {
-        digitalWrite(pin, LOW ^ config->n_inverted);
-        StateMachine.setCurrentState(JT_ON);
-      }
-      else {
-        digitalWrite(pin, HIGH ^ config->n_inverted);
-        StateMachine.setCurrentState(JT_OFF);
-      }
+    // turn on or off
+    if (level) {
+      digitalWrite(pin, LOW ^ config->n_inverted);
+      StateMachine.setCurrentState(JT_ON);
+    }
+    else {
+      digitalWrite(pin, HIGH ^ config->n_inverted);
+      StateMachine.setCurrentState(JT_OFF);
     }
   }
   // Logging
-  // set trigger to send info/notify message in loop()
   setFeedback(device, config->logging);
 };
 
 
 void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
 
- //*** state machine begin ***//
-
   unsigned long now = millis();
 
-  if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || StateMachine.getCurrentState() != StateMachine.getNextState()) {
+ //*** state machine begin ***//
+// TODO: move state machine loop to lib HBWlibSwitchAdvanced - shared with HBWSwitchAdvanced //sm_loop(device, channel);?
 
-    if (StateMachine.getCurrentState() == StateMachine.getNextState())  // no change to state, so must be time triggered
+  if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || !StateMachine.noStateChange()) {
+
+    if (StateMachine.noStateChange())  // no change to state, so must be time triggered
       StateMachine.stateTimerRunning = false;
 
-#ifndef NO_DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT
   hbwdebug(F("chan:"));
   hbwdebughex(channel);
-  hbwdebug(F(" cs:"));
+  hbwdebug(F(" state:"));
   hbwdebughex(StateMachine.getCurrentState());
 #endif
     
     // check next jump from current state
     switch (StateMachine.getCurrentState()) {
       case JT_ONDELAY:      // jump from on delay state
-        StateMachine.setNextState(StateMachine.getJumpTarget(0, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(0));
         break;
       case JT_ON:       // jump from on state
-        StateMachine.setNextState(StateMachine.getJumpTarget(3, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(3));
         break;
       case JT_OFFDELAY:    // jump from off delay state
-        StateMachine.setNextState(StateMachine.getJumpTarget(6, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(6));
         break;
       case JT_OFF:      // jump from off state
-        StateMachine.setNextState(StateMachine.getJumpTarget(9, JT_ON, JT_OFF));
+        StateMachine.setNextState(getJumpTarget(9));
         break;
     }
-#ifndef NO_DEBUG_OUTPUT
-  hbwdebug(F(" ns:"));
+#ifdef DEBUG_OUTPUT
+  hbwdebug(F("->"));
   hbwdebughex(StateMachine.getNextState());
   hbwdebug(F("\n"));
 #endif
@@ -181,8 +176,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
     switch (StateMachine.getNextState()) {
       case JT_ONDELAY:
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onDelayTime);
-        StateMachine.lastStateChangeTime = now;
-        StateMachine.stateTimerRunning = true;
+        StateMachine.setLastStateChangeTime(now);;
         // StateMachine.setCurrentState(JT_ONDELAY);
         break;
         
@@ -194,8 +188,7 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         
       case JT_OFFDELAY:
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offDelayTime);
-        StateMachine.lastStateChangeTime = now;
-        StateMachine.stateTimerRunning = true;
+        StateMachine.setLastStateChangeTime(now);;
         // StateMachine.setCurrentState(JT_OFFDELAY);
         break;
         
@@ -205,13 +198,12 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         StateMachine.stateTimerRunning = false;
         break;
         
-      case ON_TIME_ABSOLUTE:
+      case ON_TIME_ABSOLUTE:  // ABSOLUTE time will always be applied
         newLevel = 200;
         setNewLevel = true;
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
-        StateMachine.lastStateChangeTime = now;
+        StateMachine.setLastStateChangeTime(now);
         StateMachine.absoluteTimeRunning = true;
-        StateMachine.stateTimerRunning = true;
         StateMachine.setNextState(JT_ON);
         break;
         
@@ -219,30 +211,27 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
         //newLevel = 0; // 0 is default
         setNewLevel = true;
         StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
-        StateMachine.lastStateChangeTime = now;
+        StateMachine.setLastStateChangeTime(now);
         StateMachine.absoluteTimeRunning = true;
-        StateMachine.stateTimerRunning = true;
         StateMachine.setNextState(JT_OFF);
         break;
         
-      case ON_TIME_MINIMAL:
-        newLevel = 200;
-        setNewLevel = true;
-        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.onTime)) {
+      case ON_TIME_MINIMAL:  // new MINIMAL time will only be applied if current remaining time is shorter
+        if ((StateMachine.stateChangeWaitTime - (now - StateMachine.lastStateChangeTime)) < StateMachine.convertTime(StateMachine.onTime) || StateMachine.stateTimerRunning == false ) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.onTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
+          StateMachine.setLastStateChangeTime(now);
+          newLevel = 200;
+          setNewLevel = true;
         }
         StateMachine.setNextState(JT_ON);
         break;
         
       case OFF_TIME_MINIMAL:
         //newLevel = 0; // 0 is default
-        setNewLevel = true;
-        if (now - StateMachine.lastStateChangeTime < StateMachine.convertTime(StateMachine.offTime)) {
+        if ((StateMachine.stateChangeWaitTime - (now - StateMachine.lastStateChangeTime)) < StateMachine.convertTime(StateMachine.offTime) || StateMachine.stateTimerRunning == false ) {
           StateMachine.stateChangeWaitTime = StateMachine.convertTime(StateMachine.offTime);
-          StateMachine.lastStateChangeTime = now;
-          StateMachine.stateTimerRunning = true;
+          StateMachine.setLastStateChangeTime(now);
+          setNewLevel = true;
         }
         StateMachine.setNextState(JT_OFF);
         break;
@@ -259,7 +248,6 @@ void HBWSwitchAdvanced::loop(HBWDevice* device, uint8_t channel) {
     }
   }
   //*** state machine end ***//
-
   
   // feedback trigger set?
   checkFeedback(device, channel);

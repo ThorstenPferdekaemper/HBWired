@@ -47,7 +47,7 @@
 // config of one valve channel, address step 4
 struct hbw_config_valve {
   uint8_t logging:1;      // +0.0   1=on 0=off
-  uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED; locked channels will retain level/error_pos. Set error_pos to 0 to disable a channel completely
+  uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED; locked channels will retain level/error_pos. Set error_pos to 0 to disable a channel completely. A locked channel can still be controlled by its PID channel. If PIDs are used, set them to manual start up.
   uint8_t n_inverted:1;   // +0.2   inverted logic (use NO valves, NC is default)
   uint8_t :5;     //fillup //0x..:3-8
   uint8_t error_pos;  // default/error position

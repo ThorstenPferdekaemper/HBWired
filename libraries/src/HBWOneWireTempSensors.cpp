@@ -176,9 +176,9 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 	 * even when compiled on a 32 bit processor.
 	 */
 	int16_t raw = (data[1] << 8) | data[0];
-	if (config->address[0] == 0x10) {	// DS18S20 or old DS1820
+	if (config->address[0] == DS18S20_ID) {	// DS18S20 or old DS1820
 		raw = raw << 3; // 9 bit resolution default
-		if (data[7] == 0x10) {   // DS18S20 or old DS1820
+		if (data[7] == DS18S20_ID) {   // DS18S20 or old DS1820
 			// "count remain" gives full 12 bit resolution
 			raw = (raw & 0xFFF0) + 12 - data[6];
 		}
