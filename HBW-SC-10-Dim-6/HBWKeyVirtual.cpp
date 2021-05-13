@@ -12,7 +12,7 @@ HBWKeyVirtual::HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config) 
 mappedChan(_mappedChan),
 config(_config)
 {
-  keyPressNum = 1;    // first num send has to be 1 (0 would be ignored on the actor)
+  keyPressNum = 0;
   keyPressedMillis = 0;
   updateDone = false;
 }
