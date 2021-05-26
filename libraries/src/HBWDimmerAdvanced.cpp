@@ -130,7 +130,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
                 (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && StateMachine.peerParam_onLevelPrioIsLow() && StateMachine.peerParam_offTimeAbsolute()))
               )
              )) {
-        // ON_TIME_ABSOLUTE running and in ON/OFF state, but new on/off time received is ON_TIME_MINIMAL
+        // ON/OFF_TIME_ABSOLUTE running and in ON/OFF state, but new on/off time received is TIME_MINIMAL
         // do nothing in this case
         // or ON_TIME_ABSOLUTE with HIGH onLevelPrio cannot be overwritten with ON_TIME_ABSOLUTE LOW onLevelPrio - TODO: correct behaviour?
     }
@@ -154,7 +154,9 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
       writePeerConfigStep(data[D_POS_peerConfigStep]);
       writePeerConfigOffDtime(data[D_POS_peerConfigOffDtime]);
       
-      StateMachine.forceStateChange(); // force update
+      if (StateMachine.onLevel > 0 && StateMachine.onLevel >= StateMachine.onMinLevel) {  // don't allow on_level 0 or below on_min_level
+        StateMachine.forceStateChange(); // force update
+      }
     }
     StateMachine.lastKeyNum = currentKeyNum;  // store key press number, to identify repeated key events
   }
@@ -486,7 +488,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel) {
               StateMachine.onLevel = oldOnValue;
             }
             else {
-              StateMachine.onLevel = StateMachine.onMinLevel; // TODO: what to use? onMinLevel or offLevel?
+              StateMachine.onLevel = StateMachine.onMinLevel; // TODO: what to use? onMinLevel or offLevel? or RAMP_START_STEP?
               rampOnTime = 0;   // no ramp to set onMinLevel
             }
           }
