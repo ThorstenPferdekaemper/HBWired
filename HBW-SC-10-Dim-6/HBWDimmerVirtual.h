@@ -21,9 +21,8 @@
 
 // config of each virtual dimmer channel, address step 1
 struct hbw_config_dim_virt {
-  // uint8_t disabled:1;   //    default 1=LOCKED, 0=UNLOCKED
   uint8_t logic:5;     //    LOGIC_INACTIVE, LOGIC_OR, ...
-  uint8_t       :3;         // 
+  uint8_t       :3;         // not used
 };
 
 
@@ -36,7 +35,7 @@ class HBWDimmerVirtual : public HBWChannel {
     virtual uint8_t get(uint8_t* data);
 
     enum logic {
-	    LOGIC_INACTIVE = 0,
+      LOGIC_INACTIVE = 0,
       LOGIC_OR,
       LOGIC_AND,
       LOGIC_XOR,

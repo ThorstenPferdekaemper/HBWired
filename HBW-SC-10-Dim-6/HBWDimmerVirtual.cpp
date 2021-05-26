@@ -48,7 +48,7 @@ uint8_t HBWDimmerVirtual::get(uint8_t* data)
 uint8_t HBWDimmerVirtual::handleLogic(uint8_t levelPeer, uint8_t _level)
 //uint8_t HBWDimmerVirtual::handleLogic(uint8_t levelPeer)
 {
-  if (_level > 200) return levelPeer;  // exit if we have no value for proper comparison. level have to set first
+  if (_level > 200) return levelPeer;  // exit if we have no value for proper comparison. level have to be set first
   
   int levelNew = levelPeer;
 

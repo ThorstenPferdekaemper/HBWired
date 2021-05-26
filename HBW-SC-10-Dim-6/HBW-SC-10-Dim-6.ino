@@ -41,7 +41,8 @@
 #define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
 #define NUMBER_OF_SEN_INPUT_CHAN 10  // equal number of sensor channels, using same ports/IOs as INPUT_CHAN
 #define NUMBER_OF_DIM_CHAN 6  // PWM & analog output channels
-#define NUMBER_OF_VIRTUAL_KEY_CHAN 6  // virtual keys, mapped to dimmer channel
+//#define NUMBER_OF_VIRTUAL_KEY_CHAN 6  // virtual key, mapped to dimmer channel
+#define NUMBER_OF_VIRTUAL_DIM_CHAN 6  // virtual dimmer, mapped to dimmer channel
 
 #define NUM_LINKS_DIM 20    // address step 42
 #define LINKADDRESSSTART_DIM 0x038   // ends @0x37F
@@ -117,7 +118,7 @@
 
 #define LED LED_BUILTIN        // Signal-LED
 
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_KEY_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_DIM_CHAN
 
 
 struct hbw_config {
@@ -129,7 +130,7 @@ struct hbw_config {
   hbw_config_senSC senCfg[NUMBER_OF_SEN_INPUT_CHAN]; // 0x13 - 0x1C (address step 1)
   hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
   //hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_KEY_CHAN]; // 0x31 - 0x37 (address step 1)
-  hbw_config_dim_virt dimVirtCfg[NUMBER_OF_VIRTUAL_KEY_CHAN]; // 0x31 - 0x37 (address step 1)
+  hbw_config_dim_virt dimVirtCfg[NUMBER_OF_VIRTUAL_DIM_CHAN]; // 0x31 - 0x37 (address step 1)
 } hbwconfig;
 
 
