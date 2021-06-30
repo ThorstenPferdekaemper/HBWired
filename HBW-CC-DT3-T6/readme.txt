@@ -15,8 +15,8 @@ DS18B20 Gerätecode 0x28
 DS1822  Gerätecode 0x22
 
 Direktes Peering:
-Die tempsensor Kanäle können mit delta_t1, delta_t2 verknüpft werden, oder anderen externen Kanälen. (delta_t1/delta_t2 sollte nur jeweils ein Sensor zugewiesen werden!)
-Der delta_t Kanaltyp kann mit Aktor Kanälen verknüpft werden, z.B. externe Relais. (delta_t sendet short/long keyEvents)
+Die tempsensor Kanäle können mit delta_t1, delta_t2 verknüpft werden, oder anderen externen Kanälen. (delta_t1/delta_t2 sollte nur jeweils ein Temperatursensor zugewiesen werden!)
+Der delta_t Kanaltyp kann mit Aktor Kanälen verknüpft werden, z.B. externe Relais, Display, o.ä.. (delta_t sendet short/long keyEvents)
 
 
 Kanäle:
@@ -27,10 +27,11 @@ Kanäle:
 
 
 DeltaT Konfiguration:
-HYSTERESIS: 0.0 - 3.0°C
-DELTA_TEMP: 0.0 - 25.4°C
-T1_MAX: -200.0 - 200.0°C
-T2_MIN: -200.0 - 200.0°C
+* HYSTERESIS: 0.0 - 3.0°C
+* DELTA_TEMP: 0.0 - 25.4°C
+* T1_MAX: -200.0 - 200.0°C
+* T2_MIN: -200.0 - 200.0°C
+* CYCLE_TIME: 5 - 40 Sekunden
 
 * DeltaT wird berechnet als T2 - T1. Die Hysterese wird vom delta Wert subtrahiert, wenn die Temperaturdifferenz unterhalb von DELTA_TEMP liegt, ansonsten addiert (Als Option zuschaltbar). Der Ausgang wechselt sofort auf "Aus", wenn T1_MAX überschritten oder T2_MIN unterschritten wird. Alternativ kann hier auch die Hysterese angewendet werden.
 
