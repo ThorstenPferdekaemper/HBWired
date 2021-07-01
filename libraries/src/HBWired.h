@@ -19,7 +19,7 @@
 // #define Support_HBWLink_InfoEvent
 
 // #define Support_ModuleReset  // enable reset comand, to restart module "!!" (hexstring 2121)
-// #define Support_WDT  // enable 1 second watchdog timer
+#define Support_WDT  // enable 1 second watchdog timer
 
 
 class HBWDevice;
@@ -151,7 +151,7 @@ class HBWDevice {
 		NO_ACK		//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
 	};
 
-  private:							 
+  private:
 	uint8_t numChannels;    // number of channels
 	HBWChannel** channels;  // channels
 	HBWLinkSender* linkSender;
@@ -228,7 +228,7 @@ class HBWDevice {
 	void crc16Shift(uint8_t, uint16_t*);
 
 	void readAddressFromEEPROM();
-	void determineSerial(uint8_t*);
+	void determineSerial(uint8_t*, uint32_t address);
 
 	void processEventGetLevel(uint8_t channel, uint8_t command);
 	void processEventSetLock(uint8_t channel, boolean inhibit);

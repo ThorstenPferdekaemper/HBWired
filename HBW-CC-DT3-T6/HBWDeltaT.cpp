@@ -96,6 +96,17 @@ uint8_t HBWDeltaTx::get(uint8_t* data)
 };
 
 
+void HBWDeltaT::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
+{
+  // allow to set manually, only when 'mode' is inactive (i.e. no T1 & T2 temperature received)
+  // output will change not faster than "output_change_wait_time"
+  if (!stateFlags.element.mode)
+  {
+    nextState = *data == 0 ? OFF : ON;
+  }
+};
+
+ 
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDeltaT::get(uint8_t* data)
 {
@@ -188,8 +199,11 @@ bool HBWDeltaT::calculateNewState()
     int16_t t2 = deltaT2->currentTemperature;
     
     // check if valid temps are available
-    if (t1 <= ERROR_TEMP || t2 <= ERROR_TEMP) {
-      nextState = OFF;
+    if (t1 == DEFAULT_TEMP || t2 == DEFAULT_TEMP) {  // don't overwrite 'nextState' (keep manual state) if no temp was ever received
+      return false;
+    }
+    if (t1 == ERROR_TEMP || t2 == ERROR_TEMP) {  // set output to error state, when sensor got lost (error_temperature is received)
+      nextState = config->error_state ? OFF : ON;
       return false;
     }
 

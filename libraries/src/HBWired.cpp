@@ -550,7 +550,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             processEventSetLock(frameData[2], frameData[3] & 0x01);
             break;
          case 'n':                                       // Seriennummer
-        	determineSerial(txFrame.data);
+        	determineSerial(txFrame.data, getOwnAddress());
         	txFrame.dataLength = 10;
         	onlyAck = false;
         	break;
@@ -672,7 +672,7 @@ byte HBWDevice::broadcastAnnounce(byte channel) {
    txFrame.data[3] = hardware_version;
    txFrame.data[4] = firmware_version / 0x100;
    txFrame.data[5] = firmware_version & 0xFF;
-   determineSerial(txFrame.data + 6);
+   determineSerial(txFrame.data + 6, getOwnAddress());
    // only send, if bus is free. Don't send in zeroCommunication mode, return with "bus busy" instead
    return (pendingActions.zeroCommunicationActive ? BUS_BUSY : sendFrame(true));
 };
@@ -786,13 +786,22 @@ void HBWDevice::readAddressFromEEPROM(){
 }
 
 
-void HBWDevice::determineSerial(byte* buf) {
-   char numAsStr[20];
-   sprintf(numAsStr, "%07lu", getOwnAddress() % 10000000L );
+void HBWDevice::determineSerial(uint8_t* buf, uint32_t address) {
+
    buf[0] = 'H';
    buf[1] = 'B';
    buf[2] = 'W';
-   memcpy(buf+3, numAsStr, 7);
+   
+   // append last 7 digits of own address
+   uint8_t* pEnd = &buf[9];
+   while (pEnd != &buf[2])
+   {
+      *pEnd-- = '0' + (address % 10);  // store as string
+      if (address)
+      {
+         address /= 10;
+      }
+   }
 };
 
 

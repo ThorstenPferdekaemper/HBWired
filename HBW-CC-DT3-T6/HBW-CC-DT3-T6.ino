@@ -20,10 +20,13 @@
 // - add config for output change frequency (CYCLE_TIME)
 // v0.45
 // - using config LED for Tx & Rx indicator
+// v0.50
+// - allow to set HBWDeltaT output when mode is IDLE/inactive (no temperature received)
+// - option for error state (set OFF/ON), when error_temperature is received
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x002D
+#define FIRMWARE_VERSION 0x0032
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import .xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
