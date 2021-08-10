@@ -18,7 +18,7 @@
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x003C
-#define HMW_DEVICETYPE 0xA6 //device ID (make sure to import hbw_sen_sc_12_dr.xml into FHEM)
+#define HMW_DEVICETYPE 0xA6  // device ID (make sure to import hbw_sen_sc_12_dr.xml into FHEM)
 
 #define NUMBER_OF_INPUT_CHAN 12   // input channel - pushbutton, key, other digital in
 #define NUMBER_OF_SEN_INPUT_CHAN 12  // equal number of sensor channels, using same ports/IOs as INPUT_CHAN
@@ -28,7 +28,7 @@
 #define LINKADDRESSSTART_INPUT 0x038   // ends @0x0C7
 
 
-#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
@@ -41,12 +41,6 @@
 
 
 // Pins
-
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
-
   #define IO1 A3
   #define IO2 10
   #define IO3 11
@@ -60,10 +54,20 @@
   #define IO11 6
   #define IO12 5
 
+#ifdef USE_HARDWARE_SERIAL
+  #define RS485_TXEN 2  // Transmit-Enable
+  #define BUTTON A6  // Button fuer Factory-Reset etc.
+  
+#else
+  #define RS485_RXD 4
+  #define RS485_TXD 2
+  #define RS485_TXEN 3  // Transmit-Enable
+  #define BUTTON 8  // Button fuer Factory-Reset etc.
+  
   #include "FreeRam.h"
   #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-
+#endif
 
 #define LED LED_BUILTIN        // Signal-LED
 
@@ -84,28 +88,7 @@ struct hbw_config {
 
 HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the device
 
-
-class HBDimIODevice : public HBWDevice {
-    public:
-    HBDimIODevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
-               Stream* _rs485, uint8_t _txen, 
-               uint8_t _configSize, void* _config, 
-               uint8_t _numChannels, HBWChannel** _channels,
-               Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
-    HBWDevice(_devicetype, _hardware_version, _firmware_version,
-              _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
-              _debugstream, linksender, linkreceiver) {
-    };
-    virtual void afterReadConfig();
-};
-
-// device specific defaults
-void HBDimIODevice::afterReadConfig() {
-  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
-};
-
-HBDimIODevice* device = NULL;
-
+HBWDevice* device = NULL;
 
 
 void setup()
@@ -128,19 +111,19 @@ void setup()
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);
   
-  device = new HBDimIODevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
+  device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                              &Serial, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
                              new HBWLinkKey<NUM_LINKS_INPUT, LINKADDRESSSTART_INPUT>(), NULL);
   
-  device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
+  device->setConfigPins(BUTTON, LED);
   
 #else
   Serial.begin(115200);  // Serial->USB for debug
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
-  device = new HBDimIODevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
+  device = new HBWDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                              &rs485, RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
