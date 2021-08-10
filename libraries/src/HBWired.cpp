@@ -674,7 +674,7 @@ byte HBWDevice::broadcastAnnounce(byte channel) {
    txFrame.data[5] = firmware_version & 0xFF;
    determineSerial(txFrame.data + 6, getOwnAddress());
    // only send, if bus is free. Don't send in zeroCommunication mode, return with "bus busy" instead
-   return (pendingActions.zeroCommunicationActive ? BUS_BUSY : sendFrame(true));
+   return (pendingActions.zeroCommunicationActive ? BUS_BUSY : sendFrame(NEED_IDLE_BUS));
 };
 
 
@@ -682,14 +682,13 @@ byte HBWDevice::broadcastAnnounce(byte channel) {
 // this is only called from "outside" and not as a response
 uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address) {
    if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
-   txFrame.targetAddress = target_address;
-   if(!txFrame.targetAddress) txFrame.targetAddress = getCentralAddress();	
+   txFrame.targetAddress = target_address != 0 ? target_address : getCentralAddress();
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 0x02 + length;      // Length
    txFrame.data[0] = 0x69;         // 'i'
    txFrame.data[1] = channel;      // Sensornummer
    memcpy(&(txFrame.data[2]), data, length);
-   return sendFrame(true);  // only if bus is free
+   return sendFrame(NEED_IDLE_BUS);  // only if bus is free
 };
 
 
@@ -749,7 +748,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
 
 // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
-   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
    txFrame.targetAddress = 0xFFFFFFFF;  // target address
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 3 + length;      // Length
@@ -757,7 +756,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
    txFrame.data[1] = srcChan;      // Sensornummer
    txFrame.data[2] = 0;   // Zielaktor
    memcpy(&(txFrame.data[3]), data, length);
-   return sendFrame(true);  // only if bus is free
+   return sendFrame(NEED_IDLE_BUS);  // only if bus is free
 };
 
 
@@ -772,7 +771,6 @@ void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
 
 
 // read device address from EEPROM
-// TODO: Avoid "central" addresses (like 0000...)
 void HBWDevice::readAddressFromEEPROM(){
    uint32_t address = 0;
    

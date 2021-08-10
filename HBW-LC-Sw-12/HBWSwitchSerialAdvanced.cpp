@@ -3,7 +3,7 @@
  * 
  * see "HBWSwitchSerialAdvanced.h" for details
  * 
- * Updated: 02.01.2020
+ * Updated: 02.07.2021
  *  
  * http://loetmeister.de/Elektronik/homematic/index.htm#modules
  * 
@@ -41,7 +41,7 @@ void HBWSwitchSerialAdvanced::afterReadConfig() {
     level = (HIGH ^ config->n_inverted);
     StateMachine.setCurrentState(JT_OFF);
   }
-// TODO: add zero crossing function?
+  
   operateRelay(level);
   StateMachine.keepCurrentState(); // no action for state machine needed
 }
@@ -129,7 +129,7 @@ uint8_t HBWSwitchSerialAdvanced::get(uint8_t* data)
 void HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t const * const data)
 {
   if (config->output_unlocked && relayOperationPending == false) { // not LOCKED and no relay operation pending
-    byte level = *(data);
+    uint8_t level = *(data);
 
     if (level > 200) // toggle
       level = !shiftRegister->get(ledPos); // get current state and negate
@@ -143,7 +143,7 @@ void HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t const * const
       shiftRegister->set(ledPos, LOW); // set LEDs (register used for actual state!)
       StateMachine.setCurrentState(JT_OFF);   // update for state machine
     }
-// TODO: add zero crossing function?. Just set portStatus[]? + add portStatusDesired[]?
+    
     operateRelay(level);
   }
   // Logging
@@ -153,17 +153,14 @@ void HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t const * const
 
 void HBWSwitchSerialAdvanced::operateRelay(uint8_t _newLevel)
 {
-//  if (relayOperationPending)
-//    return;
-
-  /* if no relay operation is pending, allow so set new state */
+  /* set new state, only if no relay operation is pending */
   if (_newLevel) { // on - perform set
-    shiftRegister->set(relayPos +1, LOW);    // reset coil
-    shiftRegister->set(relayPos, HIGH);      // set coil
+    shiftRegister->set(relayPos +1, LOW);    // reset coil (remove power first - for safety)
+    shiftRegister->set(relayPos, HIGH);      // power set coil
   }
   else {  // off - perform reset
-    shiftRegister->set(relayPos, LOW);      // set coil
-    shiftRegister->set(relayPos +1, HIGH);  // reset coil
+    shiftRegister->set(relayPos, LOW);      // set coil (remove power first - for safety)
+    shiftRegister->set(relayPos +1, HIGH);  // power reset coil
   }
   
   relayOperationTimeStart = millis();  // relay coil power must be removed after some ms (bistable relays!!)
@@ -174,19 +171,18 @@ void HBWSwitchSerialAdvanced::operateRelay(uint8_t _newLevel)
 void HBWSwitchSerialAdvanced::loop(HBWDevice* device, uint8_t channel)
 {
   unsigned long now = millis();
-
+  
   /* important to remove power from latching relay after some milliseconds!! */
-  if (((now - relayOperationTimeStart) >= RELAY_PULSE_DUARTION) && relayOperationPending == true) {
+  if ((now - relayOperationTimeStart) > RELAY_PULSE_DUARTION && relayOperationPending) {
+    relayOperationPending = false;
   // time to remove power from all coils // TODO: implement as timer interrupt routine?
     shiftRegister->setNoUpdate(relayPos +1, LOW);    // reset coil
     shiftRegister->setNoUpdate(relayPos, LOW);       // set coil
     shiftRegister->updateRegisters();
-    
-    relayOperationPending = false;
   }
 
   // TODO: move state machine loop to lib HBWlibSwitchAdvanced - shared with HBWSwitchAdvanced //sm_loop(device, channel, currentLevel);?
-    
+
  //*** state machine begin ***//
 
   if (((now - StateMachine.lastStateChangeTime > StateMachine.stateChangeWaitTime) && StateMachine.stateTimerRunning) || !StateMachine.noStateChange()) {

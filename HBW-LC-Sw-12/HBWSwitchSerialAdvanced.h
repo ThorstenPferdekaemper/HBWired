@@ -27,7 +27,7 @@
 
 #define SHIFT_REGISTER_CLASS ShiftRegister74HC595<3>  // Daisy chain 3 registers
 
-#define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay
+#define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay safely
 
 
 
