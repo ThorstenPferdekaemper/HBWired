@@ -81,19 +81,6 @@ PROGMEM const char * const bool_text[][4] = {
   {text_off_sym, text_on_sym}
 };
 
-
-//typedef struct {
-//  const char *on;
-//  const char *off;
-//} t_text_on_off;
-//
-//const t_text_on_off bool_text[] PROGMEM = {
-//  {text_on, text_off},
-//  {text_open, text_close},
-//  {text_auto, text_manu},
-//  {text_on, text_off}
-//};
-
 //const char smiley[8] PROGMEM = {
 //  B00000,
 //  B10001,
@@ -137,18 +124,7 @@ struct hbw_config_display {
   uint8_t num_lines:2;  // number of lines (2bit 0-3 +1 --> 1-4)
   uint8_t num_characters:3;  // number of characters per line (0-6 *4 +4 --> 4-28)
   uint8_t :3;     //fillup
-//  uint8_t dummy;
 };
-//typedef struct {
-//  uint8_t startup:1;  // initial state, 1=ON
-//  uint8_t auto_cycle:1;  // default 1=auto_cycle enabled, to rotate different screens //TODO: implement
-//  uint8_t n_invert_display:1;  // default 1=not inverted //TODO: implement
-//  uint8_t refresh_rate:5;  // 1-32 seconds (default 32) (0-31 +1)
-//  //uint8_t :1;     //fillup
-//  uint8_t num_lines:2;  // number of lines (2bit 0-3 +1 --> 1-4)
-//  uint8_t num_characters:3;  // number of characters per line (0-6 +1 *4 --> 4-28)
-//  uint8_t :3;     //fillup
-//} t_hbw_config_display;
 
 
 //// use this to create an array, matching the ammount of display lines
@@ -211,6 +187,7 @@ class HBWDisplayVChannel : public HBWChannel {
     }
 };
 
+
 // Class HBWDisplayVChNum (input channel, to peer with external temperatur sensor or set any 16bit value - signed!)
 class HBWDisplayVChNum : public HBWDisplayVChannel {
   public:
@@ -227,6 +204,7 @@ class HBWDisplayVChNum : public HBWDisplayVChannel {
     
     uint8_t formatFixpoint(char* _buf, int16_t intVal, uint8_t precision, uint16_t factor);
 };
+
 
 // Class HBWDisplayVChBool (input channel, to peer with external key channel or set bool value)
 class HBWDisplayVChBool : public HBWDisplayVChannel {
@@ -248,10 +226,9 @@ class HBWDisplayVChBool : public HBWDisplayVChannel {
 
 
 // Class HBWDisplayLine, represents line buffer
-//class HBWDisplayLine : public HBWChannel {
 class HBWDisplayLine : public HBWDisplayVChannel {
   public:
-    HBWDisplayLine(hbw_config_display_line* _config);//, char* _displayLine);
+    HBWDisplayLine(hbw_config_display_line* _config);
     //virtual void loop(HBWDevice*, uint8_t channel);
     //virtual uint8_t get(uint8_t* data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
