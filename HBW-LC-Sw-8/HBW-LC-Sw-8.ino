@@ -93,7 +93,7 @@ class HBSwDevice : public HBWDevice {
 
 // device specific defaults
 void HBSwDevice::afterReadConfig() {
-  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
+  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
 };
 
 
