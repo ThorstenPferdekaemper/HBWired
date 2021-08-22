@@ -970,7 +970,6 @@ void HBWDevice::loop()
   if (pendingActions.resetSystem) {
    #if defined (Support_ModuleReset)
     #if defined (Support_WDT)
-    // wdt_wdt_enable(WDTO_15MS);
     while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
     #else
     resetSoftware();  // otherwise jump to reset vector
@@ -1041,8 +1040,8 @@ void HBWDevice::handleConfigButton() {
   // do we have a config-pin?
   if(configPin == NOT_A_PIN) return;
   
-  static long lastTime = 0;
-  long now = millis();
+  static unsigned long lastTime = 0;
+  unsigned long now = millis();
   boolean buttonState;
 
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
@@ -1110,7 +1109,7 @@ void HBWDevice::handleConfigButton() {
 
   // control LED, if set  
   if(ledPin == NOT_A_PIN) return;
-  static long lastLEDtime = 0;
+  static unsigned long lastLEDtime = 0;
   if(now - lastLEDtime > 100) {  // update intervall & schnelles Blinken
 	  switch(configButtonStatus) {
 		case 0:
@@ -1141,7 +1140,7 @@ void HBWDevice::handleStatusLEDs() {
 	// turn on or off Tx, Rx LEDs - allow use of "config LED" for Tx, Rx combined
 	// don't operate LED when configButton was pressed and "config LED" is used for Tx or Rx
 	
-	static long lastStatusLEDsTime = 0;
+	static unsigned long lastStatusLEDsTime = 0;
 	
 	if (millis() - lastStatusLEDsTime > 60) {	// check every 60 ms only (allow LED to light up approx 120 ms min.)
 		if (txLedPin != NOT_A_PIN) {
