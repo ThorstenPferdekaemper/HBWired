@@ -65,6 +65,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+          keyPressedMillis = now;
+          
           if (device->sendKeyEvent(channel, keyPressNum, !buttonState) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             oldButtonState = buttonState;
@@ -150,6 +152,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
          keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
+          keyPressedMillis = now;
+          
           if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             lastSentLong = now;
