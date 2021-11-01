@@ -53,7 +53,8 @@
 #define D_POS_dimMaxLevel    15
 #define D_POS_peerConfigStep 16
 #define D_POS_peerConfigOffDtime 17
-#define D_POS_peerKeyPressNum    18 // last array element always used for keyPressNum
+#define D_POS_peerKeyPressNum    18
+#define D_POS_peerSameLastSender    19
 
 #define BITMASK_DimStep       B00001111
 #define BITMASK_OffDelayStep  B11110000

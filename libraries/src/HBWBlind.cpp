@@ -6,7 +6,7 @@
 ** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
 **
-** Last updated: 08.02.2019
+** Last updated: 01.11.2021
 */
 
 #include "HBWBlind.h"
@@ -43,12 +43,15 @@ void HBWChanBl::afterReadConfig() {
 
 void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
-  if (length == 2)
+  if (length == 3)
   {
-    if (lastKeyNum == data[1])  // ignore repeated key press
+    uint8_t currentKeyNum = data[1];
+    bool sameLastSender = data[2];
+
+    if (lastKeyNum == currentKeyNum && sameLastSender)  // ignore repeated key press from the same sender
       return;
     else
-      lastKeyNum = data[1];
+      lastKeyNum = currentKeyNum;
   }
   
   // blind control

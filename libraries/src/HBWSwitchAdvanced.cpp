@@ -45,13 +45,14 @@ void HBWSwitchAdvanced::afterReadConfig() {
 
 void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
   
-  if (length == 8) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
+  if (length == 9) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
     
     StateMachine.writePeerParamActionType(*(data));
     uint8_t currentKeyNum = data[7];
+    bool sameLastSender = data[8];
 
     if (StateMachine.peerParam_getActionType() >1) {   // ACTION_TYPE > INACTIVE
-      if (!StateMachine.stateTimerRunning && StateMachine.lastKeyNum != currentKeyNum) {   // do not interrupt running timer, ignore LONG_MULTIEXECUTE
+      if (!StateMachine.stateTimerRunning && (StateMachine.lastKeyNum != currentKeyNum || (StateMachine.lastKeyNum == currentKeyNum && !sameLastSender))) {   // do not interrupt running timer, no repeated long press here (LONG_MULTIEXECUTE ingnored)
         byte level;
         if (StateMachine.peerParam_getActionType() == 2)   // TOGGLE_TO_COUNTER
           level = ((currentKeyNum %2 == 0) ? 0 : 200);  //  (switch ON at odd numbers, OFF at even numbers)
@@ -64,7 +65,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
         StateMachine.keepCurrentState(); // avoid state machine to run
       }
     }
-    else if (StateMachine.lastKeyNum == currentKeyNum && !StateMachine.peerParam_getLongMultiexecute()) {
+    else if ((StateMachine.lastKeyNum == currentKeyNum && sameLastSender) && !StateMachine.peerParam_getLongMultiexecute()) {
       // repeated key event for ACTION_TYPE == 1 (ACTION_TYPE == 0 already filtered by receiveKeyEvent, HBWLinkReceiver)
       // repeated long press, but LONG_MULTIEXECUTE not enabled
     }
@@ -73,8 +74,8 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     }
     else {
       // assign values based on EEPROM layout
-	  // TODO: replace with struct? (memcpy(&peerParams, data, NUM_PEER_PARAMS)
-	  // FIXME: move ON/OFF_TIME_MINIMAL check here? .. actually this needs full check of JT, etc.? setting the peering parameters here will overwrite all values, like offTime, when it should not (e.g. when new onTime was rejected)
+      // TODO: replace with struct? (memcpy(&peerParams, data, NUM_PEER_PARAMS)
+      // FIXME: move ON/OFF_TIME_MINIMAL check here? .. actually this needs full check of JT, etc.? setting the peering parameters here will overwrite all values, like offTime, when it should not (e.g. when new onTime was rejected)
       StateMachine.onDelayTime = data[1];
       StateMachine.onTime = data[2];
       StateMachine.offDelayTime = data[3];
@@ -110,7 +111,7 @@ void HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t const * const data)
   byte level = *(data);
   
     if(level > 200) {   // toggle
-	  level = !digitalRead(pin);
+      level = !digitalRead(pin);
     }
     // turn on or off
     if (level) {
