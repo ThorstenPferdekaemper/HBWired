@@ -251,7 +251,7 @@
 					<conversion type="boolean_integer" invert="true"/>
 				</parameter>
 				<parameter id="VALVE_ERROR_POS">
-					<logical type="integer" default="15" min="0" max="100" unit="%"/>
+					<logical type="integer" default="20" min="0" max="100" unit="%"/>
 					<physical type="integer" size="1.0" interface="eeprom">
 						<address index="+1"/>
 					</physical>
@@ -266,6 +266,28 @@
 					<conversion type="integer_integer_map">
 					 <value_map device_value="0xff" parameter_value="18" from_device="true" to_device="false"/>
 				   </conversion>
+				</parameter>
+				<parameter id="LIMIT_UPPER">
+					<logical type="option">
+						<option id="100%"/>
+						<option id="90%"/>
+						<option id="80%"/>
+						<option id="70%" default="true"/>
+					</logical>
+					<physical size="0.2" type="integer" interface="eeprom">
+						<address index="+3.0"/>
+					</physical>
+				</parameter>
+				<parameter id="LIMIT_LOWER">
+					<logical type="option">
+						<option id="0%"/>
+						<option id="5%"/>
+						<option id="10%"/>
+						<option id="15%" default="true"/>
+					</logical>
+					<physical size="0.2" type="integer" interface="eeprom">
+						<address index="+3.2"/>
+					</physical>
 				</parameter>
 			</paramset>
 			<!-- no peering to additional switch channels supported

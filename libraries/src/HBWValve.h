@@ -52,7 +52,9 @@ struct hbw_config_valve {
   uint8_t :5;     //fillup //0x..:3-8
   uint8_t error_pos;  // default/error position
   uint8_t valveSwitchTime;   // (factor 10! max 2540 seconds) Time the valve needs to reach 100% (NC:open or NO:closed state)
-  uint8_t dummy :8;
+  uint8_t limit_upper:2;   // 100%, 90%, 80%, 70% ... do not drive valve higher than selected value (e.g. if valve already remains open at 90%)
+  uint8_t limit_lower:2;   // 0%, 5%, 10%, 15% ... do not actuate valve below selected value (e.g. if valve does not open below 10% at all)
+  uint8_t dummy :4;
   // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
 };
 

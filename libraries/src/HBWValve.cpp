@@ -3,6 +3,7 @@
  *
  * Created on: 05.05.2019
  * loetmeister.de
+ * Updated: 01.11.2021
  * 
  * Based on work by: Harald Glaser
  */
@@ -29,7 +30,7 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
 // channel specific settings or defaults
 void HBWValve::afterReadConfig()
 {
-  if (config->error_pos == 0xFF)  config->error_pos = 30;   // 15%
+  if (config->error_pos == 0xFF)  config->error_pos = 40;   // 20%
   if (config->valveSwitchTime == 0xFF || config->valveSwitchTime == 0)  config->valveSwitchTime = 18; // default 180s (factor 10!)
 
   if (!initDone) {
@@ -57,54 +58,58 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 // slighlty customized set() function, to allow PID channels to set level in automatic mode
 void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data, bool setByPID)
 {
-  if (!config->unlocked || !setByPID) return;  // locked channels can still be set by PID, but are blocked for external changes
-
-/* TODO: Check if we allow setting level always (even when inAuto), but use the AUTO flag to fallback to error_pos if no set() was called
- * for some time when inAuto (? switch_time *x?). PIDs should still sync the inAuto flag, to not overwrite manual set levels */
-  if ((*data >= 0 && *data <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // right limits only if manual or setByPID
+  if (config->unlocked || setByPID)  // locked channels can still be set by PID, but are blocked for external changes
   {
-    setNewLevel(device, *data);
-    
-#ifdef DEBUG_OUTPUT
-hbwdebug(F("Valve set, level: ")); hbwdebug(valveLevel);
-hbwdebug(F(" inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
-#endif
-  }
-  else
-  {
-    switch (*data)
+    if ((*data >= 0 && *data <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // change level only if manual mode or setByPID
     {
-      case SET_TOGGLE_AUTOMATIC:    // toogle PID mode
-        stateFlags.element.inAuto = !stateFlags.element.inAuto;
-        break;
-      case SET_AUTOMATIC:
-        stateFlags.element.inAuto = AUTOMATIC;
-        break;
-      case SET_MANUAL:
-        stateFlags.element.inAuto = MANUAL;
-        break;
+      setNewLevel(device, *data);
+      
+ #ifdef DEBUG_OUTPUT
+ hbwdebug(F("Valve set, level: ")); hbwdebug(valveLevel);
+ hbwdebug(F(" inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
+ #endif
     }
-    setNewLevel(device, stateFlags.element.inAuto ? config->error_pos : valveLevel);
-    
-#ifdef DEBUG_OUTPUT
-hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
-#endif
+    else
+    {
+      switch (*data)
+      {
+        case SET_TOGGLE_AUTOMATIC:    // toogle PID mode
+          stateFlags.element.inAuto = !stateFlags.element.inAuto;
+          break;
+        case SET_AUTOMATIC:
+          stateFlags.element.inAuto = AUTOMATIC;
+          break;
+        case SET_MANUAL:
+          stateFlags.element.inAuto = MANUAL;
+          break;
+      }
+      setNewLevel(device, stateFlags.element.inAuto ? config->error_pos : valveLevel);
+      
+ #ifdef DEBUG_OUTPUT
+ hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
+ #endif
+    }
   }
 }
 
 void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
 {
+  // check configured limits and adjust level to use desired switch time
+  NewLevel = NewLevel > (200 - (config->limit_upper *20)) ? (200 - (config->limit_upper *20)) : NewLevel;  // 10% stepping (upper limit)
+  NewLevel = NewLevel < (config->limit_lower *10) ? 0 : NewLevel;  // 5% stepping (lower limit)
+  
   if (valveLevel != NewLevel)  // set new state only if different
   {
     valveLevel < NewLevel ? stateFlags.element.upDown = 1 : stateFlags.element.upDown = 0;
     valveLevel = NewLevel;
     isFirstState = true;
     nextState = init_new_state();
-	//TODO: Add timestamp here (or  use lastFeedbackTime?), to keep track of updated valve position for anti-stick?
 
     // Logging
     setFeedback(device, config->logging);
   }
+    //TODO: Add timestamp here (use millis() rollover? ~49 days?), to keep track of updated valve position for anti-stick?
+    //any value higher than limit_lower will make the valve move...
 }
 
 
@@ -198,7 +203,7 @@ bool HBWValve::first_on_or_off(uint16_t ontimer, uint16_t offtimer)
 
 bool HBWValve::init_new_state()
 {
-  onTimer = set_ontimer(valveLevel); // TODO?: option to reduce by 0...15%? e.g. (valveLevel > config->valvePctCap) ? (valveLevel - config->valvePctCap) : 0)
+  onTimer = set_ontimer(valveLevel);
   offTimer = set_offtimer(onTimer);
   
   #ifdef DEBUG_OUTPUT
