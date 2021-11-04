@@ -22,6 +22,9 @@ class HBWLinkDimmerAdvanced : public HBWLinkReceiver {
                            uint8_t targetChannel, uint8_t keyPressNum, boolean longPress);				
 
   private:
+      uint32_t lastSenderAddress;
+      uint8_t lastSenderChannel;
+
       static const uint8_t EEPROM_SIZE = 42;   // "address_step" in XML
       static const uint8_t NUM_PEER_PARAMS = 18;   // number of bytes for long and short peering action each (without address and channel)
 };

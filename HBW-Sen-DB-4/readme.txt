@@ -15,7 +15,7 @@ Kanäle:
 4x Tastereingang
 
 
-
+Neustart des Moduls mit "!!" (raw message 2121) möglich.
 
 
 Standard-Pinbelegung:

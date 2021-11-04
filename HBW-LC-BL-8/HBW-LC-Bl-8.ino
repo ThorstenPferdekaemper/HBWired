@@ -29,7 +29,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0021
+#define FIRMWARE_VERSION 0x0023
 #define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 8

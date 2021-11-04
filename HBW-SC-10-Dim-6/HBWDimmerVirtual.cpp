@@ -21,11 +21,11 @@ void HBWDimmerVirtual::set(HBWDevice* device, uint8_t length, uint8_t const * co
   if (length == 1 && *(data) <= 200) {    // level set by FHEM/CCU
     level = *(data);
   }
-  else if (length == NUM_PEER_PARAMS +1)
+  else if (length == NUM_PEER_PARAMS +2)
   {
     // create new (writable) array
-    uint8_t dataNew[NUM_PEER_PARAMS +1];
-    memcpy(dataNew, data, NUM_PEER_PARAMS +1);
+    uint8_t dataNew[NUM_PEER_PARAMS +2];
+    memcpy(dataNew, data, NUM_PEER_PARAMS +2);
     
     //handleLogic(config->logic, data, dataNew);
     dataNew[D_POS_onLevel] = handleLogic(dataNew[D_POS_onLevel], level);

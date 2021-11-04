@@ -25,8 +25,16 @@ void HBWLinkBlindSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devic
   uint32_t sndAddrEEPROM;
   uint8_t channelEEPROM;
   uint8_t actionType;
-  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (use extra element for keyPressNum)
+  uint8_t data[NUM_PEER_PARAMS +2];  // store all peer parameter (use extra element for keyPressNum & sameLastSender)
+  
   data[NUM_PEER_PARAMS] = keyPressNum;
+  data[NUM_PEER_PARAMS +1] = false;
+  
+  if (senderAddress == lastSenderAddress && senderChannel == lastSenderChannel) {
+    data[NUM_PEER_PARAMS +1] = true;  // true, as this was the same sender (source device & channel) - sameLastSender
+  }
+  lastSenderAddress = senderAddress;
+  lastSenderChannel = senderChannel;
   
   // read what to do from EEPROM
   for(byte i = 0; i < numLinks; i++) {
@@ -73,6 +81,6 @@ void HBWLinkBlindSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devic
 	  // 5 -> INACTIVE
 	    case 5: continue;
       };
-	  device->set(targetChannel, 2, data);    // channel, data length, data
+	  device->set(targetChannel, sizeof(data), data);    // channel, data length, data
   }
 }

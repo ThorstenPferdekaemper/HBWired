@@ -8,7 +8,7 @@
  * Peering mit TOGGLE, TOGGLE_TO_COUNTER, TOGGLE_INVERSE_TO_COUNTER, onTime,
  * offTime (Ein-/Ausschaltdauer), onDelayTime, offDelayTime (Ein-/Ausschaltverzögerung).
  * 
- * Updated: 10.04.2021
+ * Updated: 01.11.2021
  * 
  * TODO: join redundant code with HBWSwitchAdvanced into one lib
  *  
@@ -27,8 +27,10 @@
 
 #define SHIFT_REGISTER_CLASS ShiftRegister74HC595<3>  // Daisy chain 3 registers
 
-#define RELAY_PULSE_DUARTION 80  // HIG duration in ms, to set or reset double coil latching relay
+#define RELAY_PULSE_DUARTION 80  // HIGH duration in ms, to set or reset double coil latching relay safely
 
+#define OFF false
+#define ON true
 
 
 class HBWSwitchSerialAdvanced : public HBWChannel {
@@ -54,6 +56,7 @@ class HBWSwitchSerialAdvanced : public HBWChannel {
   protected:
     void setOutput(HBWDevice*, uint8_t const * const data);
     bool relayOperationPending;
+    bool relayLevel;  // current logical level
     void operateRelay(uint8_t _newLevel);
     uint32_t relayOperationTimeStart;
 };

@@ -24,10 +24,17 @@ void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
   uint32_t sndAddrEEPROM;
   uint8_t channelEEPROM;
   uint8_t actionType;
-
-  uint8_t data[NUM_PEER_PARAMS +1];  // store all peer parameter (use extra element for keyPressNum)
-  data[NUM_PEER_PARAMS] = keyPressNum;
+  uint8_t data[NUM_PEER_PARAMS +2];  // store all peer parameter (use extra element for keyPressNum & sameLastSender)
   
+  data[NUM_PEER_PARAMS] = keyPressNum;
+  data[NUM_PEER_PARAMS +1] = false;
+  
+  if (senderAddress == lastSenderAddress && senderChannel == lastSenderChannel) {
+    data[NUM_PEER_PARAMS +1] = true;  // true, as this was the same sender (source device & channel) - sameLastSender
+  }
+  lastSenderAddress = senderAddress;
+  lastSenderChannel = senderChannel;
+
   // read what to do from EEPROM
   for(byte i = 0; i < numLinks; i++) {
 	  device->readEEPROM(&sndAddrEEPROM, eepromStart + EEPROM_SIZE * i, 4, true);
@@ -63,7 +70,7 @@ void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
      //         + 21      // SHORT_DIM_MAX_LEVEL
      //         + 22      // SHORT_DIM_STEP, SHORT_OFFDELAY_STEP
      //         + 23      // SHORT_OFFDELAY_NEWTIME, SHORT_OFFDELAY_OLDTIME
-        device->set(targetChannel, NUM_PEER_PARAMS +1, data);    // channel, data length, data
+        device->set(targetChannel, sizeof(data), data);    // channel, data length, data
       }
     }
     // read specific long action eeprom section
@@ -75,7 +82,7 @@ void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
      //         + 6+ NUM_PEER_PARAMS      //  LONG_ACTION_TYPE
      //         + 7+ NUM_PEER_PARAMS      //  LONG_ONDELAY_TIME
      // ... and so on. Layout for LONG_* and SHORT_* must be the same
-        device->set(targetChannel, NUM_PEER_PARAMS +1, data);    // channel, data length, data
+        device->set(targetChannel, sizeof(data), data);    // channel, data length, data
       }
     }
   }

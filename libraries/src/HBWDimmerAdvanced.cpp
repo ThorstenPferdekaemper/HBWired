@@ -9,7 +9,7 @@
 *
 * http://loetmeister.de/Elektronik/homematic/
 *
-* Last updated: 16.04.2021
+* Last updated: 01.11.2021
 */
 
 #include "HBWDimmerAdvanced.h"
@@ -50,20 +50,22 @@ void HBWDimmerAdvanced::afterReadConfig()
 /* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
 void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  if (length >= NUM_PEER_PARAMS)  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
+  if (length >= NUM_PEER_PARAMS +2)  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
   {
     StateMachine.writePeerParamActionType(*(data));
     StateMachine.writePeerConfigParam(data[D_POS_peerConfigParam]);
     uint8_t currentKeyNum = data[NUM_PEER_PARAMS];
+    bool sameLastSender = data[NUM_PEER_PARAMS +1];
 
     if (StateMachine.peerParam_getActionType() > JUMP_TO_TARGET)   // all ACTION_TYPEs except JUMP_TO_TARGET will be covered here
     {
       if (StateMachine.currentStateIs(JT_ON) && (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && StateMachine.peerParam_onLevelPrioIsLow())) { 
-            //do nothing in this case
+            // new low onLevelPrio should not overwrite high onLevelPrio when in "on" state
+            // do nothing in this case
       }
       else {
         // do not interrupt running timer. First key press goes here, repeated press only when LONG_MULTIEXECUTE is enabled
-        if ((!StateMachine.stateTimerRunning) && ((StateMachine.lastKeyNum != currentKeyNum) || (StateMachine.lastKeyNum == currentKeyNum && StateMachine.peerParam_getLongMultiexecute()))) {
+        if ((!StateMachine.stateTimerRunning) && ((StateMachine.lastKeyNum != currentKeyNum || (StateMachine.lastKeyNum == currentKeyNum && !sameLastSender)) || (StateMachine.lastKeyNum == currentKeyNum && sameLastSender && StateMachine.peerParam_getLongMultiexecute()))) {
           
           byte level = currentValue;
   
@@ -112,7 +114,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
         }
       }
     }
-    else if (StateMachine.lastKeyNum == currentKeyNum && !StateMachine.peerParam_getLongMultiexecute()) {
+    else if (StateMachine.lastKeyNum == currentKeyNum && sameLastSender && !StateMachine.peerParam_getLongMultiexecute()) {
       // repeated key event for ACTION_TYPE == 1 (ACTION_TYPE == 0 already filtered by receiveKeyEvent, HBWLinkReceiver)
       // repeated long press, but LONG_MULTIEXECUTE not enabled
     }
@@ -132,7 +134,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
              )) {
         // ON/OFF_TIME_ABSOLUTE running and in ON/OFF state, but new on/off time received is TIME_MINIMAL
         // do nothing in this case
-        // or ON_TIME_ABSOLUTE with HIGH onLevelPrio cannot be overwritten with ON_TIME_ABSOLUTE LOW onLevelPrio - TODO: correct behaviour?
+        // or ON_TIME_ABSOLUTE with HIGH onLevelPrio cannot be overwritten with ON_TIME_ABSOLUTE & LOW onLevelPrio - TODO: correct behaviour?
     }
     else  // action type: JUMP_TO_TARGET
     {
@@ -154,7 +156,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
       writePeerConfigStep(data[D_POS_peerConfigStep]);
       writePeerConfigOffDtime(data[D_POS_peerConfigOffDtime]);
       
-      if (StateMachine.onLevel > 0 && StateMachine.onLevel >= StateMachine.onMinLevel) {  // don't allow on_level 0 or below on_min_level
+      if (StateMachine.onLevel > 0 && StateMachine.onLevel >= StateMachine.onMinLevel) {  // don't allow on_level 0 or below on_min_level // TODO: should this sanity check happen only when entering on or ramp_on state? right now it blocks all processing
         StateMachine.forceStateChange(); // force update
       }
     }

@@ -4,9 +4,11 @@
  *  HBWDimmerVirtual should be used with a dimmer channel (HBWDimmerAdvanced & HBWLinkDimmerAdvanced).
  *  It allows to influence the on_level of the physical dimmer channel, by combining the level set
  *  from peering with the level of its own channel with various logic.
- *  Not all logic combinations are implemneted (may also not useful for a single virtual channel.
+ *  Not all logic combinations are implemneted (may also not useful for a single virtual channel).
  *  
- *  Flow: key ->(peering)-> dimmer_virtual ->(levels + logic)-> dimmer
+ *  Flow: key ->(peering)-> dimmer_virtual ->(levels + logic)-> dimmer channel
+ *
+ *  TODO: A virtual dimmer channel should actually have a full state machine...
  */
 
 #ifndef HBWDimmerVirtual_h
