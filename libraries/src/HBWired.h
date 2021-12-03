@@ -89,6 +89,9 @@ class HBWLinkReceiver {
 #define MAX_RX_FRAME_LENGTH 64
 static const boolean NEED_IDLE_BUS = true;  // use for sendFrame
 
+#define DEFAULT_SEND_RETRIES 3
+#define PEER_SEND_RETRIES 1  // Send peer message only once
+
 
 // The HBWired-Device
 class HBWDevice {
@@ -130,7 +133,7 @@ class HBWDevice {
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress);
 	// Key Event Routine mit Target fuer LinkSender 
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress,
-				uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = 3);
+				uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = DEFAULT_SEND_RETRIES);
     // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
     virtual uint8_t sendKeyEvent(uint8_t srcChan, uint8_t length, void* data);
  								 
@@ -169,7 +172,7 @@ class HBWDevice {
 	//   0 -> ok
 	//   1 -> bus not idle (only if onlyIfIdle)
 	//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-	uint8_t sendFrame(boolean onlyIfIdle = false, uint8_t retries = 3);
+	uint8_t sendFrame(boolean onlyIfIdle = false, uint8_t retries = DEFAULT_SEND_RETRIES);
 	void sendAck();  // ACK fuer gerade verarbeitete Message senden
 
 	// eigene Adresse setzen und damit auch random seed
