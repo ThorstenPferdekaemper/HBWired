@@ -170,7 +170,6 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
   digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output
 
   // allow peering with external switches
-  if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
   if (device->sendKeyEvent(channel, keyPressNum, !nextState) != HBWDevice::BUS_BUSY) {
     keyPressNum++;
     currentState = nextState; // retry, as long as the bus is busy (retry interval: 'output_change_wait_time')
