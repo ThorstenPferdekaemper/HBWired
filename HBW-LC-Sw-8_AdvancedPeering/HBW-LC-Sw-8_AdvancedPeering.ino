@@ -22,7 +22,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0068
+#define FIRMWARE_VERSION 0x0069
 #define HMW_DEVICETYPE 0x83
 
 #define NUM_CHANNELS 8
@@ -44,28 +44,40 @@
 #include <HBWSwitchAdvanced.h>
 
 
+// Pins
+#define LED LED_BUILTIN      // Signal-LED
+
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable
+  #define BUTTON A6  // Button fuer Factory-Reset etc.
+  
+  #define SWITCH1_PIN A4  // Ausgangpins fuer die Relais
+  #define SWITCH2_PIN A2
+  #define SWITCH3_PIN A0
+  #define SWITCH4_PIN 10
+  #define SWITCH5_PIN A1
+  #define SWITCH6_PIN 9
+  #define SWITCH7_PIN A3
+  #define SWITCH8_PIN 5
+  
 #else
   #define RS485_RXD 4
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
+  #define BUTTON 8  // Button fuer Factory-Reset etc.
+
+  #define SWITCH1_PIN A0  // Ausgangpins fuer die Relais
+  #define SWITCH2_PIN A1
+  #define SWITCH3_PIN A2
+  #define SWITCH4_PIN A3
+  #define SWITCH5_PIN A4
+  #define SWITCH6_PIN A5
+  #define SWITCH7_PIN 10
+  #define SWITCH8_PIN 11
   
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif
 
-
-// Pins
-#define BUTTON 8  // Button fuer Factory-Reset etc.
-#define LED LED_BUILTIN      // Signal-LED
-#define SWITCH1_PIN A0  // Ausgangpins fuer die Relais
-#define SWITCH2_PIN A1
-#define SWITCH3_PIN A2
-#define SWITCH4_PIN A3
-#define SWITCH5_PIN A4
-#define SWITCH6_PIN A5
-#define SWITCH7_PIN 10
-#define SWITCH8_PIN 11
 
 
 struct hbw_config {
@@ -97,7 +109,7 @@ class HBSwDevice : public HBWDevice {
 
 // device specific defaults
 void HBSwDevice::afterReadConfig() {
-  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 20;
+  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
 };
 
 
@@ -151,4 +163,5 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };

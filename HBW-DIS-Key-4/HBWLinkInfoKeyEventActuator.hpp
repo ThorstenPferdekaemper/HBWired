@@ -50,8 +50,15 @@ void HBWLinkInfoKeyEventActuator<numLinks, eepromStart>::receiveKeyEvent(HBWDevi
   uint32_t sndAddrEEPROM;
   uint8_t channelEEPROM;
   uint8_t actionType;
-  uint8_t data[2];
+  uint8_t data[3];
   data[1] = keyPressNum;
+  data[2] = false;
+  
+  if (senderAddress == lastSenderAddress && senderChannel == lastSenderChannel) {
+    data[2] = true;  // true, as this was the same sender (source device & channel) - sameLastSender
+  }
+  lastSenderAddress = senderAddress;
+  lastSenderChannel = senderChannel;
   
   // read what to do from EEPROM
   for(byte i = 0; i < numLinks; i++) {

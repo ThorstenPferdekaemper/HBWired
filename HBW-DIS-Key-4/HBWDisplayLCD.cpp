@@ -129,12 +129,15 @@ void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * c
 {
   /* just store the new value. The display loop can fetch it, when needed */
   
-  if (length == 2)
+  if (length == 3)
   {
-    if (lastKeyNum == data[1])  // ignore repeated key press
+    uint8_t currentKeyNum = data[1];
+    bool sameLastSender = data[2];
+    
+    if (lastKeyNum == currentKeyNum && sameLastSender)  // ignore repeated key press from the same sender
       return;
     else
-      lastKeyNum = data[1];
+      lastKeyNum = currentKeyNum;
   }
     
   if (data[0] > 200)    // toggle
