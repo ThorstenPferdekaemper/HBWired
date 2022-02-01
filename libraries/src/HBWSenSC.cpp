@@ -18,7 +18,7 @@ HBWSenSC::HBWSenSC(uint8_t _pin, hbw_config_senSC* _config, boolean _activeHigh)
   config = _config;
   activeHigh = _activeHigh;
   keyPressedMillis = 0;
-  nextFeedbackDelay = 0;
+  clearFeedback();
   initDone = false;
   if (activeHigh) pinMode(pin, INPUT);
   else pinMode(pin, INPUT_PULLUP); // pullup only for activeLow
@@ -41,6 +41,7 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
   if (initDone == false) {
     currentValue = readScInput();
     initDone = true;
+    return;
   }
   
   if (!config->n_input_locked) return;   // channel locked?
@@ -58,11 +59,9 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
     else if (now - keyPressedMillis >= DEBOUNCE_TIME) {
       currentValue = buttonState;
       keyPressedMillis = 0;
- 
-      if (!config->notify_disabled) {  // notify/i-message enabled
-        lastFeedbackTime = now;   // rapid state changes would reset the counter and not flood the bus with messages
-        nextFeedbackDelay = DEBOUNCE_TIME +30;
-      }
+      
+      clearFeedback();   // rapid state changes would reset the timer and not flood the bus with messages
+      setFeedback(device, !config->notify_disabled, DEBOUNCE_TIME *10);
       
   #ifdef DEBUG_OUTPUT
     hbwdebug(F("sc-ch:"));
@@ -78,11 +77,6 @@ void HBWSenSC::loop(HBWDevice* device, uint8_t channel) {
   }
   
   // feedback trigger set?
-  if(!nextFeedbackDelay) return;
-  if(millis() - lastFeedbackTime < ((uint32_t)nextFeedbackDelay *10)) return;
-  static uint8_t level;
-  get(&level);
-  device->sendInfoMessage(channel, 1, &level);  // we know that the level has only 1 byte here
-  nextFeedbackDelay = 0;  // do not resend (sendInfoMessage perform 3 retries anyway)
+  checkFeedback(device, channel);
 };
 

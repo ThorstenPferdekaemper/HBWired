@@ -26,9 +26,9 @@ Standard-Pinbelegung:
 13 - Status LED
 A6 - Bedientaster (Reset)
 8  - BUTTON_1
-12 - BUTTON_2
-7  - BUTTON_3
-4  - BUTTON_4
+7  - BUTTON_2
+4  - BUTTON_3
+A1 - BUTTON_4
 9  - BACKLIGHT (PWM Pin!)
 A0 - LDR (Photo R (ADC Pin!))
 

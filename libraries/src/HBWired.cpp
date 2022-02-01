@@ -385,10 +385,10 @@ void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};
 void HBWChannel::afterReadConfig() {};
 
 // default logging/feedback functions
-void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled) {
+void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled, uint16_t loggingTime) {
   if (!nextFeedbackDelay && loggingEnabled) {
     lastFeedbackTime = millis();
-    nextFeedbackDelay = device->getLoggingTime() * 100;
+    nextFeedbackDelay = loggingTime ? loggingTime : device->getLoggingTime() * 100;
   }
 };
 void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {

@@ -16,7 +16,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000C
+#define FIRMWARE_VERSION 0x000D
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 // + 1 türsummer?
@@ -34,7 +34,6 @@
 
 // HB Wired protocol and module
 #include <HBWired.h>
-//#include <HBWKey.h>
 #include <HBWLinkKey.h>
 #include "HBWKeyDoorbell.h"
 #include <HBWDimBacklight.h>
@@ -46,9 +45,9 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   
   #define BUTTON_1 8
-  #define BUTTON_2 12
-  #define BUTTON_3 7
-  #define BUTTON_4 4
+  #define BUTTON_2 7
+  #define BUTTON_3 4
+  #define BUTTON_4 A1
 
   //#define BUZZER 6
   
@@ -108,11 +107,9 @@ HBWDevice* device = NULL;
 
 void setup()
 {
-   channels[0] = new HBWDimBacklight(&(hbwconfig.BlDimCfg[0]), BACKLIGHT_PWM, LDR_PIN);
-   //channels[1] = new HBWAnalogBrightness(&(hbwconfig.brightnessCfg[0]), LDR_PIN);
-   //channels[0] = new HBWDimBacklight(&(hbwconfig.BlDimCfg[0]), BACKLIGHT_PWM, channels[1]);
+  channels[0] = new HBWDimBacklight(&(hbwconfig.BlDimCfg[0]), BACKLIGHT_PWM, LDR_PIN);
 
-   
+  
   static const byte BUTTON_PIN[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4};
   
  #if (NUMBER_OF_KEY_CHAN == 4)
