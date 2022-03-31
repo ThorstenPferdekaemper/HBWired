@@ -60,7 +60,7 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 {
   if (config->unlocked || setByPID)  // locked channels can still be set by PID, but are blocked for external changes
   {
-    if ((*data >= 0 && *data <= 200) && (stateFlags.element.inAuto == MANUAL || setByPID))  // change level only if manual mode or setByPID
+    if ((*data >= 0 && *data <= 200) && (!stateFlags.element.inAuto || setByPID))  // change level only if manual mode or setByPID
     {
       setNewLevel(device, *data);
       
@@ -77,13 +77,13 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
           stateFlags.element.inAuto = !stateFlags.element.inAuto;
           break;
         case SET_AUTOMATIC:
-          stateFlags.element.inAuto = AUTOMATIC;
+          stateFlags.element.inAuto = true;
           break;
         case SET_MANUAL:
-          stateFlags.element.inAuto = MANUAL;
+          stateFlags.element.inAuto = false;
           break;
       }
-      setNewLevel(device, stateFlags.element.inAuto ? config->error_pos : valveLevel);
+      setNewLevel(device, stateFlags.element.inAuto ? valveLevel : config->error_pos);
       
  #ifdef DEBUG_OUTPUT
  hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
@@ -147,29 +147,25 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
 
   if (now - outputChangeLastTime >= (uint32_t)outputChangeNextDelay *100)
   {
-    switchstate(nextState);
     outputChangeLastTime = now;
+    outputChangeNextDelay = set_timer(isFirstState, nextState);
+    bool oldState = nextState;
+    nextState = (oldState == VENTON ? VENTOFF : VENTON);
+    if (outputChangeNextDelay != 0) {   // don't change output state for 0 delay
+      stateFlags.element.status = (nextState ^ config->n_inverted);
+      digitalWrite(pin, stateFlags.element.status);
+    }
+    isFirstState = false;
+
+  #ifdef DEBUG_OUTPUT
+   hbwdebug(F("switchtstate, pin: ")); hbwdebug(pin);
+   oldState == VENTOFF ? hbwdebug(F(" VENTOFF")) : hbwdebug(F(" VENTON"));
+   hbwdebug(F(" next delay: ")); hbwdebug((uint32_t)outputChangeNextDelay *100); hbwdebug(F("\n"));
+  #endif
   }
   
   // feedback trigger set?
   checkFeedback(device, channel);
-}
-
-
-// called by loop() with next state, if delay time has passed
-void HBWValve::switchstate(bool State)
-{
-  outputChangeNextDelay = set_timer(isFirstState, nextState);
-  nextState = (State == VENTON ? VENTOFF : VENTON);
-  stateFlags.element.status = (nextState ^ config->n_inverted);
-  digitalWrite(pin, stateFlags.element.status);
-  isFirstState = false;
-  
- #ifdef DEBUG_OUTPUT
-  hbwdebug(F("switchtstate, pin: ")); hbwdebug(pin);
-  State == VENTOFF ? hbwdebug(F(" VENTOFF")) : hbwdebug(F(" VENTON"));
-  hbwdebug(F(" next delay: ")); hbwdebug((uint32_t)outputChangeNextDelay *100); hbwdebug(F("\n"));
- #endif
 }
 
 
@@ -221,7 +217,7 @@ bool HBWValve::init_new_state()
 
 
 uint16_t HBWValve::set_ontimer(uint8_t VentPositionRequested) {
-    return ((((uint16_t)config->valveSwitchTime) * VentPositionRequested) / 2);
+    return (((uint16_t)config->valveSwitchTime * VentPositionRequested) / 2);
 }
 
 

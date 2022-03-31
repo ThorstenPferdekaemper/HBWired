@@ -109,8 +109,6 @@ class HBWValve : public HBWChannel {
     } stateFlags;
 
     static const uint16_t OUTPUT_STARTUP_DELAY = 63;  // 63 == 6.3 seconds
-    static const bool MANUAL = false;
-    static const bool AUTOMATIC = true;
 };
 
 #endif /* HBWVAVLE_H_ */
