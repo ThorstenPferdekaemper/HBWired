@@ -13,6 +13,13 @@
 #include "HBWired.h"
 
 
+// need to match (default) frame definition in XML:
+#define SET_BLIND_TOGGLE  255
+#define SET_BLIND_STOP    201
+#define SET_BLIND_UP      200
+#define SET_BLIND_CLOSE     0
+
+
 template<uint8_t numLinks, uint16_t eepromStart>
 class HBWLinkBlindSimple : public HBWLinkReceiver {
   public:
