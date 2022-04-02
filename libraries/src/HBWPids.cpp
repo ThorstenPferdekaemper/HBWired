@@ -66,9 +66,10 @@ void HBWPids::afterReadConfig()
 /* set special input value for a channel, via peering event. */
 void HBWPids::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  if (length == 2)  // desired_temp has 2 bytes
+  if (length == 2)  // temp value must have 2 bytes
   {
-    Input = ((data[0] << 8) | data[1]);  // set desired_temp
+    Input = ((data[0] << 8) | data[1]);  // set pid input (actual) temperature
+    if (Input < ERROR_TEMP)  Input = ERROR_TEMP;
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("setInfo: ")); hbwdebug(Input); hbwdebug(F("\n"));
   #endif

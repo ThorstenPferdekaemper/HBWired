@@ -103,6 +103,16 @@
 					<address index="+0"/>
 				</physical>
 			</parameter>
+			<parameter id="MOTOR_STARTUP_DELAY">
+				<logical type="integer" default="0" max="1260" min="0" unit="ms"/>
+				<conversion type="float_integer_scale" offset="0.0" factor="0.10"/>
+				<physical size="0.7" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="0" device_value="0x7f"/>
+				</conversion>
+			</parameter>
 			<parameter id="CHANGE_OVER_DELAY">
 				<logical type="float" unit="s" default="0.5" max="25.5" min="0.5"/>
 				<conversion type="float_integer_scale" offset="0.0" factor="10"/>

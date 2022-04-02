@@ -64,16 +64,16 @@ void HBWLinkBlindSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devic
 	  // we can have
 	  switch(actionType) {
 	  // 0 -> OPEN
-	    case 0: data[0] = 200;
+	    case 0: data[0] = SET_BLIND_UP;
 		        break;
 	  // 1 -> STOP
-	    case 1: data[0] = 201;
+	    case 1: data[0] = SET_BLIND_STOP;
 		        break;
 	  // 2 -> CLOSE
-	    case 2: data[0] = 0;
+	    case 2: data[0] = SET_BLIND_CLOSE;
 				break;
 	  // 3 -> TOGGLE (default)
-	    case 3: data[0] = 255;
+	    case 3: data[0] = SET_BLIND_TOGGLE;
                 break;
 	  // 4 -> LEVEL
 	    case 4: { asm ("nop"); } // target level already stored in "data" - nothing to do...
