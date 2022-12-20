@@ -182,6 +182,8 @@ class HBWDevice {
     // get central address
     uint32_t getCentralAddress();
     void handleBroadcastAnnounce();
+    void handleAfterReadConfig();
+    void handleResetSystem();
 	
 	// the broadcast methods return...
 	// 0 -> everything ok
