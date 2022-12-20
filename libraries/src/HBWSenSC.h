@@ -45,7 +45,7 @@ class HBWSenSC : public HBWChannel {
     boolean activeHigh;    // activeHigh=true -> input active high, else active low
 
     inline boolean readScInput() {
-      boolean reading  = (digitalRead(pin) ^ config->n_inverted);
+      boolean reading  = (digitalRead(pin) ^ !config->n_inverted);
       return (activeHigh ^ reading);
     }
 	
