@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-Sen-EP" name="Homebrew Wired S0-Interface (8-fach)">
 		<parameter index="0" size="1" const_value="0x84"/>
 		<parameter index="1" size="1" const_value="1"/>
-		<parameter index="2" size="2" cond_op="GE" const_value="0x0001"/>
+		<parameter index="2" size="2" cond_op="GE" const_value="0x0002"/>
 	</type>
 </supported_types>
 <paramset type="MASTER" id="HBW-Sen-EP_dev_master">
@@ -69,7 +69,7 @@
 				</physical>
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>		
-			<parameter id="POLLING_TIME">
+			<!--<parameter id="POLLING_TIME">
 				<logical type="integer" min="10" max="150" default="10" unit="ms"/>
 				<physical type="integer" size="0.4" interface="eeprom" endian="little">
 					<address index="+0.2"/>
@@ -78,7 +78,7 @@
 				<conversion type="integer_integer_map">
 					<value_map device_value="0x0f" parameter_value="1" from_device="true" to_device="false"/>
 				</conversion>
-			</parameter>
+			</parameter>-->
 			<parameter id="SEND_DELTA_COUNT">
 				<logical type="integer" min="1" max="1000" default="1"/>
 				<physical type="integer" size="2.0" interface="eeprom" endian="little">
