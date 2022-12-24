@@ -69,16 +69,6 @@
 				</physical>
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>		
-			<!--<parameter id="POLLING_TIME">
-				<logical type="integer" min="10" max="150" default="10" unit="ms"/>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little">
-					<address index="+0.2"/>
-				</physical>
-				<conversion type="float_integer_scale" factor="0.1"/>
-				<conversion type="integer_integer_map">
-					<value_map device_value="0x0f" parameter_value="1" from_device="true" to_device="false"/>
-				</conversion>
-			</parameter>-->
 			<parameter id="SEND_DELTA_COUNT">
 				<logical type="integer" min="1" max="1000" default="1"/>
 				<physical type="integer" size="2.0" interface="eeprom" endian="little">
@@ -97,6 +87,13 @@
 					<address index="+5.0"/>
 				</physical>
 			</parameter>	
+			<parameter id="COUNTS_PER_UNIT">
+				<logical type="integer" min="100" max="6000" default="1000" unit="imp"/>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.01"/>
+			</parameter>
 			<!--<parameter id="IMPULSE_PRO_EINHEIT">
 				<logical type="integer" min="1000" max="2000" default="1000" unit="s"/>
 				<physical type="integer" size="2.0" interface="eeprom" endian="little">

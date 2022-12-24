@@ -53,7 +53,6 @@
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
-#include "HBW-Sen-EP_interrupt.h"
   #define RS485_TXEN 2  // Transmit-Enable
  #if defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI)
   #define BUTTON 20
@@ -77,6 +76,9 @@
 
 //  #define BLOCKED_TWI_SDA SDA //A4  // reserved for I²C
 //  #define BLOCKED_TWI_SCL SCL //A5  // reserved for I²C
+  #ifdef USE_INTERRUPTS_FOR_INPUT_PINS
+   #include "HBW-Sen-EP_interrupt.h"
+  #endif
 
 #else
   #define RS485_RXD 4
@@ -94,7 +96,7 @@
   #define Sen7 5
   #define Sen8 7
   
-  #include "FreeRam.h"
+  #include <FreeRam.h>
   #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif  //USE_HARDWARE_SERIAL
@@ -140,13 +142,14 @@ interruptFunction(Sen8);
 void setup()
 {
   // create channels
-  #if !defined(USE_INTERRUPTS_FOR_INPUT_PINS)
+ #if !defined(USE_INTERRUPTS_FOR_INPUT_PINS)
   static const uint8_t SenPin[NUMBER_OF_SEN_CHAN] = {Sen1, Sen2, Sen3, Sen4, Sen5, Sen6, Sen7, Sen8};  // assing pins
   
   for(uint8_t i = 0; i < NUMBER_OF_SEN_CHAN; i++) {
     channels[i] = new HBWSenEP(SenPin[i], &(hbwconfig.SenEpCfg[i]));
   }
-  #elif defined(USE_HARDWARE_SERIAL) && defined(USE_INTERRUPTS_FOR_INPUT_PINS)
+  
+ #elif defined(USE_HARDWARE_SERIAL) && defined(USE_INTERRUPTS_FOR_INPUT_PINS)
   #if NUMBER_OF_SEN_CHAN == 8
   //TODO: find smarter way to point to ISR counter variable? e.g. use struct? count += sizeof(uint16_t PINCOUNT(x)??)
   channels[0] = new HBWSenEP(&getInterruptCounter(Sen1), &(hbwconfig.SenEpCfg[0]));
@@ -160,7 +163,7 @@ void setup()
   #else
     #error Input channel missmatch!
   #endif
-  #endif
+ #endif
 
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);
@@ -218,10 +221,11 @@ void loop()
 
 //   //LCdisplay.bell.toggle();
  #if defined(USE_LCD)
- static uint32_t lastUpdate = 0, LCDbuttonLastPress = 0;
- static uint8_t ch_count = 0;
- uint32_t now = millis();
-  if (now - lastUpdate > 200) {
+  static uint32_t lastUpdate = 0, LCDbuttonLastPress = 0;
+  static uint8_t ch_count = 0;
+  uint32_t now = millis();
+  static const uint16_t UPDATE_AND_DEBOUNCE_TIME = 200;
+  if (now - lastUpdate > UPDATE_AND_DEBOUNCE_TIME) {
     LCdisplay.eraseNumbers();
     LCdisplay.put(('0' + (ch_count +1) % 10), 0);
     LCdisplay.put(':', 1);
@@ -265,8 +269,8 @@ void loop()
       if (!LCDbuttonLastPress) {
         LCDbuttonLastPress = (now == 0) ? 1 : now;
       }
-      else if ((int32_t)(now - LCDbuttonLastPress) > 200) {
-        LCDbuttonLastPress = now + 500;  // when remains pressed, add some delay
+      else if ((int32_t)(now - LCDbuttonLastPress) > UPDATE_AND_DEBOUNCE_TIME) {
+        LCDbuttonLastPress = now + UPDATE_AND_DEBOUNCE_TIME*3;  // when remains pressed, add some delay
         if (ch_count < 7) ch_count++; else ch_count = 0;
       }
     }
