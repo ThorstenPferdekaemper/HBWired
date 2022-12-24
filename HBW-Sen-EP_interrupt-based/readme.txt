@@ -3,7 +3,8 @@ Homematic Wired Homebrew S0-Interface
 
 Das Modul HBW-Sen-EP liest bis zu 8 angeschlossene S0-Signale ein und sendet die aktuellen Zählerstände an die Zentrale.
 Über das S0-Interface können bspw. Stromzähler, Gaszähler, Wärmemengenzähler, Wasserzähler, etc. eingelesen werden.
-Basis ist ein Arduino NANO mit RS485-Interface.
+Basis ist ein Arduino NANO mit RS485-Interface, oder atmega328PB Xplained, o.ä.
+S0-Signal Eingänge über Port Interrupts. Nicht in Kombination mit HBWSoftwareSerial / SoftwareSerial. Bei Nutzung der Arduino IDE, die Datei HBWSoftwareSerial.cpp z.B. in HBWSoftwareSerial.cpp_ umbenennen, um Projekt erfolgreich zu Kompilieren.
 
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw_sen_ep.xml in den Ordner \FHEM\lib\HM485\Devices\xml kopiert werden (Das Device gibt sich als HW-Typ 0x84 aus).
@@ -12,7 +13,6 @@ Config der Kanäle kann über das FHEM-Webfrontend vorgenommen werden:
 # Invertierung
 # Minimum-Sendeintervall
 # Maximum-Sendeintervall
-# Abtastung (10...150ms in 10 ms Schritten)
 # Zählerdifferenz, ab der gesendet wird
 
 
