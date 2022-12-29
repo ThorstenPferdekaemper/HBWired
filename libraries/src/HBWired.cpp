@@ -760,7 +760,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
 };
 
 
-void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
+void HBWDevice::writeEEPROM(uint16_t address, byte value, bool privileged ) {
    // save uppermost 4 bytes
    if(!privileged && (address > E2END - 4))
       return;
@@ -936,7 +936,8 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	configPin = _configPin;
 	if(configPin != NOT_A_PIN) {
-	#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI)
+	#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not (defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI) || defined(__AVR_ATmega328PB__))
+    /* workaround for ATmega328P with analog only A6 and A7 pins, where digitalRead() does not work */
 		if (configPin == A6 || configPin == A7)
 			pinMode(configPin,INPUT);	// no pullup for analog input
 		else
@@ -1057,7 +1058,8 @@ void HBWDevice::handleConfigButton() {
   unsigned long now = millis();
   boolean buttonState;
 
-#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI)
+#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not (defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI) || defined(__AVR_ATmega328PB__))
+  /* workaround for ATmega328P with analog only A6 and A7 pins, where digitalRead() does not work */
   if (configPin == A6 || configPin == A7) {
     buttonState = false;
     if (analogRead(configPin) < 250) // Button to ground with ~100k pullup
@@ -1152,6 +1154,8 @@ void HBWDevice::handleConfigButton() {
 void HBWDevice::handleStatusLEDs() {
 	// turn on or off Tx, Rx LEDs - allow use of "config LED" for Tx, Rx combined
 	// don't operate LED when configButton was pressed and "config LED" is used for Tx or Rx
+	
+	if (txLedPin == NOT_A_PIN && rxLedPin == NOT_A_PIN)	return;  // if not used, get out here quick
 	
 	static unsigned long lastStatusLEDsTime = 0;
 	
