@@ -17,13 +17,13 @@
 // - rework of channel loop - reading input
 // - removed POLLING_TIME config (replaced by fixed debounce time - DEBOUNCE_DELAY set in HBWSenEP.h)
 // - add interrupt and LCD support (-> separate project file HBW-Sen-EP_interrupt.ino)
-// v0.02
-// - made compatible for ATMEGA 328PB (https://github.com/AtmelUniversityFrance/atmel-avr-xmini-boardmanagermodule)
-// TODO: final pin assignment
+// v0.2
+// - made compatible for ATMEGA 328PB (https://github.com/watterott/Arduino-Boards / https://github.com/MCUdude/MiniCore)
+
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0002
+#define FIRMWARE_VERSION 0x0016
 #define HMW_DEVICETYPE 0x84    //device ID (make sure to import hbw-sen-ep.xml into FHEM)
 
 #define NUMBER_OF_SEN_CHAN 8   // input channels
@@ -33,7 +33,7 @@
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
-#define USE_LCD  // device has build-in display
+//#define USE_LCD  // device has build-in display
 #define USE_INTERRUPTS_FOR_INPUT_PINS  // interrupt support (only possible without SoftwareSerial! Temporarily rename HBWSoftwareSerial.cpp to .cpp_ in HBWired lib, when using Arduino IDE)
 
 
@@ -45,34 +45,29 @@
 #include "UC121902-TNARX-A.h"
   // serial LCD
   #define LCD_DI 3
-  #define LCD_CE 5
   #define LCD_CK 4
+  #define LCD_CE 5
 
-  #define LCD_BUTTON 6  // Select button for LCD
+  #define LCD_BUTTON 12  // Select button for LCD
+//  #define LCD_LED 6  // extra LED or LCD backlight
 #endif
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable
- #if defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI)
-  #define BUTTON 20
- #else
   #define BUTTON A6
- #endif
   // #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
-      // digital input supporting port change interrupt
-      // 2 & 3 reserved for ARDUINO_328
-  #define Sen1 A0
-  #define Sen2 A1
-  #define Sen3 A2
+
+  /* digital input supporting port change interrupt
+     2 & 3 reserved for ARDUINO_328 */
+  #define Sen1 8
+  #define Sen2 7
+  #define Sen3 10
   #define Sen4 9
-  #define Sen5 10
-  #define Sen6 11
-//  #define Sen4 A3
-//  #define Sen5 4
-//  #define Sen6 5
-  #define Sen7 4
-  #define Sen8 7
+  #define Sen5 A0
+  #define Sen6 A1
+  #define Sen7 A2
+  #define Sen8 A3
 
 //  #define BLOCKED_TWI_SDA SDA //A4  // reserved for I²C
 //  #define BLOCKED_TWI_SCL SCL //A5  // reserved for I²C
@@ -119,8 +114,7 @@ HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the devic
 HBWDevice* device = NULL;
 
 #ifdef USE_LCD
-UC121902_TNARX_A::Display LCdisplay(A3, A4, A5);
-//UC121902_TNARX_A::Display LCdisplay(LCD_CE, LCD_CK, LCD_DI);
+UC121902_TNARX_A::Display LCdisplay(LCD_CE, LCD_CK, LCD_DI);
 #endif
 
 #if defined(USE_HARDWARE_SERIAL) && defined(USE_INTERRUPTS_FOR_INPUT_PINS)
@@ -270,7 +264,7 @@ void loop()
         LCDbuttonLastPress = (now == 0) ? 1 : now;
       }
       else if ((int32_t)(now - LCDbuttonLastPress) > UPDATE_AND_DEBOUNCE_TIME) {
-        LCDbuttonLastPress = now + UPDATE_AND_DEBOUNCE_TIME*3;  // when remains pressed, add some delay
+        LCDbuttonLastPress = now + UPDATE_AND_DEBOUNCE_TIME*4;  // when remains pressed, add some delay
         if (ch_count < 7) ch_count++; else ch_count = 0;
       }
     }
