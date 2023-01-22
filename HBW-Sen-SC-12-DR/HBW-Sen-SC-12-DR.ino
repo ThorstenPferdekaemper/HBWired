@@ -100,7 +100,7 @@ void setup()
 
   // input sensor and key channels
   for(uint8_t i = 0; i < NUMBER_OF_SEN_INPUT_CHAN; i++) {
-    channels[i] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]));
+    channels[i] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]), true);
     channels[i + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
   };
 #else

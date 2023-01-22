@@ -182,6 +182,8 @@ class HBWDevice {
     // get central address
     uint32_t getCentralAddress();
     void handleBroadcastAnnounce();
+    void handleAfterReadConfig();
+    void handleResetSystem();
 	
 	// the broadcast methods return...
 	// 0 -> everything ok
@@ -192,7 +194,7 @@ class HBWDevice {
 
 	// write to EEPROM, but only if not "value" anyway
 	// the uppermost 4 bytes are reserved for the device address and can only be changed if privileged = true
-	void writeEEPROM(int16_t address, uint8_t value, bool privileged = false );
+	void writeEEPROM(uint16_t address, uint8_t value, bool privileged = false );
 
 	uint8_t configSize;     // size of config object without peerings
 	uint8_t* config;        // pointer to config object 

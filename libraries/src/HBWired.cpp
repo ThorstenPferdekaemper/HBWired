@@ -760,7 +760,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
 };
 
 
-void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
+void HBWDevice::writeEEPROM(uint16_t address, byte value, bool privileged ) {
    // save uppermost 4 bytes
    if(!privileged && (address > E2END - 4))
       return;
@@ -843,6 +843,34 @@ void HBWDevice::handleBroadcastAnnounce() {
 }
 
 
+// read device and channel config, on init and if triggered by ReadConfig()
+void HBWDevice::handleAfterReadConfig() {
+  if (pendingActions.afterReadConfig) {
+    afterReadConfig();
+    for(uint8_t i = 0; i < numChannels; i++) {
+      channels[i]->afterReadConfig();
+    }
+    pendingActions.afterReadConfig = false;
+  }
+  return;
+}
+
+
+// perform device reset/restart
+void HBWDevice::handleResetSystem() {
+  if (pendingActions.resetSystem) {
+   #if defined (Support_ModuleReset)
+    #if defined (Support_WDT)
+    while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
+    #else
+    resetSoftware();  // otherwise jump to reset vector
+    #endif
+   #endif
+  }
+  return;
+}
+
+
 // return true, if bus was idle for minIdleTime (means nothing was received on the device)
 boolean HBWDevice::busIsIdle()
 {
@@ -908,7 +936,8 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	configPin = _configPin;
 	if(configPin != NOT_A_PIN) {
-	#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+	#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not (defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI) || defined(__AVR_ATmega328PB__))
+    /* workaround for ATmega328P with analog only A6 and A7 pins, where digitalRead() does not work */
 		if (configPin == A6 || configPin == A7)
 			pinMode(configPin,INPUT);	// no pullup for analog input
 		else
@@ -967,50 +996,35 @@ uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
 // The loop function is called in an endless loop
 void HBWDevice::loop()
 {
-  if (pendingActions.resetSystem) {
-   #if defined (Support_ModuleReset)
-    #if defined (Support_WDT)
-    while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
-    #else
-    resetSoftware();  // otherwise jump to reset vector
-    #endif
-   #endif
-  }
-  // read device and channel config, on init and if triggered by ReadConfig()
-  if (pendingActions.afterReadConfig) {
-    afterReadConfig();
-    for(uint8_t i = 0; i < numChannels; i++) {
-      channels[i]->afterReadConfig();
-    }
-    pendingActions.afterReadConfig = false;
-  }
-// Daten empfangen und alles, was zur Kommunikationsschicht gehört
-// processEvent vom Modul wird als Callback aufgerufen
-// Daten empfangen (tut nichts, wenn keine Daten vorhanden)
-  receive();
-  // Check
-  if(frameComplete) {
-	frameComplete = false;   // only once
-	if(targetAddress == ownAddress || targetAddress == 0xFFFFFFFF){
-	  if(parseFrame()) {
-	    processEvent(frameData, frameDataLength, (targetAddress == 0xFFFFFFFF));
-	  };	
-	}
-  };
-  // send announce message, if not done yet
-  handleBroadcastAnnounce();
-// feedback from individual channels (like switches and keys)
-   static uint8_t loopCurrentChannel = 0;
-   channels[loopCurrentChannel]->loop(this, loopCurrentChannel);
-   loopCurrentChannel++;
-   if (loopCurrentChannel >= numChannels) loopCurrentChannel = 0;
-// config Button
-   handleConfigButton();
-// Rx & Tx LEDs
-   handleStatusLEDs();
+  handleResetSystem();
+  handleAfterReadConfig();
+  for (uint8_t loopCurrentChannel = 0; loopCurrentChannel < numChannels; loopCurrentChannel++)
+  {
    #ifdef Support_WDT
    wdt_reset();
    #endif
+  // Daten empfangen und alles, was zur Kommunikationsschicht gehört
+  // processEvent vom Modul wird als Callback aufgerufen
+  // Daten empfangen (tut nichts, wenn keine Daten vorhanden)
+    receive();
+    // Check
+    if(frameComplete) {
+  	  frameComplete = false;   // only once
+  	  if(targetAddress == ownAddress || targetAddress == 0xFFFFFFFF) {
+  	    if(parseFrame()) {
+  	      processEvent(frameData, frameDataLength, (targetAddress == 0xFFFFFFFF));
+  	    };
+  	  }
+    };
+    // feedback from individual channels (like switches and keys)
+    channels[loopCurrentChannel]->loop(this, loopCurrentChannel);
+  }
+  // send announce message, if not done yet
+  handleBroadcastAnnounce();
+// config Button
+  handleConfigButton();
+// Rx & Tx LEDs
+  handleStatusLEDs();
 };
 
 
@@ -1044,7 +1058,8 @@ void HBWDevice::handleConfigButton() {
   unsigned long now = millis();
   boolean buttonState;
 
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not (defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI) || defined(__AVR_ATmega328PB__))
+  /* workaround for ATmega328P with analog only A6 and A7 pins, where digitalRead() does not work */
   if (configPin == A6 || configPin == A7) {
     buttonState = false;
     if (analogRead(configPin) < 250) // Button to ground with ~100k pullup
@@ -1139,6 +1154,8 @@ void HBWDevice::handleConfigButton() {
 void HBWDevice::handleStatusLEDs() {
 	// turn on or off Tx, Rx LEDs - allow use of "config LED" for Tx, Rx combined
 	// don't operate LED when configButton was pressed and "config LED" is used for Tx or Rx
+	
+	if (txLedPin == NOT_A_PIN && rxLedPin == NOT_A_PIN)	return;  // if not used, get out here quick
 	
 	static unsigned long lastStatusLEDsTime = 0;
 	

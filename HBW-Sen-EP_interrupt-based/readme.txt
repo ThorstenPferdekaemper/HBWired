@@ -3,7 +3,8 @@ Homematic Wired Homebrew S0-Interface
 
 Das Modul HBW-Sen-EP liest bis zu 8 angeschlossene S0-Signale ein und sendet die aktuellen Zählerstände an die Zentrale.
 Über das S0-Interface können bspw. Stromzähler, Gaszähler, Wärmemengenzähler, Wasserzähler, etc. eingelesen werden.
-Basis ist ein Arduino NANO mit RS485-Interface.
+Basis ist ein Arduino NANO, oder Wattuino Pro Mini PB (mit ATmega328PB), o.ä. mit RS485-Interface.
+S0-Signal Eingänge sind über Port Interrupts möglich, aber nicht in Kombination mit HBWSoftwareSerial / SoftwareSerial. (Bei Nutzung der Arduino IDE, die Datei HBWSoftwareSerial.cpp z.B. in HBWSoftwareSerial.cpp_ umbenennen, um das Projekt erfolgreich zu Kompilieren.)
 
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw_sen_ep.xml in den Ordner \FHEM\lib\HM485\Devices\xml kopiert werden (Das Device gibt sich als HW-Typ 0x84 aus).
@@ -15,7 +16,26 @@ Config der Kanäle kann über das FHEM-Webfrontend vorgenommen werden:
 # Zählerdifferenz, ab der gesendet wird
 
 
+Hardware Serial (USART) statt "HBWSoftwareSerial", daher keine Debug Ausgabe über USB! Der Bedientaster (Reset) ist ein Analogeingang! (nicht bei ATmega328PB)
+Mit "#define USE_HARDWARE_SERIAL" ist auch Port Interrupts "USE_INTERRUPTS_FOR_INPUT_PINS" möglich.
+Standard-Pinbelegung:
+0 - Rx RS485
+1 - Tx RS485
+2 - RS485 Enable
+13 - Status LED
+A6 - Bedientaster (Reset)
+8  - Input des 1. S0-Signals
+7  - Input des 2. S0-Signals
+10 - Input des 3. S0-Signals
+9  - Input des 4. S0-Signals
+A0 - Input des 5. S0-Signals
+A1 - Input des 6. S0-Signals
+A2 - Input des 7. S0-Signals
+A3 - Input des 8. S0-Signals
+
+
 Debug-Pinbelegung:
+(nicht mit "USE_INTERRUPTS_FOR_INPUT_PINS" - Port Interrupts möglich)
 0 - Rx Debug, Serial -> USB
 1 - Tx Debug, Serial -> USB
 3 - RS485 Enable
@@ -32,24 +52,6 @@ A5 - Input des 6. S0-Signals
 5  - Input des 7. S0-Signals
 7  - Input des 8. S0-Signals
 
-
-Alternative Möglichkeit, per "#define USE_HARDWARE_SERIAL" aktivieren:
-Hier wird Hardware Serial (USART) statt "HBWSoftwareSerial" genutzt, daher keine Debug Ausgabe über USB! Der Bedientaster (Reset) ist ein Analogeingang!
-
-Standard-Pinbelegung:
-0 - Rx RS485
-1 - Tx RS485
-2 - RS485 Enable
-13 - Status LED
-A6 - Bedientaster (Reset)
-A0 - Input des 1. S0-Signals
-A1 - Input des 2. S0-Signals
-A2 - Input des 3. S0-Signals
-A3 - Input des 4. S0-Signals
-A4 - Input des 5. S0-Signals
-A5 - Input des 6. S0-Signals
-3  - Input des 7. S0-Signals
-7  - Input des 8. S0-Signals
 
 
 Das Device gibt nur die Anzahl der Impulse weiter - eine Umrechnung in die entsprechende Einheit muss in FHEM konfiguriert werden.

@@ -9,6 +9,8 @@
 
 #include "HBWSenEP.h"
 
+
+// constructor
 HBWSenEP::HBWSenEP(uint8_t _pin, hbw_config_sen_ep* _config, boolean _activeHigh) {
   pin = _pin;
   config = _config;
@@ -23,6 +25,19 @@ HBWSenEP::HBWSenEP(uint8_t _pin, hbw_config_sen_ep* _config, boolean _activeHigh
   else pinMode(pin, INPUT_PULLUP); // pullup only for activeLow
 }
 
+// constructor when using INTERRUPT based counter
+HBWSenEP::HBWSenEP(volatile uint16_t* _counter, hbw_config_sen_ep* _config, boolean _activeHigh) {
+  counter = _counter;
+  config = _config;
+  activeHigh = _activeHigh;
+  
+  pin = NOT_A_PIN;
+  currentCount = 0;
+  lastSentCount = 0;
+  lastSentTime = 0;
+  lastPortReadTime = 0;
+}
+
 
 // channel specific settings or defaults
 // (This function is called after device read config from EEPROM)
@@ -30,15 +45,11 @@ void HBWSenEP::afterReadConfig() {
   if(config->send_delta_count == 0xFFFF) config->send_delta_count = 1;
   if(config->send_min_interval == 0xFFFF) config->send_min_interval = 10;
   if(config->send_max_interval == 0xFFFF) config->send_max_interval = 600; // 10 minutes
-  if(config->polling_time > 15) config->polling_time = POLLING_TIME/10;   // max. 150ms (polling_time*10)
 
-  currentPortState = readInput(pin);
-  oldPortState = currentPortState;
-
-  #ifdef DEBUG_OUTPUT
-  hbwdebug(F("Pin: ")); hbwdebug(pin); hbwdebug(F(" n_inv: ")); hbwdebug(config->n_inverted);
-  hbwdebug(F(" poll_time: ")); hbwdebug((uint8_t)config->polling_time *10); hbwdebug(F("ms\n"));
-  #endif
+ #ifdef DEBUG_OUTPUT
+  hbwdebug(F("Pin: ")); hbwdebug(pin); hbwdebug(F(" enabled: ")); hbwdebug(config->enabled);hbwdebug(F("\n"));
+  // hbwdebug(F(" poll_time: ")); hbwdebug((uint8_t)config->polling_time *10); hbwdebug(F("ms\n"));
+ #endif
 }
 
 
@@ -49,7 +60,7 @@ uint8_t HBWSenEP::get(uint8_t* data) {
   *data++ = (currentCount >> 8);
   *data = currentCount & 0xFF;
   return 2;
-};
+}
 
 
 void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
@@ -61,19 +72,36 @@ void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
   }
   
   uint32_t now = millis();
-
-  if (now - lastPortReadTime > (uint8_t)config->polling_time *10) {
-
+  
+ //skip this if ISR is used
+  if (pin != NOT_A_PIN) {
     currentPortState = readInput(pin);
     
-    // only count transition from high to low - once
-    if (currentPortState == LOW && currentPortState != oldPortState) {
-      currentCount++;
+    if (currentPortState == LOW)
+    {
+      if (!lastPortReadTime)  // not pressed yet
+      {
+        lastPortReadTime = (now == 0) ? 1 : now;
+        portStateChange = true;
+      }
+      else if (now - lastPortReadTime > DEBOUNCE_DELAY && portStateChange) {
+      // only count transition from high to low - once
+        portStateChange = false;
+        currentCount++;
+       #ifdef DEBUG_OUTPUT
+        hbwdebug(F("Pin: ")); hbwdebug(pin); hbwdebug(F(" COUNT:")); hbwdebug(currentCount);hbwdebug(F("\n"));
+       #endif
+      }
     }
-    oldPortState = currentPortState;
-    lastPortReadTime = now;
+    else {
+      portStateChange = true;
+      lastPortReadTime = 0;
+    }
   }
-
+  else
+  {
+    currentCount = *counter;  // read current counter value - updated by interrupt function in the background
+  }
 
   // check if some data needed to be send
   // do not send before min interval
@@ -81,16 +109,16 @@ void HBWSenEP::loop(HBWDevice* device, uint8_t channel) {
   if ((config->send_max_interval && now - lastSentTime >= (uint32_t)config->send_max_interval * 1000) ||
       (config->send_delta_count && (currentCount - lastSentCount ) >= config->send_delta_count)) {
     // send
-    static uint8_t level[2];
+    uint8_t level[2];
     get(level);
     // if bus is busy, then we try again in the next round
     if (device->sendInfoMessage(channel, 2, level) != HBWDevice::BUS_BUSY) {    // level has always 2 byte here
       lastSentCount = currentCount;
       lastSentTime = now;
     
-    #ifdef DEBUG_OUTPUT
-    hbwdebug(F("Ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(lastSentCount); hbwdebug(F("\n"));
-    #endif
-	  }
+     #ifdef DEBUG_OUTPUT
+      hbwdebug(F("Ch: ")); hbwdebug(channel); hbwdebug(F(" send: ")); hbwdebug(lastSentCount); hbwdebug(F("\n"));
+     #endif
+    }
   }
 }

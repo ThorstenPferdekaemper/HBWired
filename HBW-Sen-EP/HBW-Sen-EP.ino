@@ -13,10 +13,13 @@
 // Changes
 // v0.01
 // - initial version
+// v0.02
+// - rework of channel loop - reading input
+// - removed POLLING_TIME config (replaced by fixed debounce time - DEBOUNCE_DELAY set in HBWSenEP.h)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0001
+#define FIRMWARE_VERSION 0x0002
 #define HMW_DEVICETYPE 0x84    //device ID (make sure to import hbw-sen-ep.xml into FHEM)
 
 #define NUMBER_OF_SEN_CHAN 8   // input channels
@@ -34,33 +37,36 @@
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
-//#include "HBW-Sen-EP_interrupt.h"  // TODO: Add interrupt support (only possible when not using SoftwareSerial)
   #define RS485_TXEN 2  // Transmit-Enable
   #define BUTTON A6  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
-  
+
   #define Sen1 A0    // digital input
   #define Sen2 A1
   #define Sen3 A2
-  #define Sen4 A3
-  #define Sen5 A4
-  #define Sen6 A5
-  #define Sen7 3
+  #define Sen4 9
+  #define Sen5 10
+  #define Sen6 11
+//  #define Sen4 A3
+//  #define Sen5 4
+//  #define Sen6 5
+  #define Sen7 4
   #define Sen8 7
+
+//  #define BLOCKED_TWI_SDA SDA //A4  // reserved for I²C
+//  #define BLOCKED_TWI_SCL SCL //A5  // reserved for I²C
 
 #else
   #define RS485_RXD 4
   #define RS485_TXD 2
   #define RS485_TXEN 3  // Transmit-Enable
   #define BUTTON 8  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage
 
   #define Sen1 A0    // digital input
   #define Sen2 A1
   #define Sen3 A2
-  #define Sen4 A3
-  #define Sen5 A4
-  #define Sen6 A5
+  #define Sen4 9//A3
+  #define Sen5 10//A4
+  #define Sen6 11//A5
   #define Sen7 5
   #define Sen8 7
   
@@ -85,7 +91,6 @@ struct hbw_config {
 
 HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the device
 HBWDevice* device = NULL;
-
 
 
 void setup()
@@ -131,4 +136,5 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };
