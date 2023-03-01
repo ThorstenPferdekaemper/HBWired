@@ -16,16 +16,18 @@
 // - add option to configure 1*4 to 4*24 LCD
 // - allow to save custom text line to EERPOM (one per display line channel) and load on start
 // - added auto-off option for display backlight (dim channel)
+// v0.30
+// - add/fix load custom text after device restart
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0017
+#define FIRMWARE_VERSION 0x001E
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 
 #define NUMBER_OF_DISPLAY_CHAN 1
 #define NUMBER_OF_DISPLAY_DIM_CHAN 1
-#define NUMBER_OF_DISPLAY_LINES MAX_DISPLAY_LINES // defined in "HBWDisplayLCD.h", max. lines the display can have (set actual amount in display channel config!)
+#define NUMBER_OF_DISPLAY_LINES MAX_DISPLAY_LINES // defined in "HBWDisplayLCD.h", max. lines the display can have (actual amount set in display channel config!)
 #define NUMBER_OF_V_TEMP_CHAN 4   // virtual channels to peer with temperature sensor (or set any 2 byte signed value)
 #define NUMBER_OF_V_SWITCH_CHAN 4   // virtual channels to peer as switch (display ON/OFF state), or set by FHEM
 #define NUMBER_OF_V_CHAN NUMBER_OF_V_TEMP_CHAN + NUMBER_OF_V_SWITCH_CHAN    // total number of virtual channels

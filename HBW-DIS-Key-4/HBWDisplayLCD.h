@@ -24,10 +24,10 @@
 
 #define DISPLAY_CUSTOM_LINES_EESTART 0x320  // EEPROM start address to store one custom string per line
                                             // required space: MAX_DISPLAY_LINES * MAX_DISPLAY_CHARACTER_PER_LINE
-                                            // if uncommented, it will also remove the option to save custom text to EEPROM
+                                            // if commented out, it will also remove the option to save custom text to EEPROM
 
 
-static const byte LINE_BUFF_LEN = MAX_DISPLAY_CHARACTER_PER_LINE + (MAX_DISPLAY_CHARACTER_PER_LINE /5);
+static const byte LINE_BUFF_LEN = MAX_DISPLAY_CHARACTER_PER_LINE + (MAX_DISPLAY_CHARACTER_PER_LINE /5);   // raw display line buffer limit. Adding a few extra chars for variables and newline
 
 /*****************************************************************************
  * Static text
@@ -58,7 +58,7 @@ const char * const default_line_out_of_range[] PROGMEM = {
 //  text1, text2, text3, text4
 //};
 
-// text for "bool_text[][]" array, used in bool channels
+// text for "bool_text[][]" two dimensional array, used in bool channels
 const char text_on[] PROGMEM = {"Ein"};
 const char text_off[] PROGMEM = {"Aus"};
 const char text_open[] PROGMEM = {"Auf"};
@@ -73,7 +73,8 @@ const char text_off_sym[] PROGMEM = {"-"};
 // default, max. 4 characters will be displayed
 #define MAX_LENGTH_FOR_BOOL_TEXT 4
 
-// this array matches the "display_text" XML configuration: bool_text[display_text][current bool value (0 || 1)]
+// this array matches the "display_text" option from XML device file in one dimension, the other dimension selects the text:
+// bool_text[display_text (0 - 3)][current bool value (0 || 1)]
 PROGMEM const char * const bool_text[][4] = {
   {text_off, text_on},
   {text_close, text_open},
@@ -95,7 +96,7 @@ PROGMEM const char * const bool_text[][4] = {
 
 // config of one Display Virtual Numeric (display number variable) channel, address step 1
 struct hbw_config_displayVChNum {
-  uint8_t factor:2;   // 1/1, 1/10, 1/100. 1/1000
+  uint8_t factor:2;   // 1/1, 1/10, 1/100, 1/1000
   uint8_t digits:2;   // number of decimal places/digits (99999, 9999.9, 999.99, 99.999)
   uint8_t :4;     //fillup
 };
@@ -114,7 +115,7 @@ struct hbw_config_display_line {
   uint8_t :4;     //fillup
 };
 
-// config of one Display channel, address step 2
+// config of one Display channel (the actual display module), address step 2
 struct hbw_config_display {
   uint8_t startup:1;  // initial state, 1=ON
   uint8_t auto_cycle:1;  // default 1=auto_cycle enabled, to rotate different screens //TODO: implement
@@ -232,14 +233,18 @@ class HBWDisplayLine : public HBWDisplayVChannel {
     //virtual void loop(HBWDevice*, uint8_t channel);
     //virtual uint8_t get(uint8_t* data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+    virtual void afterReadConfig();
     
     virtual uint8_t getStringFromValue(char* _buffer);  // write current line or default text to "_buffer"
 
   private:
+    void readCustomLineFromEEPROM(char* _buffer);
     hbw_config_display_line* config;
     boolean useDefault;
     char line[LINE_BUFF_LEN];   // value received by set command (like "foo: %1%"). Will be displayed when set or called by command value 0
     uint8_t lastKeyNum;
+
+    boolean initDone;
 
     static byte numTotal;
     byte num;

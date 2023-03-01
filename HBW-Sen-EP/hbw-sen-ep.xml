@@ -26,7 +26,7 @@
 <frames>
 	<frame id="LEVEL_GET" direction="to_device" type="#S" channel_field="10"/>
 	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
-		<parameter type="integer" signed="true" index="11.0" size="2.0" param="COUNTER"/>
+		<parameter type="integer" signed="false" index="11.0" size="2.0" param="COUNTER"/>
 		<!--<parameter type="integer" signed="true" index="15.0" size="4.0" param="COUNTERWH"/>
 		<parameter type="integer" signed="true" index="19.0" size="2.0" param="COUNTERINTIME"/>
 		<parameter type="integer" signed="true" index="21.0" size="4.0" param="COUNTERLEISTUNG"/>-->
@@ -103,7 +103,7 @@
 		</paramset>		
 		<paramset type="VALUES" id="hmw_input_ch_values">
 			<parameter id="COUNTER" operations="read,event" control="NONE">
-				<logical type="float" min="0" max="65535"/>
+				<logical type="integer" min="0" max="65535"/>
 				<physical type="integer" interface="command" value_id="COUNTER">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
 					<event frame="INFO_LEVEL"/>
