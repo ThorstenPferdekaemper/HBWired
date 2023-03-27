@@ -45,7 +45,7 @@ class HBWDimBacklight : public HBWChannel {
   private:
     hbw_config_dim_backlight* config;
     uint8_t backlightPin;  // (PWM!) pin for backlight
-    uint8_t photoresistorPin;  // light resistor (mabye not used == NOT_A_PIN) - pin must be ADC!
+    uint8_t photoresistorPin;  // light resistor (mabye not used == NOT_A_PIN) - pin must be ADC input!
     uint8_t brightness;   // read ADC and save average here
 //    HBWChannel* brightnessChan;
     uint8_t currentValue;   // current dimmer level (0...200 -> 0...100%)

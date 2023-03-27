@@ -52,12 +52,15 @@ void HBWDimBacklight::set(HBWDevice* device, uint8_t length, uint8_t const * con
  hbwdebug(F("setDim: "));
  #endif
 
-  if (length == 2)
+  if (length == 3)
   {
-    if (lastKeyNum == data[1])  // ignore repeated key press
+    uint8_t currentKeyNum = data[1];
+    bool sameLastSender = data[2];
+
+    if (lastKeyNum == currentKeyNum && sameLastSender)  // ignore repeated key press from the same sender
       return;
     else
-      lastKeyNum = data[1];
+      lastKeyNum = currentKeyNum;
   }
 
   HBWDimBacklight::displayWakeUp = true;
