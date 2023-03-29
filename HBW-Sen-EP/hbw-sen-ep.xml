@@ -87,18 +87,12 @@
 					<address index="+5.0"/>
 				</physical>
 			</parameter>	
-			<parameter id="COUNTS_PER_UNIT">
+			<!--<parameter id="COUNTS_PER_UNIT">
 				<logical type="integer" min="100" max="6000" default="1000" unit="imp"/>
 				<physical type="integer" size="1.0" interface="eeprom">
 					<address index="+6.0"/>
 				</physical>
 				<conversion type="float_integer_scale" factor="0.01"/>
-			</parameter>
-			<!--<parameter id="IMPULSE_PRO_EINHEIT">
-				<logical type="integer" min="1000" max="2000" default="1000" unit="s"/>
-				<physical type="integer" size="2.0" interface="eeprom" endian="little">
-					<address index="+6.0"/>
-				</physical>
 			</parameter>-->
 		</paramset>		
 		<paramset type="VALUES" id="hmw_input_ch_values">
