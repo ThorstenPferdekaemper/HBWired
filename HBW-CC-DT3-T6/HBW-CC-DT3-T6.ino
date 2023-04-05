@@ -23,10 +23,12 @@
 // v0.50
 // - allow to set HBWDeltaT output when mode is IDLE/inactive (no temperature received)
 // - option for error state (set OFF/ON), when error_temperature is received
+// v0.60
+// - fix for incorrect output state (output remains high incorrectly)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0033
+#define FIRMWARE_VERSION 0x003C
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import .xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
