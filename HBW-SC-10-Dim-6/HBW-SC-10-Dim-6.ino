@@ -64,6 +64,7 @@
 #include <HBWSenSC.h>
 //#include "HBWKeyVirtual.h"
 #include "HBWDimmerVirtual.h"
+#include "HBWDimmerSetupPWM.h"
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
