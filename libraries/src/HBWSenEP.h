@@ -28,6 +28,7 @@ struct hbw_config_sen_ep {
   uint16_t send_delta_count;      // Zählerdifferenz, ab der gesendet wird
   uint16_t send_min_interval;     // Minimum-Sendeintervall
   uint16_t send_max_interval;     // Maximum-Sendeintervall
+  //uint8_t counts_per_unit;    // TODO: implement? What functionality needs it?
   uint16_t unused;
 };
 
