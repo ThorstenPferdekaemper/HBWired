@@ -53,8 +53,8 @@ class HBWKey : public HBWChannel {
     boolean activeHigh;    // activeHigh=true -> input active high, else active low
     
     static const uint32_t KEY_DEBOUNCE_TIME = 85;  // ms
-    static const uint32_t SWITCH_DEBOUNCE_TIME = 145;  // ms
-    static const uint32_t DOORSENSOR_DEBOUNCE_TIME = 330;  // ms
+    static const uint32_t SWITCH_DEBOUNCE_TIME = 135;  // ms
+    static const uint32_t DOORSENSOR_DEBOUNCE_TIME = 210;  // ms
 };
 
 #endif

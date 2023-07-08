@@ -24,20 +24,25 @@
 // v0.5
 // - added state flags
 // - put key channels back in, kept virtual key channels (dimmer key)
+// v0.52
+// - fixed state flags, 'minimal' on/off time and added OnLevelPrio for on time
+// v0.6
+// - replaced virtual key by virtual dimmer channels (HBWDimmerVirtual) - needs new XML
 //
 
-// TODO: Implement dim peering params: RAMP_START_STEP. Validate behaviour of OnLevelPrio and on/off time 'absolute'.
-// TODO: reduce RAM usage! (with the current amount of channels, no additional features possible)
+// TODO: Implement dim peering params: RAMP_START_STEP. Validate behaviour of OnLevelPrio and on/off time 'minimal' vs offLevel, etc.
+// TODO: reduce RAM usage! (with the current amount of channels, no additional features possible) - or use larger microcontroller...
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0032
+#define FIRMWARE_VERSION 0x003F
 #define HMW_DEVICETYPE 0x96 //device ID (make sure to import hbw_io-10_dim-6.xml into FHEM)
 
 #define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
 #define NUMBER_OF_SEN_INPUT_CHAN 10  // equal number of sensor channels, using same ports/IOs as INPUT_CHAN
 #define NUMBER_OF_DIM_CHAN 6  // PWM & analog output channels
-#define NUMBER_OF_VIRTUAL_KEY_CHAN 6  // virtual keys, mapped to dimmer channel
+//#define NUMBER_OF_VIRTUAL_KEY_CHAN 6  // virtual key, mapped to dimmer channel
+#define NUMBER_OF_VIRTUAL_DIM_CHAN 6  // virtual dimmer, mapped to dimmer channel
 
 #define NUM_LINKS_DIM 20    // address step 42
 #define LINKADDRESSSTART_DIM 0x038   // ends @0x37F
@@ -57,7 +62,9 @@
 #include <HBWLinkKey.h>
 #include <HBWKey.h>
 #include <HBWSenSC.h>
-#include "HBWKeyVirtual.h"
+//#include "HBWKeyVirtual.h"
+#include "HBWDimmerVirtual.h"
+#include "HBWDimmerSetupPWM.h"
 
 // Pins
 #ifdef USE_HARDWARE_SERIAL
@@ -112,7 +119,7 @@
 
 #define LED LED_BUILTIN        // Signal-LED
 
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_KEY_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_DIM_CHAN
 
 
 struct hbw_config {
@@ -123,7 +130,8 @@ struct hbw_config {
   hbw_config_dim dimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x12 (address step 2)
   hbw_config_senSC senCfg[NUMBER_OF_SEN_INPUT_CHAN]; // 0x13 - 0x1C (address step 1)
   hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
-  hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_KEY_CHAN]; // 0x31 - 0x37 (address step 1)
+  //hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_KEY_CHAN]; // 0x31 - 0x37 (address step 1)
+  hbw_config_dim_virt dimVirtCfg[NUMBER_OF_VIRTUAL_DIM_CHAN]; // 0x31 - 0x37 (address step 1)
 } hbwconfig;
 
 
@@ -171,7 +179,8 @@ void setup()
   // dimmer + dimmer key channels
   for(uint8_t i = 0; i < NUMBER_OF_DIM_CHAN; i++) {
     channels[i] = new HBWDimmerAdvanced(PWMOut[i], &(hbwconfig.dimCfg[i]));
-    channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKeyVirtual(i, &(hbwconfig.keyVirtCfg[i]));
+    //channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKeyVirtual(i, &(hbwconfig.keyVirtCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWDimmerVirtual(channels[i], &(hbwconfig.dimVirtCfg[i]));
   };
 #else
   #error Dimming channel count and pin missmatch!
@@ -182,7 +191,7 @@ void setup()
 
   // input sensor and key channels
   for(uint8_t i = 0; i < NUMBER_OF_SEN_INPUT_CHAN; i++) {
-    channels[i + NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]), true);
     channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
   };
 #else
@@ -232,4 +241,5 @@ void setup()
 void loop()
 {
   device->loop();
+  POWERSAVE();  // go sleep a bit
 };

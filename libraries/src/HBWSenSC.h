@@ -44,15 +44,12 @@ class HBWSenSC : public HBWChannel {
     boolean initDone;
     boolean activeHigh;    // activeHigh=true -> input active high, else active low
 
-    uint8_t nextFeedbackDelay;  // use factor 10 here, to save memory
-    uint32_t lastFeedbackTime;
-    
     inline boolean readScInput() {
-      boolean reading  = (digitalRead(pin) ^ config->n_inverted);
+      boolean reading  = (digitalRead(pin) ^ !config->n_inverted);
       return (activeHigh ^ reading);
     }
 	
-	static const uint8_t DEBOUNCE_TIME = 88;  // ms/10 (88 = 880ms); max. 225 (2250 ms)
+	static const uint8_t DEBOUNCE_TIME = 88;  // ms
 };
 
 #endif

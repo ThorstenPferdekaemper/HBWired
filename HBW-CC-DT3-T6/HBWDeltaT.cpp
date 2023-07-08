@@ -11,10 +11,10 @@
 
 
 HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2, hbw_config_DeltaT* _config) :
- config(_config),
- pin(_pin),
- deltaT1(_delta_t1),
- deltaT2(_delta_t2)
+  config(_config),
+  pin(_pin),
+  deltaT1(_delta_t1),
+  deltaT2(_delta_t2)
 {
   deltaT = 0xFF;
   outputChangeLastTime = 0;
@@ -96,6 +96,17 @@ uint8_t HBWDeltaTx::get(uint8_t* data)
 };
 
 
+void HBWDeltaT::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
+{
+  // allow to set output manually, only when 'mode' is idle/inactive (i.e. no T1 & T2 temperature received)
+  // output will change not faster than "output_change_wait_time"
+  if (!stateFlags.element.mode)
+  {
+    nextState = *data == 0 ? OFF : ON;
+  }
+};
+
+ 
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDeltaT::get(uint8_t* data)
 {
@@ -153,13 +164,12 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 {
   outputChangeLastTime = millis();
-  
-  if (currentState == nextState)  return false; // no change - quit
 
   digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output
 
+  if (currentState == nextState)  return false; // no change - quit
+
   // allow peering with external switches
-  if ( (keyPressNum & 0x3F) == 0 ) keyPressNum = 1;  // do not send keyNum=0
   if (device->sendKeyEvent(channel, keyPressNum, !nextState) != HBWDevice::BUS_BUSY) {
     keyPressNum++;
     currentState = nextState; // retry, as long as the bus is busy (retry interval: 'output_change_wait_time')
@@ -188,8 +198,11 @@ bool HBWDeltaT::calculateNewState()
     int16_t t2 = deltaT2->currentTemperature;
     
     // check if valid temps are available
-    if (t1 <= ERROR_TEMP || t2 <= ERROR_TEMP) {
-      nextState = OFF;
+    if (t1 == DEFAULT_TEMP || t2 == DEFAULT_TEMP) {  // don't overwrite 'nextState' (keep manual state) if no temp was ever received
+      return false;
+    }
+    if (t1 <= ERROR_TEMP || t2 <= ERROR_TEMP) {  // set output to error state, when sensor got lost (error_temperature is received)
+      nextState = config->error_state ? OFF : ON;
       return false;
     }
 

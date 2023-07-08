@@ -385,11 +385,10 @@ void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};
 void HBWChannel::afterReadConfig() {};
 
 // default logging/feedback functions
-void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled) {
+void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled, uint16_t loggingTime) {
   if (!nextFeedbackDelay && loggingEnabled) {
     lastFeedbackTime = millis();
-    nextFeedbackDelay = device->getLoggingTime() * 100;
-    // nextFeedbackDelay = HBWDevice::getLoggingTime() * 100;
+    nextFeedbackDelay = loggingTime ? loggingTime : device->getLoggingTime() * 100;
   }
 };
 void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
@@ -551,7 +550,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
             processEventSetLock(frameData[2], frameData[3] & 0x01);
             break;
          case 'n':                                       // Seriennummer
-        	determineSerial(txFrame.data);
+        	determineSerial(txFrame.data, getOwnAddress());
         	txFrame.dataLength = 10;
         	onlyAck = false;
         	break;
@@ -667,15 +666,15 @@ byte HBWDevice::broadcastAnnounce(byte channel) {
    txFrame.targetAddress = 0xFFFFFFFF;  // broadcast
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 16;      // Length
-   txFrame.data[0] = 0x41;         // 'i'
+   txFrame.data[0] = 0x41;         // 'A'
    txFrame.data[1] = channel;      // Sensornummer
    txFrame.data[2] = deviceType;
    txFrame.data[3] = hardware_version;
    txFrame.data[4] = firmware_version / 0x100;
    txFrame.data[5] = firmware_version & 0xFF;
-   determineSerial(txFrame.data + 6);
+   determineSerial(txFrame.data + 6, getOwnAddress());
    // only send, if bus is free. Don't send in zeroCommunication mode, return with "bus busy" instead
-   return (pendingActions.zeroCommunicationActive ? BUS_BUSY : sendFrame(true));
+   return (pendingActions.zeroCommunicationActive ? BUS_BUSY : sendFrame(NEED_IDLE_BUS));
 };
 
 
@@ -683,14 +682,13 @@ byte HBWDevice::broadcastAnnounce(byte channel) {
 // this is only called from "outside" and not as a response
 uint8_t HBWDevice::sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address) {
    if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
-   txFrame.targetAddress = target_address;
-   if(!txFrame.targetAddress) txFrame.targetAddress = getCentralAddress();	
+   txFrame.targetAddress = target_address != 0 ? target_address : getCentralAddress();
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 0x02 + length;      // Length
    txFrame.data[0] = 0x69;         // 'i'
    txFrame.data[1] = channel;      // Sensornummer
    memcpy(&(txFrame.data[2]), data, length);
-   return sendFrame(true);  // only if bus is free
+   return sendFrame(NEED_IDLE_BUS);  // only if bus is free
 };
 
 
@@ -750,7 +748,7 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t keyPressNum, boolean lo
 
 // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
 uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
-   if (pendingActions.zeroCommunicationActive) return 1;	// don't send in zeroCommunication mode, return with "bus busy" instead
+   if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
    txFrame.targetAddress = 0xFFFFFFFF;  // target address
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 3 + length;      // Length
@@ -758,11 +756,11 @@ uint8_t HBWDevice::sendKeyEvent(uint8_t srcChan, uint8_t length, void* data) {
    txFrame.data[1] = srcChan;      // Sensornummer
    txFrame.data[2] = 0;   // Zielaktor
    memcpy(&(txFrame.data[3]), data, length);
-   return sendFrame(true);  // only if bus is free
+   return sendFrame(NEED_IDLE_BUS);  // only if bus is free
 };
 
 
-void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
+void HBWDevice::writeEEPROM(uint16_t address, byte value, bool privileged ) {
    // save uppermost 4 bytes
    if(!privileged && (address > E2END - 4))
       return;
@@ -773,7 +771,6 @@ void HBWDevice::writeEEPROM(int16_t address, byte value, bool privileged ) {
 
 
 // read device address from EEPROM
-// TODO: Avoid "central" addresses (like 0000...)
 void HBWDevice::readAddressFromEEPROM(){
    uint32_t address = 0;
    
@@ -787,13 +784,22 @@ void HBWDevice::readAddressFromEEPROM(){
 }
 
 
-void HBWDevice::determineSerial(byte* buf) {
-   char numAsStr[20];
-   sprintf(numAsStr, "%07lu", getOwnAddress() % 10000000L );
+void HBWDevice::determineSerial(uint8_t* buf, uint32_t address) {
+
    buf[0] = 'H';
    buf[1] = 'B';
    buf[2] = 'W';
-   memcpy(buf+3, numAsStr, 7);
+   
+   // append last 7 digits of own address
+   uint8_t* pEnd = &buf[9];
+   while (pEnd != &buf[2])
+   {
+      *pEnd-- = '0' + (address % 10);  // store as string
+      if (address)
+      {
+         address /= 10;
+      }
+   }
 };
 
 
@@ -834,6 +840,34 @@ void HBWDevice::handleBroadcastAnnounce() {
    if(millis() < 1000) return;
    // send methods return 0 if everything is ok
    pendingActions.announced = (broadcastAnnounce(0) == SUCCESS);
+}
+
+
+// read device and channel config, on init and if triggered by ReadConfig()
+void HBWDevice::handleAfterReadConfig() {
+  if (pendingActions.afterReadConfig) {
+    afterReadConfig();
+    for(uint8_t i = 0; i < numChannels; i++) {
+      channels[i]->afterReadConfig();
+    }
+    pendingActions.afterReadConfig = false;
+  }
+  return;
+}
+
+
+// perform device reset/restart
+void HBWDevice::handleResetSystem() {
+  if (pendingActions.resetSystem) {
+   #if defined (Support_ModuleReset)
+    #if defined (Support_WDT)
+    while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
+    #else
+    resetSoftware();  // otherwise jump to reset vector
+    #endif
+   #endif
+  }
+  return;
 }
 
 
@@ -902,7 +936,8 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	configPin = _configPin;
 	if(configPin != NOT_A_PIN) {
-	#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+	#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not (defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI) || defined(__AVR_ATmega328PB__))
+    /* workaround for ATmega328P with analog only A6 and A7 pins, where digitalRead() does not work */
 		if (configPin == A6 || configPin == A7)
 			pinMode(configPin,INPUT);	// no pullup for analog input
 		else
@@ -961,51 +996,35 @@ uint8_t HBWDevice::get(uint8_t channel, uint8_t* data) {  // returns length
 // The loop function is called in an endless loop
 void HBWDevice::loop()
 {
-  if (pendingActions.resetSystem) {
-   #if defined (Support_ModuleReset)
-    #if defined (Support_WDT)
-    // wdt_wdt_enable(WDTO_15MS);
-    while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
-    #else
-    resetSoftware();  // otherwise jump to reset vector
-    #endif
-   #endif
-  }
-  // read device and channel config, on init and if triggered by ReadConfig()
-  if (pendingActions.afterReadConfig) {
-    afterReadConfig();
-    for(uint8_t i = 0; i < numChannels; i++) {
-      channels[i]->afterReadConfig();
-    }
-    pendingActions.afterReadConfig = false;
-  }
-// Daten empfangen und alles, was zur Kommunikationsschicht gehört
-// processEvent vom Modul wird als Callback aufgerufen
-// Daten empfangen (tut nichts, wenn keine Daten vorhanden)
-  receive();
-  // Check
-  if(frameComplete) {
-	frameComplete = false;   // only once
-	if(targetAddress == ownAddress || targetAddress == 0xFFFFFFFF){
-	  if(parseFrame()) {
-	    processEvent(frameData, frameDataLength, (targetAddress == 0xFFFFFFFF));
-	  };	
-	}
-  };
-  // send announce message, if not done yet
-  handleBroadcastAnnounce();
-// feedback from switches and handle keys
-   static uint8_t loopCurrentChannel = 0;
-   channels[loopCurrentChannel]->loop(this,loopCurrentChannel);
-   loopCurrentChannel++;
-   if (loopCurrentChannel >= numChannels) loopCurrentChannel = 0;
-// config Button
-   handleConfigButton();
-// Rx & Tx LEDs
-   handleStatusLEDs();
+  handleResetSystem();
+  handleAfterReadConfig();
+  for (uint8_t loopCurrentChannel = 0; loopCurrentChannel < numChannels; loopCurrentChannel++)
+  {
    #ifdef Support_WDT
    wdt_reset();
    #endif
+  // Daten empfangen und alles, was zur Kommunikationsschicht gehört
+  // processEvent vom Modul wird als Callback aufgerufen
+  // Daten empfangen (tut nichts, wenn keine Daten vorhanden)
+    receive();
+    // Check
+    if(frameComplete) {
+  	  frameComplete = false;   // only once
+  	  if(targetAddress == ownAddress || targetAddress == 0xFFFFFFFF) {
+  	    if(parseFrame()) {
+  	      processEvent(frameData, frameDataLength, (targetAddress == 0xFFFFFFFF));
+  	    };
+  	  }
+    };
+    // feedback from individual channels (like switches and keys)
+    channels[loopCurrentChannel]->loop(this, loopCurrentChannel);
+  }
+  // send announce message, if not done yet
+  handleBroadcastAnnounce();
+// config Button
+  handleConfigButton();
+// Rx & Tx LEDs
+  handleStatusLEDs();
 };
 
 
@@ -1035,11 +1054,12 @@ void HBWDevice::handleConfigButton() {
   // do we have a config-pin?
   if(configPin == NOT_A_PIN) return;
   
-  static long lastTime = 0;
-  long now = millis();
+  static unsigned long lastTime = 0;
+  unsigned long now = millis();
   boolean buttonState;
 
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not (defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI) || defined(__AVR_ATmega328PB__))
+  /* workaround for ATmega328P with analog only A6 and A7 pins, where digitalRead() does not work */
   if (configPin == A6 || configPin == A7) {
     buttonState = false;
     if (analogRead(configPin) < 250) // Button to ground with ~100k pullup
@@ -1104,7 +1124,7 @@ void HBWDevice::handleConfigButton() {
 
   // control LED, if set  
   if(ledPin == NOT_A_PIN) return;
-  static long lastLEDtime = 0;
+  static unsigned long lastLEDtime = 0;
   if(now - lastLEDtime > 100) {  // update intervall & schnelles Blinken
 	  switch(configButtonStatus) {
 		case 0:
@@ -1135,7 +1155,9 @@ void HBWDevice::handleStatusLEDs() {
 	// turn on or off Tx, Rx LEDs - allow use of "config LED" for Tx, Rx combined
 	// don't operate LED when configButton was pressed and "config LED" is used for Tx or Rx
 	
-	static long lastStatusLEDsTime = 0;
+	if (txLedPin == NOT_A_PIN && rxLedPin == NOT_A_PIN)	return;  // if not used, get out here quick
+	
+	static unsigned long lastStatusLEDsTime = 0;
 	
 	if (millis() - lastStatusLEDsTime > 60) {	// check every 60 ms only (allow LED to light up approx 120 ms min.)
 		if (txLedPin != NOT_A_PIN) {

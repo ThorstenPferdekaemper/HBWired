@@ -12,17 +12,17 @@
 // Changes
 // v0.10
 // - initial version
-
+// v0.20
+// - fix for repeatCounter reset handling
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000B
+#define FIRMWARE_VERSION 0x0014
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 // + 1 türsummer?
-#define NUMBER_OF_BR_CHAN 0
-#define NUMBER_OF_DIM_CHAN 1
-#define NUMBER_OF_KEY_CHAN 4
+#define NUMBER_OF_DIM_CHAN 1   // dimmer output (for backlight) - with auto_brightness
+#define NUMBER_OF_KEY_CHAN 4   // knobs at your door
 #define NUM_LINKS_KEY 20
 #define LINKADDRESSSTART_V_CHAN 0x30  // any actor peering!
 #define LINKADDRESSSTART_KEY 0x13C  // any sensor peering!
@@ -34,7 +34,6 @@
 
 // HB Wired protocol and module
 #include <HBWired.h>
-//#include <HBWKey.h>
 #include <HBWLinkKey.h>
 #include "HBWKeyDoorbell.h"
 #include <HBWDimBacklight.h>
@@ -46,9 +45,9 @@
   #define BUTTON A6  // Button fuer Factory-Reset etc.
   
   #define BUTTON_1 8
-  #define BUTTON_2 12
-  #define BUTTON_3 7
-  #define BUTTON_4 4
+  #define BUTTON_2 7
+  #define BUTTON_3 4
+  #define BUTTON_4 A1
 
   //#define BUZZER 6
   
@@ -71,6 +70,10 @@
   #define BUTTON_4 A3
   
   //#define BUZZER 6 //TODO: add buzzer for key press feedback?
+  //#define BELL_1 10 //TODO: add bell outputs?
+  //#define BELL_2 11
+  //#define BELL_3 12
+  //#define BELL_4 7
   
   #define BACKLIGHT_PWM 5
 
@@ -87,7 +90,7 @@
 #define LED LED_BUILTIN        // Signal-LED
 
 
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_BR_CHAN + NUMBER_OF_KEY_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_KEY_CHAN
 
 
 struct hbw_config {
@@ -96,7 +99,6 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_dim_backlight BlDimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x0A (address step 2)
-//  hbw_config_analog_brightness brightnessCfg[NUMBER_OF_BR_CHAN];
   hbw_config_key_doorbell DBKeyCfg[NUMBER_OF_KEY_CHAN]; // 0x09 - 0x12 (address step 4)
 } hbwconfig;
 
@@ -108,16 +110,14 @@ HBWDevice* device = NULL;
 
 void setup()
 {
-   channels[0] = new HBWDimBacklight(&(hbwconfig.BlDimCfg[0]), BACKLIGHT_PWM, LDR_PIN);
-   //channels[1] = new HBWAnalogBrightness(&(hbwconfig.brightnessCfg[0]), LDR_PIN);
-   //channels[0] = new HBWDimBacklight(&(hbwconfig.BlDimCfg[0]), BACKLIGHT_PWM, channels[1]);
+  channels[0] = new HBWDimBacklight(&(hbwconfig.BlDimCfg[0]), BACKLIGHT_PWM, LDR_PIN);
 
-   
+  
   static const byte BUTTON_PIN[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4};
   
  #if (NUMBER_OF_KEY_CHAN == 4)
   for(uint8_t i = 0; i < NUMBER_OF_KEY_CHAN; i++) {
-    channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_BR_CHAN] = new HBWKeyDoorbell(BUTTON_PIN[i], &(hbwconfig.DBKeyCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN] = new HBWKeyDoorbell(BUTTON_PIN[i], &(hbwconfig.DBKeyCfg[i]));
   }
  #else
   #error NUMBER_OF_KEY_CHAN channel missmatch!

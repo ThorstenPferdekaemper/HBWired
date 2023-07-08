@@ -26,10 +26,12 @@
 // - more configuration options for analog channel (need new XML)
 // v0.33
 // - added idle powersave
+// v0.4
+// - added config option MotorDelay (MOTOR_STARTUP_DELAY)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0021
+#define FIRMWARE_VERSION 0x0028
 #define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 8

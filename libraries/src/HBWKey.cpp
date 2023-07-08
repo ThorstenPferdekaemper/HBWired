@@ -22,9 +22,9 @@ HBWKey::HBWKey(uint8_t _pin, hbw_config_key* _config, boolean _activeHigh) {
 
 
 void HBWKey::afterReadConfig(){
-  if(config->long_press_time == 0xFF) config->long_press_time = 10;
+  if (config->long_press_time == 0xFF) config->long_press_time = 10;
   if (config->pullup && !activeHigh)  pinMode(pin, INPUT_PULLUP);
-  else  pinMode(pin, INPUT);
+    else  pinMode(pin, INPUT);
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("cfg KeyPin:"));
@@ -65,6 +65,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+          keyPressedMillis = now;
+          
           if (device->sendKeyEvent(channel, keyPressNum, !buttonState) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             oldButtonState = buttonState;
@@ -150,6 +152,8 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
          keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
+          keyPressedMillis = now;
+          
           if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             lastSentLong = now;

@@ -9,7 +9,7 @@
 
 <paramset id="HBW_LC_Sw_8_dev_master" type="MASTER">
 	<parameter id="LOGGING_TIME">
-		<logical type="float" unit="s" default="2.0" max="25.5" min="0.1"/>
+		<logical type="float" unit="s" default="5.0" max="25.5" min="0.1"/>
 		<physical size="1.0" type="integer" interface="eeprom">
 			<address index="0x0001"/>
 		</physical>
@@ -58,7 +58,6 @@
 					<address index="+0"/>
 				</physical>
 			</parameter>
-			
 			<parameter id="OUTPUT_LOCKED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">

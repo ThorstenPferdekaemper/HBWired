@@ -53,7 +53,8 @@
 #define D_POS_dimMaxLevel    15
 #define D_POS_peerConfigStep 16
 #define D_POS_peerConfigOffDtime 17
-#define D_POS_peerKeyPressNum    18 // last array element always used for keyPressNum
+#define D_POS_peerKeyPressNum    18
+#define D_POS_peerSameLastSender    19
 
 #define BITMASK_DimStep       B00001111
 #define BITMASK_OffDelayStep  B11110000
@@ -72,11 +73,12 @@
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
 //       callbacks fuer die einzelnen Kanaele aufzurufen 
 //       und den Kanaelen nur den Anfang "ihres" EEPROMs zu sagen
+// config of one dimmer channel, address step 2
 struct hbw_config_dim {
-  uint8_t logging:1;              // 0x0000
+  uint8_t logging:1;              // send feedback (logging)
   uint8_t pwm_range:3;            // 1-7 = 40-100%, 0=disabled
   uint8_t voltage_default:1;      // 0-10V (default) or 1-10V mode
-  uint8_t        :3;              // 0x0000
+  uint8_t        :3;              // 
   uint8_t dummy;
 };
 
@@ -108,7 +110,7 @@ class HBWDimmerAdvanced : public HBWChannel {
     hbw_config_dim* config; // logging
     uint8_t currentValue;
     uint8_t oldOnValue;
-    uint8_t oldValue;  // used to determine direction for state flags
+    boolean dimmingDirectionUp;  // used to determine direction for state flags
     HBWlibStateMachine StateMachine;
     
     void setOutputNoLogging(uint8_t newValue);
@@ -152,41 +154,18 @@ class HBWDimmerAdvanced : public HBWChannel {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
         uint8_t upDown  :2; // dim up = 1 or down = 2
         uint8_t working :1; // true, if working
-        uint8_t status  :1; // outputs on or off?
-      } element;
+        uint8_t status  :1; // outputs on or off? - not used
+      } state;
       uint8_t byte:8;
     };
 
+    uint8_t getJumpTarget(uint8_t bitshift) {
+      return StateMachine.getJumpTarget(bitshift, JT_ON, JT_OFF);
+    };
+    bool checkOnLevelPrio(void);
   protected:
   
 };
 
-
-/****************************************
- * Setup PWM, to have 4 channels with 122Hz output,
- * to interface with Eltako LUD12-230V (ideally 100HZ @ min. 10V)
- */
-inline void setupPwmTimer1(void) {
-  // Setup Timer1 for 122.5Hz PWM
-  TCCR1A = 0;   // undo the configuration done by...
-  TCCR1B = 0;   // ...the Arduino core library
-  TCNT1  = 0;   // reset timer
-  TCCR1A = _BV(COM1A1)  // non-inverted PWM on ch. A
-         | _BV(COM1B1)  // same on ch. B
-         | _BV(WGM11);  // mode 10: ph. correct PWM, TOP = ICR1
-  TCCR1B = _BV(WGM13)   // ditto
-  //| _BV(WGM12) // fast PWM: mode 14, TOP = ICR1
-      | _BV(CS12);   // prescaler = 256
-  //ICR1 = 312;  // 100Hz //TODO: ? create custom analogWrite() to consider ICR1 as upper limit: e.g. OCR1A = map(val,0,255,0,ICR1);
-  ICR1 = 255; // 122.5Hz - this work with default analogWrite() function (which is setting a level between 0 and 255)
-}
-
-
-inline void setupPwmTimer2(void) {
-  // Timer 2 @122.5Hz
-    TCNT2  = 0;
-    TCCR2A = B10100001; // mode 1: ph. correct  PWM, TOP = OxFF
-    TCCR2B = B00000110;   // prescaler = 256
-}
 
 #endif

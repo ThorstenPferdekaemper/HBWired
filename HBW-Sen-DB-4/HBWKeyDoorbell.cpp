@@ -46,10 +46,9 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
   uint32_t now = millis();
   if (now == 0) now = 1;  // do not allow time=0 for the below code // AKA  "der Teufel ist ein Eichhoernchen"
   
-  buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
+  boolean buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
   
-  if (now - lastKeyPressedMillis >= (uint32_t)config->suppress_time *100) {
-    lastKeyPressedMillis = now;
+  if (repeatCounter != 0 && now - lastKeyPressedMillis >= (uint32_t)config->suppress_time *100) {
     repeatCounter = 0;  // reset repeat counter when suppress time has passed
   }
 
@@ -111,6 +110,7 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
     else {
       // Taste war vorher nicht gedrueckt
       keyPressedMillis = now;
+      lastKeyPressedMillis = now;
       lastSentLong = 0;
     }
   }

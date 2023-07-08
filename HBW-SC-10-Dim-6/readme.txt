@@ -41,9 +41,12 @@ KEY
 * INPUT_TYPE (DOORSENSOR, MOTIONSENSOR, SWITCH, PUSHBUTTON [default])
 * LONG_PRESS_TIME
 
-DIMMER KEY (virtuelle Taster, welche einen Tastendruck senden, wenn der jeweilige Dimmerkanal ein- oder ausgeschaltet wird [0% = Aus])
+removed:[DIMMER KEY (virtuelle Taster, welche einen Tastendruck senden, wenn der jeweilige Dimmerkanal ein- oder ausgeschaltet wird [0% = Aus])
 * INPUT_LOCKED
-* INVERTED
+* INVERTED]
+added:
+VIRTUAL_DIMMER
+* LOGIC_COMBINATION
 
 
 Standard-Pinbelegung:

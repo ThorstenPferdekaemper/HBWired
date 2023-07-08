@@ -4,12 +4,13 @@
 	<type priority="2" id="HBW-LC-Sw-8" name="RS485 Homebrew switch actuator 8-channel">
 		<parameter const_value="0x83" size="1" index="0"/>
 		<parameter const_value="1" size="1" index="1"/>
+		<parameter const_value="0x0067" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
 <paramset id="HBW_LC_Sw_8_dev_master" type="MASTER">
 	<parameter id="LOGGING_TIME">
-		<logical type="float" unit="s" default="2.0" max="25.5" min="0.1"/>
+		<logical type="float" unit="s" default="5.0" max="25.5" min="0.1"/>
 		<physical size="1.0" type="integer" interface="eeprom">
 			<address index="0x0001"/>
 		</physical>
@@ -39,6 +40,28 @@
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
 		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
 	</frame>
+	<frame id="KEY_EVENT_SHORT" direction="from_device" event="true" type="#K" channel_field="10">
+		<parameter type="integer" index="12.0" size="0.1" const_value="0"/>
+		<parameter type="integer" index="12.2" size="0.6" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_EVENT_LONG" direction="from_device" event="true" type="#K" channel_field="10">
+		<parameter type="integer" index="12.0" size="0.1" const_value="1"/>
+		<parameter type="integer" index="12.2" size="0.6" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_SIM_SHORT" direction="from_device" type="#K" channel_field="10" receiver_channel_field="11">
+		<parameter type="integer" index="12.0" size="0.1" const_value="0"/>
+		<parameter type="integer" index="12.2" size="0.6" param="SIM_COUNTER"/>
+	</frame>
+	<frame id="KEY_SIM_LONG" direction="from_device" type="#K" channel_field="10" receiver_channel_field="11">
+		<parameter type="integer" index="12.0" size="0.1" const_value="1"/>
+		<parameter type="integer" index="12.2" size="0.6" param="SIM_COUNTER"/>
+	</frame>
+	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
+		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
+	</frame>
+	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
+		<parameter param="toggle_flag" size="1.0" index="11.0" type="integer"/>
+	</frame>
 </frames>
 
 <channels>
@@ -58,7 +81,6 @@
 					<address index="+0"/>
 				</physical>
 			</parameter>
-			
 			<parameter id="OUTPUT_LOCKED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">

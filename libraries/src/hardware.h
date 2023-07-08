@@ -11,7 +11,7 @@
 //#define _HAS_BOOTLOADER_    // enable bootlader support of the device. BOOTSTART must be defined as well
 
 /* Start Boot Program section and RAM address start */
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__) || defined (__AVR_ATmega328PB__)
 // Boot Size 2048 words
 #define BOOTSTART (0x3800)
 #endif
@@ -39,7 +39,7 @@
 
 
 /* sleep macro. Timer for millis() must keep running! Don't sleep too deep... */
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__) || defined (__AVR_ATmega328PB__)
 // "idle" sleep mode (mode 0)
 #include <avr/sleep.h>
 #define POWERSAVE() set_sleep_mode(0); \

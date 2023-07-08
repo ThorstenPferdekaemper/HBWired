@@ -26,9 +26,11 @@ ShiftRegister74HC595<Size>::ShiftRegister74HC595(const uint8_t serialDataPin, co
     digitalWrite(latchPin, LOW);
 
     // allocates the specified number of bytes and initializes them to zero
-    memset(_digitalValues, 0, Size * sizeof(uint8_t));
+    //memset(_digitalValues, 0, Size * sizeof(uint8_t));
 
-    updateRegisters();       // reset shift register
+    //updateRegisters();       // reset shift register
+    
+    setAllLow();
 }
 
 // Set all pins of the shift registers at once.

@@ -16,17 +16,18 @@
 // - add option to configure 1*4 to 4*24 LCD
 // - allow to save custom text line to EERPOM (one per display line channel) and load on start
 // - added auto-off option for display backlight (dim channel)
+// v0.30
+// - add/fix load custom text after device restart
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0015
+#define FIRMWARE_VERSION 0x001E
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
-
 
 
 #define NUMBER_OF_DISPLAY_CHAN 1
 #define NUMBER_OF_DISPLAY_DIM_CHAN 1
-#define NUMBER_OF_DISPLAY_LINES MAX_DISPLAY_LINES // defined in "HBWDisplayLCD.h", max. lines the display can have (set actual amount in display channel config!)
+#define NUMBER_OF_DISPLAY_LINES MAX_DISPLAY_LINES // defined in "HBWDisplayLCD.h", max. lines the display can have (actual amount set in display channel config!)
 #define NUMBER_OF_V_TEMP_CHAN 4   // virtual channels to peer with temperature sensor (or set any 2 byte signed value)
 #define NUMBER_OF_V_SWITCH_CHAN 4   // virtual channels to peer as switch (display ON/OFF state), or set by FHEM
 #define NUMBER_OF_V_CHAN NUMBER_OF_V_TEMP_CHAN + NUMBER_OF_V_SWITCH_CHAN    // total number of virtual channels
@@ -127,23 +128,6 @@ struct hbw_config {
   hbw_config_displayVChBool DisBCfg[NUMBER_OF_V_SWITCH_CHAN];  // 0x1B - 0x1F (address step 1)
 } hbwconfig;
 
-//typedef struct {
-//  uint8_t blocked;  // don't use 0x0
-//  uint8_t logging_time;     // 0x01
-//  uint32_t central_address;  // 0x02 - 0x05
-//  uint8_t direct_link_deactivate:1;   // 0x06:0
-//  uint8_t              :7;   // 0x06:1-7
-//  hbw_config_display DisCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x07 - 0x (address step 2)
-//  hbw_config_display_backlight DisDimCfg[NUMBER_OF_DISPLAY_CHAN]; // 0x09 - 0x (address step 2)
-//  hbw_config_display_line DisLineCfg[NUMBER_OF_DISPLAY_LINES]; // 0x0B - 0x (address step 1)
-//  hbw_config_key KeyCfg[NUMBER_OF_KEY_CHAN]; // 0x0D - 0x (address step 2)
-//  hbw_config_displayVChNum DisTCfg[NUMBER_OF_V_TEMP_CHAN];  // 0x15 - 0x (address step 1)
-//  hbw_config_displayVChBool DisBCfg[NUMBER_OF_V_SWITCH_CHAN];  // 0x19 - 0x (address step 1)
-//  t_hbw_config_display config_Display;
-//} t_hbw_config;
-//
-//t_hbw_config hbw_config EEMEM;
-
 
 HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the device
 
@@ -157,7 +141,6 @@ void setup()
 {
   // create some pointer used across channels
   HBWDisplayVChannel* displayVChannel[NUMBER_OF_V_CHAN];  // pointer to VChannel channels, to access from HBWDisplay class
-  //HBWDisplayVChannel* displayLines[NUMBER_OF_DISPLAY_LINES];  // pointer to VChannel channels, to access from HBWDisplay class
   HBWDisplayVChannel* displayLines[MAX_DISPLAY_LINES];  // pointer to VChannel channels, to access from HBWDisplay class
 
   static const byte BUTTON_PIN[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4};

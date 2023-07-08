@@ -1,4 +1,4 @@
-﻿/*
+/*
  * HBWDisplayLCD.cpp
  *
  * Created on: 16.07.2020
@@ -16,11 +16,6 @@ byte HBWDisplayVChannel::numTotal = 0;
 byte HBWDisplayLine::numTotal = 0;
 
 /* contructors */
-//HBWDisplayVChannel::HBWDisplayVChannel()
-//{
-//  num++;
-//};
-
 HBWDisplayVChNum::HBWDisplayVChNum(hbw_config_displayVChNum* _config)
 {
   HBWDisplayVChannel::addNumVChannel();
@@ -43,8 +38,9 @@ HBWDisplayLine::HBWDisplayLine(hbw_config_display_line* _config)
   config = _config;
   useDefault = true;
   lastKeyNum = 255;
-
   num = numTotal++;
+  
+  initDone = false;
 };
 
 
@@ -88,6 +84,15 @@ void HBWDisplay::afterReadConfig()
  #endif
 };
 
+void HBWDisplayLine::afterReadConfig()
+{
+  if (!initDone) {
+    initDone = true;
+    memset(line, 0, sizeof(line));   // clear/initialize line array
+    readCustomLineFromEEPROM((char*) line);   // load custom line, if enabled
+  }
+};
+
 
 /* set special input value for a channel, via peering event. */
 void HBWDisplayVChNum::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const data)
@@ -129,12 +134,15 @@ void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * c
 {
   /* just store the new value. The display loop can fetch it, when needed */
   
-  if (length == 2)
+  if (length == 3)
   {
-    if (lastKeyNum == data[1])  // ignore repeated key press
+    uint8_t currentKeyNum = data[1];
+    bool sameLastSender = data[2];
+    
+    if (lastKeyNum == currentKeyNum && sameLastSender)  // ignore repeated key press from the same sender
       return;
     else
-      lastKeyNum = data[1];
+      lastKeyNum = currentKeyNum;
   }
     
   if (data[0] > 200)    // toggle
@@ -151,19 +159,22 @@ void HBWDisplayVChBool::set(HBWDevice* device, uint8_t length, uint8_t const * c
 /* set special input value for a channel, via peering event. */
 void HBWDisplayLine::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
-  if (length == 2)  // peering has 2 bytes
+  if (length == 3)  // peering has 2 bytes
   {
-    if (lastKeyNum == data[1])  // ignore repeated key press
+    uint8_t currentKeyNum = data[1];
+    bool sameLastSender = data[2];
+    
+    if (lastKeyNum == currentKeyNum && sameLastSender)  // ignore repeated key press from the same sender
       return;
     else
-      lastKeyNum = data[1];
+      lastKeyNum = currentKeyNum;
   }
   
   HBWDimBacklight::displayWakeUp = true;
   
-  if (length > 2 )  // need to set min. 3 characters (should be ok, to set "foo" or even a single variable, like "%1%")
+  if (length > 3 )  // need to set min. 4 characters (should be ok, to set string "foo\n" or even a single variable, like "%01%")
   {
-    memset(line, 0, sizeof(line));
+    memset(line, 0, sizeof(line));   // clear previous value
     memcpy(line, data, length < sizeof(line) ? length : sizeof(line));   // just copy what fits the buffer, discard the rest
     useDefault = false;   // use the data we just got, not the default
   }
@@ -242,26 +253,17 @@ uint8_t HBWDisplayVChannel::getStringFromValue(char* _buffer) { return 0; };
 /* read RAW string from Progmem or RAM for each line of the display */
 uint8_t HBWDisplayLine::getStringFromValue(char* _buffer)
 {
-  char cstr[LINE_BUFF_LEN];
+  // char cstr[LINE_BUFF_LEN];
   uint8_t defaultText = config->default_text;
   
   if (useDefault)
   {
     if (defaultText < sizeof(default_lines)/sizeof(*default_lines)) { // validate selection with available array elements
-      strcpy_P(cstr, (char *)pgm_read_word(&(default_lines[defaultText])));   // load configured default text
+      strcpy_P(_buffer, (char *)pgm_read_word(&(default_lines[defaultText])));   // load configured default text
     }
     else {
-     #ifdef DISPLAY_CUSTOM_LINES_EESTART
-      EEPROM.get(DISPLAY_CUSTOM_LINES_EESTART + (LINE_BUFF_LEN * num), cstr);
-      if ((unsigned char)cstr[0] == 0xFF) {
-        strcpy_P(cstr, (char *)pgm_read_word(&(default_line_out_of_range)));
-      }
-//      hbwdebug(F("eeGet line")); hbwdebug(num); hbwdebug(F(":")); hbwdebug(cstr);hbwdebug(F("\n"));
-     #else
-      strcpy_P(cstr, (char *)pgm_read_word(&(default_line_out_of_range)));
-     #endif
+      readCustomLineFromEEPROM((char*) _buffer);
     }
-    strcpy(_buffer, cstr);
   }
   else {
     strcpy(_buffer, line);   // load text, that has been "set()"
@@ -270,6 +272,23 @@ uint8_t HBWDisplayLine::getStringFromValue(char* _buffer)
   return 0; // value not relevant for HBWDisplayLine
 };
 
+
+void HBWDisplayLine::readCustomLineFromEEPROM(char* _buffer)
+{
+ #ifdef DISPLAY_CUSTOM_LINES_EESTART
+  char cstr[LINE_BUFF_LEN];
+  
+  EEPROM.get(DISPLAY_CUSTOM_LINES_EESTART + (LINE_BUFF_LEN * num), cstr);
+  
+  if ((unsigned char)cstr[0] == 0xFF) {
+    strcpy_P(cstr, (char *)pgm_read_word(&(default_line_out_of_range)));
+  }
+  strcpy(_buffer, cstr);
+//      hbwdebug(F("eeGet line")); hbwdebug(num); hbwdebug(F(":")); hbwdebug(cstr);hbwdebug(F("\n"));
+ #else
+  strcpy_P(_buffer, (char *)pgm_read_word(&(default_line_out_of_range)));
+ #endif
+};
 
 /* concatenate text string for bool channel */
 uint8_t HBWDisplayVChBool::getStringFromValue(char* _buffer)
@@ -445,16 +464,6 @@ void HBWDisplay::loop(HBWDevice* device, uint8_t channel)
       lcd->clear();
     }
     
-//    char lineBuffer[23];
-//    for (byte l=0; l < NUMBER_OF_DISPLAY_LINES; l++) //(sizeof(**displayLine) / sizeof(displayLine[0]))..not working!
-//    {
-//      lcd->setCursor(0, l);
-//      memset(lineBuffer, 0, sizeof(lineBuffer));
-//      displayLine[l]->getStringFromValue((char*)lineBuffer);
-//      parseLine(lineBuffer, sizeof(lineBuffer));
-//    }
-
-    //char lineBuffer[23] = {0};
     char lineBuffer[LINE_BUFF_LEN] = {0};
     // writing the display takes quite some time, so only update one line of the display each loop. Allowing to handle other stuff that is going on
     // TODO: check if this is still ok with 4 lines

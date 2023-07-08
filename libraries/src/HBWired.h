@@ -19,7 +19,7 @@
 // #define Support_HBWLink_InfoEvent
 
 // #define Support_ModuleReset  // enable reset comand, to restart module "!!" (hexstring 2121)
-// #define Support_WDT  // enable 1 second watchdog timer
+#define Support_WDT  // enable 1 second watchdog timer
 
 
 class HBWDevice;
@@ -44,7 +44,7 @@ class HBWChannel {
   protected:
     uint32_t lastFeedbackTime;  // when did we send the last feedback?
     uint16_t nextFeedbackDelay; // 0 -> no feedback pending
-    void setFeedback(HBWDevice*, boolean loggingEnabled);  //  set feedback trigger
+    void setFeedback(HBWDevice*, boolean loggingEnabled, uint16_t loggingTime = 0);  //  set feedback trigger
     void checkFeedback(HBWDevice*, uint8_t channel);  //  send sendInfoMessage, if feedback trigger is set
     void clearFeedback();  //  reset/init feedback trigger values
 };
@@ -89,6 +89,9 @@ class HBWLinkReceiver {
 #define MAX_RX_FRAME_LENGTH 64
 static const boolean NEED_IDLE_BUS = true;  // use for sendFrame
 
+#define DEFAULT_SEND_RETRIES 3
+#define PEER_SEND_RETRIES 1  // Send peer message only once
+
 
 // The HBWired-Device
 class HBWDevice {
@@ -130,7 +133,7 @@ class HBWDevice {
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress);
 	// Key Event Routine mit Target fuer LinkSender 
     virtual uint8_t sendKeyEvent(uint8_t channel, uint8_t keyPressNum, boolean longPress,
-				uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = 3);
+				uint32_t target_address, uint8_t target_channel, boolean busState = NEED_IDLE_BUS, uint8_t retries = DEFAULT_SEND_RETRIES);
     // Key-Event senden mit Geraetespezifischen Daten (nur Broadcast)
     virtual uint8_t sendKeyEvent(uint8_t srcChan, uint8_t length, void* data);
  								 
@@ -151,7 +154,7 @@ class HBWDevice {
 		NO_ACK		//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
 	};
 
-  private:							 
+  private:
 	uint8_t numChannels;    // number of channels
 	HBWChannel** channels;  // channels
 	HBWLinkSender* linkSender;
@@ -169,7 +172,7 @@ class HBWDevice {
 	//   0 -> ok
 	//   1 -> bus not idle (only if onlyIfIdle)
 	//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-	uint8_t sendFrame(boolean onlyIfIdle = false, uint8_t retries = 3);
+	uint8_t sendFrame(boolean onlyIfIdle = false, uint8_t retries = DEFAULT_SEND_RETRIES);
 	void sendAck();  // ACK fuer gerade verarbeitete Message senden
 
 	// eigene Adresse setzen und damit auch random seed
@@ -179,6 +182,8 @@ class HBWDevice {
     // get central address
     uint32_t getCentralAddress();
     void handleBroadcastAnnounce();
+    void handleAfterReadConfig();
+    void handleResetSystem();
 	
 	// the broadcast methods return...
 	// 0 -> everything ok
@@ -189,7 +194,7 @@ class HBWDevice {
 
 	// write to EEPROM, but only if not "value" anyway
 	// the uppermost 4 bytes are reserved for the device address and can only be changed if privileged = true
-	void writeEEPROM(int16_t address, uint8_t value, bool privileged = false );
+	void writeEEPROM(uint16_t address, uint8_t value, bool privileged = false );
 
 	uint8_t configSize;     // size of config object without peerings
 	uint8_t* config;        // pointer to config object 
@@ -228,7 +233,7 @@ class HBWDevice {
 	void crc16Shift(uint8_t, uint16_t*);
 
 	void readAddressFromEEPROM();
-	void determineSerial(uint8_t*);
+	void determineSerial(uint8_t*, uint32_t address);
 
 	void processEventGetLevel(uint8_t channel, uint8_t command);
 	void processEventSetLock(uint8_t channel, boolean inhibit);

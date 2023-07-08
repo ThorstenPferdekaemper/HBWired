@@ -4,7 +4,7 @@
 	<type name="RS485 3 Channel Delta Temperature and 6 One Wire Channel Temperature Module" id="HBW-CC-DT3-T6" priority="2">
 		<parameter index="0" size="1" const_value="0x9C"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x001E" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x0028" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -297,6 +297,15 @@
 					<value_map to_device="false" from_device="true" parameter_value="5" device_value="0x7"/>
 				</conversion>
 			</parameter>
+			<parameter id="ERROR_STATE">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+6.6"/>
+				</physical>
+			</parameter>
 		</paramset>
 		<paramset type="LINK" id="hmw_deltat_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="32" address_start="0x100" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">
@@ -325,6 +334,13 @@
 					<event frame="INFO_LEVEL"/>
 				</physical>
 				<conversion type="float_integer_scale" factor="10"/>
+			</parameter>
+			<parameter id="STATE" operations="write" control="SWITCH.STATE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="LEVEL">
+					<set request="LEVEL_SET"/>
+				</physical>
+				<conversion type="boolean_integer" true="200" false="0" threshold="1"/>
 			</parameter>
 			<parameter id="STATE" operations="read,event" ui_flags="internal">
 				<logical type="option">
