@@ -26,18 +26,18 @@ static const byte WellenpaketSchritte = 25; // 500ms / 20ms (20ms = 1/50Hz)
 
 // config of SPktS (dimmer) channel, address step 4
 struct hbw_config_dim_spkts {
-	uint8_t logging:1;              // send info message on state changes  //TODO: default off?
+	uint8_t logging:1;       // send info message on state changes  //TODO: implement? default off?
   uint8_t max_output:4;      // 20 - 100% (0 = disabled)
-  uint8_t :3;     //fillup
+  uint8_t :3;           //fillup
   uint8_t max_temp;      // 1..254 °C  ( 0 = "special value", NOT_USED)
-  uint8_t auto_off;      // 1..254 seconds ( 0 = "special value", NOT_USED)
+  uint8_t auto_off;      // 1..254 seconds ( 0 = "special value", NOT_USED) //TODO: change to 10..1270? seconds ()
   uint8_t dummy;
 };
 
 
 class HBWSPktS : public HBWChannel {
   public:
-    HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _temp1, volatile unsigned char* _currentValue);
+    HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _temp1, volatile unsigned char* _SPktS_currentValue);
     virtual uint8_t get(uint8_t* data);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
@@ -45,13 +45,14 @@ class HBWSPktS : public HBWChannel {
 
   protected:
     uint8_t* pin;
-    volatile unsigned char* currentValue;    // keep track of logical state, not real IO
+    unsigned char currentValue;    // keep track of logical state, not real IO
+    volatile unsigned char* SPktSValue;
     uint32_t lastSetTime;
     bool initDone;
 
   private:
     hbw_config_dim_spkts* config;
-    HBWDeltaTx* temp1 = NULL;  // linked virtual HBWDeltaTx input channel
+    HBWDeltaTx* temp1 = NULL;  // linked virtual HBWDeltaTx input channel to receive temperature
     
     union state_flags {
       struct s_state_flags {

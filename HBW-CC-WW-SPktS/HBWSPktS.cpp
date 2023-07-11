@@ -10,12 +10,13 @@
 
 
 
-HBWSPktS::HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _temp1, volatile unsigned char* _currentValue) :
+HBWSPktS::HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _temp1, volatile unsigned char* _SPktS_currentValue) :
   pin(_pin),
-  currentValue(_currentValue),
+  SPktSValue(_SPktS_currentValue),
   config(_config),
   temp1(_temp1)
 {
+  currentValue = 0;
   lastSetTime = 0;
   clearFeedback();
   stateFlags.byte = 0;
@@ -26,7 +27,7 @@ void setup_timer()  // call from main setup()
 {
   cli();//stop interrupts
 
-  //set timer1 interrupt at 50Hz
+  //set timer1 interrupt at 50.08 ~50Hz (with 16MHz system speed / OSC)
   TCCR1A = 0;// set entire TCCR1A register to 0
   TCCR1B = 0;// same for TCCR1B
   TCNT1  = 0;//initialize counter value to 0
@@ -48,9 +49,9 @@ void HBWSPktS::afterReadConfig()
   if (initDone == false)
   {
   // All off on init
+    *SPktSValue = 0;
     digitalWrite(*pin, LOW);
     pinMode(*pin, OUTPUT);
-    *currentValue = 0;
     initDone = true;
   }
 
@@ -71,25 +72,28 @@ void HBWSPktS::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 {
   if (*data <= 200 && config->max_output != 0)
   {
-    uint8_t newValue = *data /2;
-    uint8_t maxOutput = (config->max_output +1) *10;
-    if (newValue > maxOutput)
-    {
-      newValue = maxOutput;
-    }
-    *currentValue = newValue / (100 / WellenpaketSchritte);
+    //uint8_t newValue = *data;// /2;
+    uint8_t maxOutput = (config->max_output +1) *20;
+    // if (newValue > maxOutput)
+    // {
+    //   newValue = maxOutput;
+    // }
+    uint8_t newValue = *data > maxOutput ? maxOutput : *data;
+    *SPktSValue = newValue / (200 / WellenpaketSchritte);
+    currentValue = *SPktSValue *(200 / WellenpaketSchritte);  // recalculate current level with actual stepping
     lastSetTime = millis();
+    stateFlags.byte = 0;    // reset all flags
     stateFlags.state.working = true;
-    stateFlags.state.tMax = false;
+    // stateFlags.state.tMax = false;
   }
 
-  if (config->max_output == 0)
+  if (config->max_output == 0)	// chan disabled
   {
-    *currentValue = 0;
+    *SPktSValue = 0;
     stateFlags.byte = 0;
   }
  #ifdef DEBUG_OUTPUT
-  hbwdebug(F("set HBWSPktS, Val: ")); hbwdebug((uint8_t)*currentValue);
+  hbwdebug(F("set HBWSPktS, Val: ")); hbwdebug((uint8_t)*SPktSValue);
   hbwdebug(F("\n"));
  #endif
 };
@@ -98,7 +102,7 @@ void HBWSPktS::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWSPktS::get(uint8_t* data)
 {
-  *data++ = *currentValue;
+  *data++ = currentValue;
   *data = stateFlags.byte;
   
   return 2;
@@ -108,11 +112,14 @@ uint8_t HBWSPktS::get(uint8_t* data)
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
 {
-  if (*currentValue)
+  // TODO: add delay here? new temperatue will usually not come faster than evevery 10 seconds...
+
+  if (*SPktSValue)
   {
     if ( config->max_output == 0 || (config->auto_off && (millis() - lastSetTime >= (uint32_t)(config->auto_off) *1000)))  // disabled or timeout
     {
-      *currentValue = 0;
+      *SPktSValue = 0;
+      currentValue = 0;
       stateFlags.byte = 0;
       // set trigger to send info/notify message in loop()
       setFeedback(device, config->logging);
@@ -120,7 +127,8 @@ void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
     
     else if (config->max_temp && (temp1->currentTemperature > (int16_t)(config->max_temp) *100 || temp1->currentTemperature < 1))  // max or invalid temp
     {
-      *currentValue = 0;
+      *SPktSValue = 0;
+      currentValue = 0;
       stateFlags.state.working = false;
       stateFlags.state.tMax = true;
       // set trigger to send info/notify message in loop()
@@ -128,15 +136,15 @@ void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
     }
   }
   
-  // if (*currentValue && millis() - lastSetTime >= (uint32_t)(config->auto_off) *1000)
+  // if (*SPktSValue && millis() - lastSetTime >= (uint32_t)(config->auto_off) *1000)
   // {
-  //   currentValue = 0;
+  //   SPktSValue = 0;
   //   stateFlags.state.working = false;
   // }
 
-  // if (*currentValue && config->max_temp && (temp1->currentTemperature > (int16_t)(config->max_temp) *100 || temp1->currentTemperature < 0))
+  // if (*SPktSValue && config->max_temp && (temp1->currentTemperature > (int16_t)(config->max_temp) *100 || temp1->currentTemperature < 0))
   // {
-  //   *currentValue = 0;
+  //   *SPktSValue = 0;
   //   stateFlags.state.working = false;
   //   stateFlags.state.tMax = true;
   // }

@@ -136,7 +136,7 @@ void HBDCCDevice::afterReadConfig()
 HBDCCDevice* device = NULL;
 
 // global vars
-volatile unsigned char SPktS_currentValue;
+volatile unsigned char SPktS_currentValue; // = 0;?
 uint8_t SPktS_outputPin;
 
 ISR(TIMER1_COMPA_vect)

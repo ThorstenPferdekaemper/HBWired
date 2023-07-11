@@ -1,7 +1,7 @@
 Homematic Wired Homebrew Schwingungspaketsteuerung mit Zusatzfunktionen
 =======================================================================
 
-Das Modul HBW-CC-WW-SPktS bietet einen Ausgang für eine Schwingungspaketsteuerung (für 50Hz Heizgeräte o.ä.), dazu 4 OneWire Temperatursensoren und zwei DeltaT Regler als Schaltausgang für bspw. eine Umwälzpumpe.
+Das Modul HBW-CC-WW-SPktS bietet einen Ausgang mit Schwingungspaketsteuerung (für 50Hz Heizgeräte, o.ä.), dazu 5 OneWire Temperatursensoren und zwei DeltaT Regler als Schaltausgang für bspw. eine Umwälzpumpe.
 Basis ist ein Arduino NANO mit RS485-Interface.
 
 Unterstützte 1-Wire® Temperatursensoren:
@@ -17,10 +17,11 @@ Der delta_t Kanaltyp kann mit Aktor Kanälen verknüpft werden, z.B. externe Relai
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw-cc-ww-spkts.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x99 aus).
 
 Kanäle:
-3x DeltaT Relais Ausgänge (Relais, o.ä.)
-3x DeltaT1 'virtuelle' Temperatureingänge
-3x DeltaT2 'virtuelle' Temperatureingänge
-6x OneWire Temperatursensoren
+1x Schwingungspaketsteuerung
+2x DeltaT Relais Ausgänge (Relais, o.ä.)
+2x DeltaT1 'virtuelle' Temperatureingänge
+2x DeltaT2 'virtuelle' Temperatureingänge
+5x OneWire Temperatursensoren
 
 
 DeltaT Konfiguration:
@@ -39,6 +40,8 @@ DIMMER (Schwingungspaketsteuerung)
 * MAX_ON_TIME - Maximale Einschaltzeit
 
 
+Schwingungspaketsteuerung Periodenlänge (Wellenpaket Schritte) = 25; Schwingungspaketdauer 500ms
+
 
 Standard-Pinbelegung:
 (Seriell über USART - #define USE_HARDWARE_SERIAL)
@@ -48,8 +51,9 @@ Standard-Pinbelegung:
 13 - Status LED
 A6 - Bedientaster (Reset)
 A3 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
- 5 - RELAY_1
- 6 - RELAY_2
+ - Schwingungspaketsteuerung
+ 5 - RELAY_1 (DeltaT)
+ 6 - RELAY_2 (DeltaT)
 
 
 "Debug"-Pinbelegung:
@@ -59,7 +63,8 @@ A3 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
 13 - Status LED
 8 - Bedientaster (Reset)
 10 - OneWire Bus (parasitäre oder dedizierte Stromversorgung)
-5 - RELAY_1
-6 - RELAY_2
+ - Schwingungspaketsteuerung
+5 - RELAY_1 (DeltaT)
+6 - RELAY_2 (DeltaT)
 
 
