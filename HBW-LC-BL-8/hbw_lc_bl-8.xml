@@ -121,7 +121,9 @@
 				</physical>
 			</parameter>
 			<parameter id="REFERENCE_RUN_COUNTER">
-				<logical type="integer" default="0" max="100" min="0"/>
+				<logical type="integer" default="0" max="100" min="1">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
 				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+2"/>
 				</physical>

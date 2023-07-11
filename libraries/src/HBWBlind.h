@@ -37,11 +37,11 @@
 #define BL_STATE_SWITCH_DIRECTION 5
 
 
-//address step 7
+// config of blind channel, address step 7
 struct hbw_config_blind {
   byte logging:1;                         // 0x07:0    0x0E  0x15  0x1C
   // byte        :7;                         // 0x07:1-7  0x0E
-  byte blindMotorDelay       :7;                         // Anlaufzeit (Verzögerung bis zur Bewegung, nachdem der Motor Spannung erhalten hat)
+  byte blindMotorDelay:7;                 // Anlaufzeit (Verzögerung bis zur Bewegung, nachdem der Motor Spannung erhalten hat)
   unsigned char blindTimeChangeOver;      // 0x08  0x0F  0x16  0x1D - Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
   unsigned char blindReferenceRunCounter; // 0x09  0x10  0x17  0x1E
   unsigned int blindTimeBottomTop;        // 0x0A  0x11  0x18  0x1F
@@ -71,6 +71,7 @@ class HBWChanBl : public HBWChannel {
     byte blindPositionActual;
     byte blindPositionLast;
     byte blindAngleActual;
+    byte blindRunCounter;
     bool blindDirection;
     bool blindForceNextState;
     bool blindPositionKnown;
