@@ -253,8 +253,11 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
             hbwdebug(F("Reference position reached. Position is known.\n"));
           #endif
             blindPositionKnown = true;
-            blindRunCounter = 0;
           }
+        }
+
+        if ((blindPositionActual == 0) || (blindPositionActual == 100)) {
+          blindRunCounter = 0;  // stopped at min/max position, clear run counter
         }
 
         // prepare to send info message with current position
