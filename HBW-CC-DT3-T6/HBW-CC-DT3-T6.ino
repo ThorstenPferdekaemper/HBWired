@@ -28,12 +28,12 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x003C
+#define FIRMWARE_VERSION 0x003D
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
-#define NUM_LINKS_TEMP 20    // requires Support_HBWLink_InfoEvent in HBWired.h
+#define NUM_LINKS_TEMP 32    // requires Support_HBWLink_InfoEvent in HBWired.h
 #define LINKADDRESSSTART_TEMP 0x100  // pering start_address for any sensor type peers, address_step has to be 6
 #define NUMBER_OF_DELTAT_CHAN 3 // result output channels[, can peer with switch]
 #define NUM_LINKS_DELTATX 6     // allow to peer input channels (T1 & T2) with one temperature sensor each

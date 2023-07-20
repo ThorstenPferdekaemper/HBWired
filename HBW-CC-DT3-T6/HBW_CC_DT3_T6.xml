@@ -299,8 +299,8 @@
 			</parameter>
 			<parameter id="ERROR_STATE">
 				<logical type="option">
-					<option id="ON"/>
-					<option id="OFF" default="true"/>
+					<option id="OUTPUT_ON"/>
+					<option id="OUTPUT_OFF" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
 					<address index="+6.6"/>
