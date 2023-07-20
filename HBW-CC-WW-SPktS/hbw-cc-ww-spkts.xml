@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <device version="12" eep_size="1024">
 <supported_types>
-	<type name="RS485 Heating Control, with DeltaT and 4 One Wire Channel Temperature Module" id="HBW-CC-WW-SPktS" priority="2">
+	<type name="RS485 Heating Control Module, with DeltaT and 5 One Wire Temperature Channels" id="HBW-CC-WW-SPktS" priority="2">
 		<parameter index="0" size="1" const_value="0x99"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
 		<parameter const_value="0x0001" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
@@ -42,17 +42,16 @@
 	</frame>
 	<frame id="LEVEL_SET" type="#x" channel_field="10" direction="to_device">
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
-		<!--<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/>-->
 	</frame>
 	<frame id="LEVEL_GET" direction="to_device" type="#S" channel_field="10"/>
-	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
-		<parameter type="integer" index="11.0" size="1.0" param="TEMPERATURE_DELTA"/>
-		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
+	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
+		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
+		<parameter size="0.4" index="12.4" type="integer" param="STATE_FLAGS"/>
 	</frame>
-	<!--
-	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
-		<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/>
-	</frame>-->
+	<frame id="INFO_DT_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" param="TEMPERATURE_DELTA"/>
+		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS_DT"/>
+	</frame>
 	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
 		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
 		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
@@ -120,9 +119,12 @@
 					<option id="90%"/>
 					<option id="100%" default="true"/>
 				</logical>
-				<physical size="0.3" type="integer" interface="eeprom">
+				<physical size="0.4" type="integer" interface="eeprom">
 					<address index="+0.1"/>
 				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="9" device_value="0xff" mask="0x0f"/>
+				</conversion>
 			</parameter>
 			<parameter id="MAX_TEMP">
 				<logical type="float" unit="&#x2103;" default="60" min="1" max="250">
@@ -176,13 +178,14 @@
 					<value_map device_value="0x01" parameter_value="1"/>
 					<value_map device_value="0x02" parameter_value="1"/>
 					<value_map device_value="0x03" parameter_value="0"/>
+					<value_map device_value="0x08" parameter_value="0" mask="0x08"/>
 				</conversion>
 			</parameter>
-			<parameter id="DIRECTION" operations="read,event" ui_flags="internal">
+			<parameter id="ERROR" operations="read,event" ui_flags="internal"> <!-- TODO implement  change -->
 				<logical type="option">
 					<option id="NONE" default="true"/>
-					<option id="UP"/>
-					<option id="DOWN"/>
+					<option id="TIMEOUT"/>
+					<option id="TEMPERATURE"/>
 					<option id="UNDEFINED"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
@@ -197,18 +200,33 @@
 					<value_map device_value="0x03" parameter_value="3"/>
 				</conversion>
 			</parameter>
+			<parameter id="MAX_TEMP" operations="read,event" ui_flags="internal">
+				<logical type="option">
+					<option id="OK" default="true"/>
+					<option id="REACHED"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+					<event frame="ACK_STATUS"/>
+				</physical>
+				<conversion type="option_integer">
+					<value_map device_value="0x00" parameter_value="0" mask="0x08"/>
+					<value_map device_value="0x08" parameter_value="1" mask="0x08"/>
+				</conversion>
+			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
 				<logical type="boolean" default="false"/>
 				<physical type="integer" interface="command" value_id="INHIBIT">
 					<set request="SET_LOCK"/>
 				</physical>
 			</parameter>
-			<parameter id="OLD_LEVEL" operations="write"> <!-- control="DIMMER.OLD_LEVEL"-->
+			<!-- <parameter id="OLD_LEVEL" operations="write">
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
 					<set request="OLD_LEVEL"/>
 				</physical>
-			</parameter>
+			</parameter> -->
 			<parameter id="INSTALL_TEST" operations="write" ui_flags="internal">
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="TOGGLE_FLAG" no_init="true">
@@ -219,11 +237,73 @@
 		</paramset>
 	</channel>
 
-	<channel index="2" count="4" physical_index_offset="-1" type="TEMPSENSOR">
+	<channel index="2" count="1" physical_index_offset="-1" type="SPktS_T1">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x0B">
+		<!--no config...-->
+		</paramset>
+		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="5" address_start="0x220" address_step="7">
+			<parameter id="UI_HINT">
+			  <logical type="string" default="" use_default_on_failure="true"/>
+			  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
+			</parameter>
+			<parameter id="SENSOR" operations="none" hidden="true">
+			  <logical type="address"/>
+			  <physical type="array">
+				<physical type="integer" size="4.0" interface="eeprom">
+				  <address index="+0"/>
+				</physical>
+				<physical type="integer" size="1.0" interface="eeprom">
+				  <address index="+4"/>
+				</physical>
+			  </physical>
+			</parameter>
+			<parameter id="CHANNEL" operations="none" hidden="true">
+			  <logical type="integer" min="0" max="255" default="255"/>
+			  <physical type="integer" size="1.0" interface="eeprom">
+				<address index="+5"/>
+			  </physical>
+			</parameter>
+			<parameter id="SHORT_ACTION_TYPE">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF"/>
+					<option id="INACTIVE"/>
+					<option id="TOGGLE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ACTION_TYPE">
+				<logical type="option">
+					<option id="ON"/>
+					<option id="OFF"/>
+					<option id="INACTIVE"/>
+					<option id="TOGGLE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+6.2"/>
+				</physical>
+			</parameter>
+		</paramset>
+		<paramset type="VALUES" id="hmw_teltatx_input_values">
+			<parameter id="TEMPERATURE" operations="event,read,write">
+				<logical type="float" min="-273.15" max="327.67" unit="&#x2103;"/>
+				<physical type="integer" interface="command" value_id="TEMP">
+					<get request="TEMP_GET" response="INFO_TEMP"/>
+					<event frame="INFO_TEMP"/>
+					<set request="TEMP_SET"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+			</parameter>
+		</paramset>
+	</channel>
+
+	<channel index="3" count="5" physical_index_offset="-1" type="TEMPSENSOR">
 		<link_roles>
 			<source name="TEST"/>
 		</link_roles>
-		<paramset type="MASTER" id="hmw_input_t_ch_master" address_step="14" address_start="0x0B">
+		<paramset type="MASTER" id="hmw_input_t_ch_master" address_step="14" address_start="0x0C">
 			<parameter id="SEND_DELTA_TEMP">
 				<logical type="float" unit="&#x2103;" default="0.5" min="0.1" max="25.0">
 					<special_value id="NOT_USED" value="0"/>
@@ -322,11 +402,11 @@
 		</paramset>	
 	</channel>
 	
-	<channel index="6" count="2" physical_index_offset="-1" type="DELTA_T">
+	<channel index="8" count="2" physical_index_offset="-1" type="DELTA_T">
 		<link_roles>
 		   <source name="SWITCH"/>
 		</link_roles>
-		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x43" address_step="7">
+		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x52" address_step="7">
 			<parameter id="LOGGING">
 				<logical type="option">
 					<option id="OFF"/>
@@ -425,8 +505,8 @@
 			</parameter>
 			<parameter id="ERROR_STATE">
 				<logical type="option">
-					<option id="ON"/>
-					<option id="OFF" default="true"/>
+					<option id="OUTPUT_ON"/>
+					<option id="OUTPUT_OFF" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
 					<address index="+6.6"/>
@@ -456,8 +536,8 @@
 			<parameter id="DELTAT" operations="read,event" control="none"> <!--control="DELTAT.LEVEL"-->
 				<logical type="float" default="0.0" min="0.0" max="25.5" unit="&#x2103;"/>
 				<physical type="integer" interface="command" value_id="TEMPERATURE_DELTA">
-					<get request="LEVEL_GET" response="INFO_LEVEL"/>
-					<event frame="INFO_LEVEL"/>
+					<get request="LEVEL_GET" response="INFO_DT_LEVEL"/>
+					<event frame="INFO_DT_LEVEL"/>
 				</physical>
 				<conversion type="float_integer_scale" factor="10"/>
 			</parameter>
@@ -479,7 +559,7 @@
 					<option id="ON"/>
 					<option id="ON"/>
 				</logical>
-				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+				<physical type="integer" interface="command" value_id="STATE_FLAGS_DT">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
 					<event frame="INFO_LEVEL"/>
 					<event frame="ACK_STATUS"/>
@@ -506,8 +586,8 @@
 					<option id="ACTIVE"/>
 					<option id="ACTIVE"/>
 				</logical>
-				<physical type="integer" interface="command" value_id="STATE_FLAGS">
-					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS_DT">
+					<get request="LEVEL_GET" response="INFO_DT_LEVEL"/>
 					<event frame="LEVEL_VALVE"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
@@ -533,9 +613,9 @@
 					<option id="EXCEED"/>
 					<option id="WITHIN"/>
 					</logical>
-				<physical type="integer" interface="command" value_id="STATE_FLAGS">
-					<get request="LEVEL_GET" response="INFO_LEVEL"/>
-					<event frame="INFO_LEVEL"/>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS_DT">
+					<get request="LEVEL_GET" response="INFO_DT_LEVEL"/>
+					<event frame="INFO_DT_LEVEL"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
 				<conversion type="option_integer">
@@ -558,11 +638,11 @@
 		</paramset>
 	</channel>
 	
-	<channel index="8" count="2" physical_index_offset="-1" type="DELTA_T1">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x51">
+	<channel index="10" count="2" physical_index_offset="-1" type="DELTA_T1">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x60">
 		<!--no config...-->
 		</paramset>
-		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
+		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="5" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
 			  <logical type="string" default="" use_default_on_failure="true"/>
 			  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -620,11 +700,11 @@
 		</paramset>
 	</channel>
 	
-	<channel index="10" count="2" physical_index_offset="-1" type="DELTA_T2">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x53">
+	<channel index="12" count="2" physical_index_offset="-1" type="DELTA_T2">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x62">
 		<!--no config...-->
 		</paramset>
-		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
+		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="5" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
 			  <logical type="string" default="" use_default_on_failure="true"/>
 			  <physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>

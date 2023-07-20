@@ -26,7 +26,7 @@ static const byte WellenpaketSchritte = 25; // 500ms / 20ms (20ms = 1/50Hz)
 
 // config of SPktS (dimmer) channel, address step 4
 struct hbw_config_dim_spkts {
-	uint8_t logging:1;       // send info message on state changes  //TODO: implement? default off?
+  uint8_t logging:1;       // send info message on (important) state changes
   uint8_t max_output:4;      // 20 - 100% (0 = disabled)
   uint8_t :3;           //fillup
   uint8_t max_temp;      // 1..254 °C  ( 0 = "special value", NOT_USED)
@@ -57,9 +57,10 @@ class HBWSPktS : public HBWChannel {
     union state_flags {
       struct s_state_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
-        uint8_t upDown  :2; // dim up = 1 or down = 2
-        uint8_t working :1; // true, if working
+        uint8_t timeout  :1; // 
         uint8_t tMax  :1;   // max temp reached
+        uint8_t working :1; // true, if working
+        uint8_t unused  :1;
       } state;
       uint8_t byte:8;
     };

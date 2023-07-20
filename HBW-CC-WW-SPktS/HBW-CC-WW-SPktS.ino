@@ -22,12 +22,12 @@
 #define NUMBER_OF_HEATING_CHAN 1   // Schwingungspaketsteuerungsausgangskanal
 #define NUMBER_OF_HEAT_DELTAT_CHAN NUMBER_OF_HEATING_CHAN  // dT1 channel linked with heating/dimmer chan above
 #define NUMBER_OF_TEMP_CHAN 5   // input channels - 1-wire temperature sensors
-#define NUM_LINKS_TEMP 20    // requires Support_HBWLink_InfoEvent in HBWired.h
+#define NUM_LINKS_TEMP 32    // requires Support_HBWLink_InfoEvent in HBWired.h
 #define NUMBER_OF_DELTAT_CHAN 2 // result output channels[, can peer with switch]
 #define NUM_LINKS_DELTATX NUMBER_OF_DELTAT_CHAN*2 +NUMBER_OF_HEAT_DELTAT_CHAN  // allow to peer input channels (T1 & T2) with one temperature sensor each
-#define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
+#define ADDRESS_START_CONF_TEMP_CHAN 0x0C  // first EEPROM address for temperature sensors configuration
 #define LINKADDRESSSTART_TEMP 0x100  // pering start_address for any sensor type peers, address_step has to be 6
-#define LINKADDRESSSTART_DELTATX 0x220  // step 7
+#define LINKADDRESSSTART_DELTATX 0x220  // step 7, actor type
 
 
 // #define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
@@ -66,10 +66,10 @@
 
   #define ONEWIRE_PIN	10 // Onewire Bus
 
-  #define HEATER_PIN 5
+  #define HEATER_PIN A4
 
-  #define RELAY_1 7
-  #define RELAY_2 6
+  #define RELAY_1 A3
+  #define RELAY_2 A5
 
   #include "FreeRam.h"
   #include <HBWSoftwareSerial.h>
@@ -87,12 +87,12 @@ struct hbw_config
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_dim_spkts SPktSCfg[NUMBER_OF_HEATING_CHAN];  // 0x07 - ... (address step 4)
-  hbw_config_DeltaTx Temp1Cfg[NUMBER_OF_HEATING_CHAN];
-  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x5A (address step 14)
-  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6F (address step 7)
-  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x70 - 0x72 (address step 1)
-  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x73 - 0x75 (address step 1)
+  hbw_config_dim_spkts SPktSCfg[NUMBER_OF_HEATING_CHAN];  // 0x07 - 0x0A (address step 4)
+  hbw_config_DeltaTx Temp1Cfg[NUMBER_OF_HEATING_CHAN];    // 0x0B - 0x0B (address step 1)
+  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x0C - 0x51 (address step 14)
+  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x52 - 0x59 (address step 7)
+  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x60 - 0x61 (address step 1)
+  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x62 - 0x63 (address step 1)
 } hbwconfig;
 
 
@@ -214,7 +214,6 @@ void setup()
                              );
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
-  //device->setStatusLEDPins(LED, LED); // Tx, Rx LEDs
 
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());

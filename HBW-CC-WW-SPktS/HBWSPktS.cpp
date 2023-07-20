@@ -121,12 +121,14 @@ void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
       *SPktSValue = 0;
       currentValue = 0;
       stateFlags.byte = 0;
+      stateFlags.state.timeout = true;
       // set trigger to send info/notify message in loop()
       setFeedback(device, config->logging);
     }
     
     else if (config->max_temp && (temp1->currentTemperature > (int16_t)(config->max_temp) *100 || temp1->currentTemperature < 1))  // max or invalid temp
     {
+      //TODO: check temp regularly and restore currentValue when within limits again?? (backup as oldValue?)
       *SPktSValue = 0;
       currentValue = 0;
       stateFlags.state.working = false;
