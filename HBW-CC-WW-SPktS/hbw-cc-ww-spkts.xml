@@ -560,8 +560,8 @@
 					<option id="ON"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS_DT">
-					<get request="LEVEL_GET" response="INFO_LEVEL"/>
-					<event frame="INFO_LEVEL"/>
+					<get request="LEVEL_GET" response="INFO_DT_LEVEL"/>
+					<event frame="INFO_DT_LEVEL"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
 				<conversion type="option_integer">
