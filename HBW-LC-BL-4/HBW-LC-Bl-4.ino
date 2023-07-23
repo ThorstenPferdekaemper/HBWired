@@ -32,10 +32,12 @@
 // - added idle powersave
 // v0.6
 // - added config option MotorDelay (MOTOR_STARTUP_DELAY)
+// v0.65
+// - implemented REFERENCE_RUN_COUNTER config option
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x003D
+#define FIRMWARE_VERSION 0x0041
 #define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 4

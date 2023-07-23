@@ -1,0 +1,46 @@
+default fuses (AtMega328pb) - stock
+
+avrdude: Device signature = 0x1e9516 (probably m328pb)
+avrdude: safemode: lfuse reads as 62
+avrdude: safemode: hfuse reads as D9
+avrdude: safemode: efuse reads as F7
+avrdude: safemode: Fuses OK (E:F7, H:D9, L:62)
+
+
+custom fuses:
+CFD = CFD_ENABLED
+BODLEVEL = 2V7
+RSTDISBL = [ ]
+DWEN = [ ]
+SPIEN = [X]
+WDTON = [ ]
+EESAVE = [X]
+BOOTSZ = 1024W_3C00
+BOOTRST = [ ]
+CKDIV8 = [ ]
+CKOUT = [ ]
+SUT_CKSEL = EXTXOSC_8MHZ_XX_16KCK_14CK_65MS
+
+EXTENDED = 0xFD (valid)
+HIGH = 0xD3 (valid)
+LOW = 0xFF (valid)
+
+
+##Quick command reference
+
+AVRDUDE arguments,
+to set fuses...
+
+(same as m328p)
+
+  -->> this is used on https://loetmeister.de/Elektronik/homematic/index.htm#modules <<--
+  To disable bootloader & preserve EEPROM memory:
+  avrdude -c AVRISPmkII -p m328pb -U lfuse:w:0xff:m -U hfuse:w:0xd3:m -U efuse:w:0xfd:m
+
+  --> efuse: 0xfd may not be accepted. User other tools, e.g. Atmel Studio
+  
+
+to flash...
+  (no boot loader version):
+  avrdude -c AVRISPmkII -p m328pb -U flash:w:HBW-device.ino.eightanaloginputs.hex:i -v
+  
