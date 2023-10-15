@@ -20,7 +20,7 @@
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
 
-#define FIXED_SAMPLE_TIME
+#define FIXED_SAMPLE_TIME  // removes setSampleTime() and set static PID_SAMPLE_TIME
 #define PID_SAMPLE_TIME 2000 // pid compute every 2 sec
 
 // config of one PID channel, address step 9
@@ -54,19 +54,21 @@ class HBWPids : public HBWChannel {
     bool inErrorState;
     
     bool inAuto; // 1 = automatic ; 0 = manual
-    bool oldInAuto; // auto or manual stored here, when in error pos.
+    bool oldInAuto; // auto or manual state stored here, when in error pos.
     int16_t setPoint; // temperatures in m°C
     uint32_t windowStartTime;
     
     // pidlib
     uint32_t outMax;
-    double ITerm;
-    int16_t Input, lastInput;
-   #ifndef FIXED_SAMPLE_TIME
-    uint16_t sampleTime;
+    double outputSum;
+    int16_t input, lastInput;
+   #ifdef FIXED_SAMPLE_TIME
+    static const uint16_t sampleTime = PID_SAMPLE_TIME;
+   #else
+    uint32_t sampleTime;
    #endif
     uint32_t lastPidTime; // pid computes every sampleTime
-    double Output;
+    double output;
     double kp, ki, kd;
 
     void autoTune();
@@ -82,10 +84,7 @@ class HBWPids : public HBWChannel {
     static const bool MANUAL = false;
     static const bool AUTOMATIC = true;
     static const bool SET_BY_PID = true;
-    
-   #ifdef FIXED_SAMPLE_TIME
-    static const uint16_t sampleTime = PID_SAMPLE_TIME;
-   #endif
+
 };
 
 
