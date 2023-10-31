@@ -57,7 +57,7 @@ class HBWSPktS : public HBWChannel {
     union state_flags {
       struct s_state_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
-        uint8_t timeout  :1; // 
+        uint8_t timeout  :1; // max_on_time reached
         uint8_t tMax  :1;   // max temp reached
         uint8_t working :1; // true, if working
         uint8_t unused  :1;

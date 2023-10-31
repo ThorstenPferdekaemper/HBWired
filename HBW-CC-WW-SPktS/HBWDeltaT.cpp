@@ -23,6 +23,7 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
   stateFlags.byte = 0;
   keyPressNum = 0;
   initDone = false;
+  evenCycle = false;
 };
 
 
@@ -133,7 +134,7 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 {
   stateFlags.element.mode = calculateNewState();  // calculate new deltaT value, set channel mode (active/inactive)
   
-  if (millis() - outputChangeLastTime >= ((uint16_t)(config->output_change_wait_time +1) *5000))
+  if (millis() - outputChangeLastTime >= ((uint16_t)(config->output_change_wait_time +1) *5000)/2)
   {
     if (setOutput(device, channel)) // will only set output if state is different
     {
@@ -164,6 +165,17 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 {
   outputChangeLastTime = millis();
+  
+  if (evenCycle) {
+    evenCycle = false;
+  }
+  else {
+    evenCycle = true;
+    if (nextState == ON && !config->n_output_change_pulse) {
+      digitalWrite(pin, (!OFF ^ config->n_inverted));
+    }
+    return false;
+  }
 
   digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output always
 

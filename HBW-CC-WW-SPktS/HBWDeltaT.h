@@ -44,7 +44,7 @@ struct hbw_config_DeltaT {
   uint8_t n_enableHysMinT2:1;  // apply hysteresis on minT2, 1=off (default) 0=on
   uint8_t n_enableHysOFF:1;  // apply hysteresis on OFF transition, too. 1=off (default) 0=on
   uint8_t error_state:1;  // set output OFF or ON at error state (defaut OFF)
-  uint8_t :1;     //fillup
+  uint8_t n_output_change_pulse:1;     // pulse the output in output_change_wait_time/2 frequency (default disabled == 1)
 };
 
 // config of one DeltaTx channel, address step 1
@@ -97,6 +97,7 @@ class HBWDeltaT : public HBWChannel {
     bool currentState;
     bool nextState;
     bool initDone;
+    bool evenCycle;
     
 
     union tag_state_flags {

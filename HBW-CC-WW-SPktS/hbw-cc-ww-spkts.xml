@@ -46,7 +46,7 @@
 	<frame id="LEVEL_GET" direction="to_device" type="#S" channel_field="10"/>
 	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
 		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
-		<parameter size="0.4" index="12.4" type="integer" param="STATE_FLAGS"/>
+		<parameter size="0.3" index="12.4" type="integer" param="STATE_FLAGS"/>
 	</frame>
 	<frame id="INFO_DT_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" param="TEMPERATURE_DELTA"/>
@@ -173,20 +173,18 @@
 				</physical>
 				<conversion type="boolean_integer"/>
 				<conversion type="integer_integer_map">
-					<value_map device_value="0x04" parameter_value="1" mask="0x04"/>
 					<value_map device_value="0x00" parameter_value="0"/>
-					<value_map device_value="0x01" parameter_value="1"/>
-					<value_map device_value="0x02" parameter_value="1"/>
+					<value_map device_value="0x01" parameter_value="0"/>
+					<value_map device_value="0x02" parameter_value="0"/>
 					<value_map device_value="0x03" parameter_value="0"/>
-					<value_map device_value="0x08" parameter_value="0" mask="0x08"/>
+					<value_map device_value="0x04" parameter_value="1"/>
+					<!-- <value_map device_value="0x08" parameter_value="0" mask="0x08"/> -->
 				</conversion>
 			</parameter>
-			<parameter id="ERROR" operations="read,event" ui_flags="internal"> <!-- TODO implement  change -->
+			<parameter id="TIMEOUT" operations="read,event" ui_flags="internal">
 				<logical type="option">
-					<option id="NONE" default="true"/>
-					<option id="TIMEOUT"/>
-					<option id="TEMPERATURE"/>
-					<option id="UNDEFINED"/>
+					<option id="NO" default="true"/>
+					<option id="YES"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
@@ -194,16 +192,16 @@
 					<event frame="ACK_STATUS"/>
 				</physical>
 				<conversion type="option_integer">
-					<value_map device_value="0x00" parameter_value="0"/>
-					<value_map device_value="0x01" parameter_value="1"/>
-					<value_map device_value="0x02" parameter_value="2"/>
-					<value_map device_value="0x03" parameter_value="3"/>
+					<value_map device_value="0x00" parameter_value="0" mask="0x01"/>
+					<value_map device_value="0x01" parameter_value="1" mask="0x01"/>
+					<!-- <value_map device_value="0x02" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x03" parameter_value="1"/> -->
 				</conversion>
 			</parameter>
 			<parameter id="MAX_TEMP" operations="read,event" ui_flags="internal">
 				<logical type="option">
 					<option id="OK" default="true"/>
-					<option id="REACHED"/>
+					<option id="EXCEEDED"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
@@ -211,8 +209,8 @@
 					<event frame="ACK_STATUS"/>
 				</physical>
 				<conversion type="option_integer">
-					<value_map device_value="0x00" parameter_value="0" mask="0x08"/>
-					<value_map device_value="0x08" parameter_value="1" mask="0x08"/>
+					<value_map device_value="0x00" parameter_value="0" mask="0x02"/>
+					<value_map device_value="0x02" parameter_value="1" mask="0x02"/>
 				</conversion>
 			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
@@ -502,6 +500,15 @@
 				<conversion type="integer_integer_map">
 					<value_map to_device="false" from_device="true" parameter_value="5" device_value="0x7"/>
 				</conversion>
+			</parameter>
+			<parameter id="PULS_ON_CYCLE">
+				<logical type="option">
+					<option id="50%_CYCLE_TIME"/>
+					<option id="OFF" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+6.7"/>
+				</physical>
 			</parameter>
 			<parameter id="ERROR_STATE">
 				<logical type="option">
