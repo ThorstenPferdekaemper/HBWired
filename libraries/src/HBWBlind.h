@@ -19,7 +19,7 @@
 /* Config der Rollo-Steuerung:  */
 /********************************/
 
-#define BL_POS_UNKNOWN 1		// Position on device reset / unknown position (1 == 0.5%) TODO-fixme: now 1*2 == 1%
+#define BL_POS_UNKNOWN 1		// Position on device reset / unknown position (1 == 0.5%)
 
 #define ON HIGH					// Möglichkeit für invertierte Logik
 #define OFF LOW
