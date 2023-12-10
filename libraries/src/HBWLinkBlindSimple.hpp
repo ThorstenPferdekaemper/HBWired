@@ -64,7 +64,7 @@ void HBWLinkBlindSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devic
 	  // we can have
 	  switch(actionType) {
 	  // 0 -> OPEN
-	    case 0: data[0] = SET_BLIND_UP;
+	    case 0: data[0] = SET_BLIND_OPEN;
 		        break;
 	  // 1 -> STOP
 	    case 1: data[0] = SET_BLIND_STOP;
