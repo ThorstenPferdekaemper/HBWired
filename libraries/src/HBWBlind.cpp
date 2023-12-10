@@ -2,6 +2,7 @@
 ** HBWBlind
 **
 ** Rolladenaktor mit Richtungs und Aktiv Relais pro Kanal
+** (Position offen: 100%, geschlossen 0%)
 ** 
 ** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
@@ -52,7 +53,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     uint8_t currentKeyNum = data[1];
     bool sameLastSender = data[2];
 
-    if (lastKeyNum == currentKeyNum && sameLastSender)  // ignore repeated key press from the same sender
+    if (lastKeyNum == currentKeyNum && sameLastSender)  // ignore repeated key press from the same sender (no LONG_MULTIEXECUTE supported/used), but proceed if same key num has been send by different channel/device
       return;
     else
       lastKeyNum = currentKeyNum;
@@ -70,7 +71,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 
     if ((blindCurrentState == BL_STATE_STOP) || (blindCurrentState == BL_STATE_RELAIS_OFF)) {
       
-      blindPositionRequested = (blindDirection == UP) ? 200 : 0;
+      blindPositionRequested = (blindDirection == UP) ? 0 : 200;
       blindNextState = BL_STATE_WAIT;
 
       // if current blind position is not known (e.g. due to a reset), actual position is set to the limit, to ensure that the moving time is long enough to reach the end position
@@ -79,7 +80,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
         hbwdebug(F("Position unknown\n"));
       #endif
 
-        blindPositionActual = (blindDirection == UP) ? 0 : 200;
+        blindPositionActual = (blindDirection == UP) ? 200 : 0;
       }
     }
   }
@@ -123,7 +124,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 
       getCurrentPosition();
 
-      if (((blindDirection == UP) && (blindPositionRequested > blindPositionActual)) || ((blindDirection == DOWN) && (blindPositionRequested < blindPositionActual))) {
+      if (((blindDirection == UP) && (blindPositionRequested < blindPositionActual)) || ((blindDirection == DOWN) && (blindPositionRequested > blindPositionActual))) {
         // Rollo muss die Richtung umkehren:
         blindNextState = BL_STATE_SWITCH_DIRECTION;
         blindForceNextState = true;
@@ -166,7 +167,7 @@ uint8_t HBWChanBl::get(uint8_t* data)
   }
   
   if (blindCurrentState > BL_STATE_RELAIS_OFF || blindNextState > BL_STATE_RELAIS_OFF) {  // set "direction" flag (turns "working" to "on")
-    if (blindPositionActual < blindPositionRequested)
+    if (blindPositionActual < blindPositionRequested)  // direction up
       stateFlag |= B00010000;
     else
       stateFlag |= B00100000;
@@ -195,7 +196,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
         break;
 
       case BL_STATE_WAIT:
-        blindDirection = (blindPositionRequested > blindPositionActual) ? DOWN : UP;
+        blindDirection = (blindPositionRequested > blindPositionActual) ? UP : DOWN;
         digitalWrite(blindDir, blindDirection);   // switch on the "direction" relay
 
         // Set next state & delay time
@@ -216,10 +217,10 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
         blindCurrentState = BL_STATE_MOVE;
         blindNextState = BL_STATE_STOP;
         if (blindDirection == UP) {
-          blindNextStateDelayTime = ((blindPositionActual - blindPositionRequested) * config->blindTimeBottomTop)/2;
+          blindNextStateDelayTime = ((blindPositionRequested - blindPositionActual) * config->blindTimeBottomTop)/2;
         }
         else {
-          blindNextStateDelayTime = ((blindPositionRequested - blindPositionActual) * config->blindTimeTopBottom)/2;
+          blindNextStateDelayTime = ((blindPositionActual - blindPositionRequested) * config->blindTimeTopBottom)/2;
         }
         blindNextStateDelayTime += config->blindMotorDelay *10;   // Motor lief nicht, eingestellte Anlaufzeit addieren
 		blindRunCounter++;
@@ -325,18 +326,18 @@ void HBWChanBl::getCurrentPosition()
   
   if (blindCurrentState == BL_STATE_MOVE)
   {
-    now += config->blindMotorDelay * 10;  // motor start time does not count for motion...
+    unsigned long blindTimeStart_temp = blindTimeStart + config->blindMotorDelay * 10;  // motor start time does not count for motion...
 
     if (blindDirection == UP) {
-      blindPositionActual = blindPositionLast - (now - blindTimeStart) / (config->blindTimeBottomTop / 2);
+      blindPositionActual = blindPositionLast + (now - blindTimeStart_temp) / (config->blindTimeBottomTop / 2);
       if (blindPositionActual > 200)
-        blindPositionActual = 0; // robustness
+        blindPositionActual = 200; // robustness
       blindAngleActual = 0;
     }
     else {
-      blindPositionActual = blindPositionLast + (now - blindTimeStart) / (config->blindTimeTopBottom / 2);
+      blindPositionActual = blindPositionLast - (now - blindTimeStart_temp) / (config->blindTimeTopBottom / 2);
       if (blindPositionActual > 200)
-        blindPositionActual = 200; // robustness
+        blindPositionActual = 0; // robustness
       blindAngleActual = 100;
     }
   }

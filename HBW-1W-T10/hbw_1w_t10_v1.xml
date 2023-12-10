@@ -21,6 +21,12 @@
 			<address index="0x0006"/>
 		</physical>	
 	</parameter>
+	<parameter id="OWN_ADDRESS">
+		<logical type="integer" default="1124073471" max="1107558399" min="1107296256"/>
+		<physical size="4" type="integer" interface="eeprom">
+			<address index="0x3FC"/>
+		</physical>
+	</parameter>
 	<enforce id="CENTRAL_ADDRESS" value="1"/>
 	<enforce id="DIRECT_LINK_DEACTIVATE" value="true"/>
 </paramset>
