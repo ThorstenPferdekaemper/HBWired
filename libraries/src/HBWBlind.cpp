@@ -7,7 +7,7 @@
 ** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
 **
-** Last updated: 09.07.2023
+** Last updated: 12.12.2023
 */
 
 #include "HBWBlind.h"
@@ -79,7 +79,6 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       #ifdef DEBUG
         hbwdebug(F("Position unknown\n"));
       #endif
-
         blindPositionActual = (blindDirection == UP) ? 200 : 0;
       }
     }
@@ -106,17 +105,17 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     #endif
 
       if (blindPositionRequested == 0) {
-      blindPositionActual = 200;
+        blindPositionActual = 200;
       }
       else if (blindPositionRequested == 200) {
-      blindPositionActual = 0;
+        blindPositionActual = 0;
       }
       else {  // Target position >0 and <100
       // for requested position 50% or lower, set target to 0% to move in right direction - set blindPositionActual (unknown anyway) as opposite (always 0 or 100%)
-      blindPositionActual = blindPositionRequested <= 100 ? 200 : 0;
-      blindPositionRequestedSave = blindPositionRequested;
-      blindPositionRequested = blindPositionRequested <= 100 ? 0 : 200;
-      blindSearchingForRefPosition = true;
+        blindPositionActual = blindPositionRequested <= 100 ? 200 : 0;
+        blindPositionRequestedSave = blindPositionRequested;
+        blindPositionRequested = blindPositionRequested <= 100 ? 0 : 200;
+        blindSearchingForRefPosition = true;
       }
     }
 
@@ -160,10 +159,7 @@ uint8_t HBWChanBl::get(uint8_t* data)
     newData = blindPositionActual;  // dann aktuelle Position ausgeben,
   }
   else {                           // ansonsten die angeforderte Zielposition
-    if (blindSearchingForRefPosition)
-      newData = blindPositionRequestedSave;
-    else
-      newData = blindPositionRequested;
+    newData = blindSearchingForRefPosition ? blindPositionRequestedSave : blindPositionRequested;
   }
   
   if (blindCurrentState > BL_STATE_RELAIS_OFF || blindNextState > BL_STATE_RELAIS_OFF) {  // set "direction" flag (turns "working" to "on")
@@ -244,7 +240,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
         else {
           blindPositionActual = blindPositionRequested;
           
-          if (blindDirection == UP)
+          if (blindDirection == DOWN)
             blindAngleActual = 0;
           else
             blindAngleActual = 100;
@@ -294,7 +290,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
         blindTimeLastAction = now;
         blindCurrentState = BL_STATE_TURN_AROUND;
         blindNextState = BL_STATE_MOVE;
-        if (blindDirection == UP) {  // Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
+        if (blindDirection == DOWN) {  // Zulässige Laufzeit ohne die Position zu ändern (erlaubt Stellwinkel von Lamellen zu ändern)
           blindNextStateDelayTime = blindAngleActual * config->blindTimeChangeOver;
         }
         else {
@@ -332,26 +328,26 @@ void HBWChanBl::getCurrentPosition()
       blindPositionActual = blindPositionLast + (now - blindTimeStart_temp) / (config->blindTimeBottomTop / 2);
       if (blindPositionActual > 200)
         blindPositionActual = 200; // robustness
-      blindAngleActual = 0;
+      blindAngleActual = 100;
     }
     else {
       blindPositionActual = blindPositionLast - (now - blindTimeStart_temp) / (config->blindTimeTopBottom / 2);
       if (blindPositionActual > 200)
         blindPositionActual = 0; // robustness
-      blindAngleActual = 100;
+      blindAngleActual = 0;
     }
   }
   else {  // => current state == BL_STATE_TURN_AROUND
     // blindPosition unchanged
     if (blindDirection == UP) {
-      blindAngleActual -= (now - blindTimeStart) / config->blindTimeChangeOver;
-      if (blindAngleActual > 100)
-        blindAngleActual = 0; // robustness
-    }
-    else {
       blindAngleActual += (now - blindTimeStart) / config->blindTimeChangeOver;
       if (blindAngleActual > 100)
         blindAngleActual = 100; // robustness
+    }
+    else {
+      blindAngleActual -= (now - blindTimeStart) / config->blindTimeChangeOver;
+      if (blindAngleActual > 100)
+        blindAngleActual = 0; // robustness
     }
   }
 };
