@@ -2,6 +2,7 @@
 ** HBWBlind
 **
 ** Rolladenaktor mit Richtungs und Aktiv Relais pro Kanal
+** (Position offen: 100%, geschlossen 0%)
 ** 
 ** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
@@ -19,10 +20,12 @@
 /* Config der Rollo-Steuerung:  */
 /********************************/
 
+#define BL_POS_UNKNOWN 1		// Position on device reset / unknown position (1 == 0.5%)
+
 #define ON HIGH					// Möglichkeit für invertierte Logik
 #define OFF LOW
-#define UP HIGH					// "Richtungs-Relais"
-#define DOWN LOW
+#define UP LOW					// "Richtungs-Relais"
+#define DOWN HIGH
 #define BLIND_WAIT_TIME 100		// Wartezeit [ms] zwischen Ansteuerung des "Richtungs-Relais" und des "Ein-/Aus-Relais" (Bei Richtungswechsel 8-fache Wartezeit)
 #define BLIND_OFFSET_TIME 1000	// Zeit [ms], die beim Anfahren der Endlagen auf die berechnete Zeit addiert wird, um die Endlagen wirklich sicher zu erreichen
 

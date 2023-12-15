@@ -1,9 +1,12 @@
 Neue "Homematic Wired Homebrew" Hardware in Betrieb nehmen:
   1. Neues Gerät flashen (ISP) oder per USB auf Arduino übertragen.
+
   2. Adresse per FHEM setzen: raw-Befehl an das Device schicken 406142000017
      ...setzt die Adresse auf 0x42000017
+
   3. Altes Gerät in FHEM löschen, "config" Taster kurz drücken - Gerät sollte mit neuer
-     Adresse angelegt werden.
+     Adresse angelegt werden. ("config" Taster Betätigung nicht nötig mit Lib ab Nov. 2020)
+
   4. Komplett Reset/EEPROM löschen (optional wenn EEPROM schon beim flashen gelöscht wurde):
      "config" Taster lange drücken, kurz loslassen wenn die status LED blinkt. Dann weitere drei
 	 Sekunden halten, bzw. erst loslassen wenn die status LED wieder dauerhaft leuchtet.
