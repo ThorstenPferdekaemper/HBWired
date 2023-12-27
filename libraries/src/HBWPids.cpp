@@ -19,16 +19,12 @@ HBWPids::HBWPids(HBWValve* _valve, hbw_config_pid* _config)
   
   windowStartTime = 0;
   lastPidTime = 0;
-  oldInAuto = 0; // we switch to MANUAL in error Position. Store the old value here
   initDone = false;
-  inErrorState = 0;
+  inErrorState = false;
   //pid lib
   input = DEFAULT_TEMP; // force channel to manual, of no input temperature is received
   output = 0;
   outputSum = 0;
- #ifndef FIXED_SAMPLE_TIME
-  sampleTime = PID_SAMPLE_TIME;
- #endif
 }
 
 
@@ -43,12 +39,12 @@ void HBWPids::afterReadConfig()
   if (config->kd == 0xFFFF)  config->kd = 10; //dito 0,1
   if (config->windowSize == 0xFF || config->windowSize == 0)  config->windowSize = 60; // 10min
 
-  setOutputLimits((uint32_t) config->windowSize * 10000);
+  setOutputLimits(200);  // map from 0 to 200 (i.e. 0 to 100%) for valve channel
   setTunings((float) config->kp, (float) config->ki / 100, (float) config->kd / 100);
 
   if (!initDone)  // only on device start - avoid to overwrite current output or inAuto mode
   {
-    setPoint = (config->setPoint == 0xFF) ? 2100 : (int16_t) config->setPoint *10;
+    setPoint = (config->setPoint == 0xFF) ? DEFAULT_SETPOINT : (int16_t) config->setPoint *10;
     inAuto = config->startMode; // 1 automatic ; 0 manual
     valve->setPidsInAuto(inAuto);
     initDone = true;
@@ -93,8 +89,8 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
   }
   else //if (length > 1)
   {
-  //set desired temperature
-  uint16_t level = ((data[0] << 8) | data[1]);
+    //set desired temperature
+    uint16_t level = ((data[0] << 8) | data[1]);
     // right limits 0 - 30 °C
     if (level > 0 && level <= 3000) {
       setPoint = level;
@@ -109,7 +105,7 @@ uint8_t HBWPids::get(uint8_t* data)
   //TODO: add state_flags?
   // retVal = (pidConf[channel].setPoint << 8 | (pidConf[channel].autoTune << 4));
 
-  //TODO: instead of state_flags... return input instead? (contains the current linked temperature)
+  //TODO: add? also return deviation_temp = (setPoint - input)
   
   // return desired temperature
   // MSB first
@@ -132,12 +128,10 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   if (millis() < 15000)  return; // wait 15 sec on start
     
   // start the first time
-  // can't sending everything at once to the bus.
-  // so make a delay between channels
+  // can't send everything at once to the bus, add an initial delay between channels
   if (windowStartTime == 0)
   {
-    windowStartTime = (uint32_t) millis() - ((channel + 1) * 3000);
-    //lastPidTime = (uint32_t) millis() - sampleTime;
+    windowStartTime = (uint32_t) millis() - ((channel + 1) * 2000);
     
    #ifdef DEBUG_OUTPUT
    hbwdebug(F("PID ch: ")); hbwdebug(channel);
@@ -147,47 +141,46 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
     return;
   }
 
-  if (inAuto != valve->getPidsInAuto()) {
-    // apply new inAuto mode, if changed at the valve chan (we cannot set a PID chan to auto/manual directly)
-    inAuto = valve->getPidsInAuto();
-  }
+  // apply new inAuto mode, if changed at the valve chan (we cannot set a PID chan to auto/manual directly)
+  inAuto = valve->getPidsInAuto();
 
-  // error temp values comes back again
+  // input temperature value comes back again
   if (inErrorState) {
     if (input > ERROR_TEMP) {
-      inErrorState = 0;
+      inErrorState = false;
       setMode(oldInAuto);
       
       uint8_t newMode = inAuto ? SET_AUTOMATIC : SET_MANUAL;
-      valve->set(device, 1, &newMode, SET_BY_PID);  // setByPID = true   // set new mode
+      valve->set(device, sizeof(newMode), &newMode, SET_BY_PID);  // set new mode, force by setByPID = true
     }
   }
   
   // check if we had a temperature and in automatic mode
   // in manual mode we can ignore the temp
   if (inAuto == AUTOMATIC && (input == DEFAULT_TEMP || input == ERROR_TEMP)) {
-    inErrorState = 1;
+    inErrorState = true;
     oldInAuto = inAuto;
     setMode(MANUAL);
     
     uint8_t newMode = SET_MANUAL;  // setting valve to manual will apply error position
-    valve->set(device, 1, &newMode, SET_BY_PID);  // setByPID = true   // set new mode
+    valve->set(device, sizeof(newMode), &newMode, SET_BY_PID);  // set new mode, force by setByPID = true
   }
   
   // compute the PID output
   // get output from PID. Doesn't do anything in Manual mode.
   compute();
   
+  unsigned long now = millis();
   // new window
-  if (millis() - windowStartTime > (uint32_t) config->windowSize * 10000)
+  if (now - windowStartTime > (uint32_t) config->windowSize * 10000)
   {
-    uint8_t valveStatus = (uint8_t) mymap(output, (uint32_t) config->windowSize *10000, 200.0);  // map from 0 to 200 (i.e. 0 to 100%)
+    uint8_t valveStatus = (uint8_t) output;  // mapped already from 0 to 200 (i.e. 0 to 100%)
     
     if (inAuto)   // only if inAuto (valve set() will only apply new level)
     {
-      valve->set(device, 1, &valveStatus, SET_BY_PID);  // setByPID = true
+      valve->set(device, sizeof(valveStatus), &valveStatus, SET_BY_PID);  // setByPID = true
     }
-    windowStartTime = millis();
+    windowStartTime = now;
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("computePid ch: ")); hbwdebug(channel);
   hbwdebug(F(" inAuto: ")); hbwdebug(inAuto);
@@ -266,7 +259,7 @@ void HBWPids::setSampleTime(int NewSampleTime)
 }
 #endif
 
-void HBWPids::setOutputLimits(uint32_t Max)
+void HBWPids::setOutputLimits(double Max)
 {
 	outMax = Max;
 

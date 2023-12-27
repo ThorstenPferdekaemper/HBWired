@@ -6,6 +6,7 @@
 // Arduino NANO als Homematic-Device
 // 
 // - Direktes Peering für Temperatursensoren möglich. (HBWLinkInfoEvent*)
+// - Restart module by "!!" (hexstring 2121) RAW command
 //
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -22,10 +23,12 @@
 // - added hbw_config_pid setPoint, to allow default setPoint 0...25.4°C (HBWPids.h)
 // v0.41
 // - added idle powersave
+// v0.50
+// - map output directly for valve channel (HBWPids.h) 0-100% (not to windowSize/CYCLE_TIME - which was mapped to 0-100% later)
 
 
 #define HARDWARE_VERSION 0x02
-#define FIRMWARE_VERSION 0x002C
+#define FIRMWARE_VERSION 0x0032
 #define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
