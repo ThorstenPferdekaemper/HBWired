@@ -30,15 +30,7 @@
 #define BLIND_OFFSET_TIME 1000	// Zeit [ms], die beim Anfahren der Endlagen auf die berechnete Zeit addiert wird, um die Endlagen wirklich sicher zu erreichen
 
 
-
 /* here comes the code... */
-#define BL_STATE_STOP 0
-#define BL_STATE_RELAIS_OFF 1
-#define BL_STATE_WAIT 2
-#define BL_STATE_TURN_AROUND 3
-#define BL_STATE_MOVE 4
-#define BL_STATE_SWITCH_DIRECTION 5
-
 
 // config of blind channel, address step 7
 struct hbw_config_blind {
@@ -62,6 +54,15 @@ class HBWChanBl : public HBWChannel {
     virtual void afterReadConfig();
 	
   private:
+    enum {
+      BL_STATE_STOP,
+      BL_STATE_RELAIS_OFF,
+      BL_STATE_WAIT,
+      BL_STATE_TURN_AROUND,
+      BL_STATE_MOVE,
+      BL_STATE_SWITCH_DIRECTION
+    };
+
     void getCurrentPosition();
     uint8_t blindDir;   // direction relay
     uint8_t blindAct;   // activity relay
