@@ -16,7 +16,7 @@
 // v0.30
 // - allow deltaT channels peering with external switches (key/actuator peer role)
 // v0.40
-// - add config to apply hysteresis on maxT1, minT2 and OFF transistion
+// - add config to apply hysteresis on maxT1, minT2 and OFF transition
 // - add config for output change frequency (CYCLE_TIME)
 // v0.45
 // - using config LED for Tx & Rx indicator
@@ -25,10 +25,14 @@
 // - option for error state (set OFF/ON), when error_temperature is received
 // v0.60
 // - fix for incorrect output state (output remains high incorrectly)
+// v0.70
+// - Added deltaT channel set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF command. It will force output state for one "output_change_wait_time" cycle
+// - Added timeout handling option for DeltaTx channels (set error state, if no temperature was received after certain time / interval)
+// - Added retry handling for deltaT peered actuator channels (sendKeyEvent) - rety delay and number of retries set in HBWDeltaT.h
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x003D
+#define FIRMWARE_VERSION 0x0048
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
@@ -98,8 +102,8 @@ struct hbw_config {
   uint8_t              :7;   // 0x06:1-7
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x5A (address step 14)
   hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6F (address step 7)
-  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x70 - 0x72 (address step 1)
-  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x73 - 0x75 (address step 1)
+  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x70 - 0x78 (address step 3)
+  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x79 - 0x81 (address step 3)
 } hbwconfig;
 
 

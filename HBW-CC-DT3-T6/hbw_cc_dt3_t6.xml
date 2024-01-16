@@ -69,6 +69,12 @@
 		<parameter const_value="1" size="0.1" index="12.0" type="integer"/>
 		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
 	</frame>
+	<frame id="FORCE_OUTPUT_OFF" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" const_value="203" index="11.0" size="1.0"/>
+	</frame>
+	<frame id="FORCE_OUTPUT_ON" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" const_value="205" index="11.0" size="1.0"/>
+	</frame>
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
 		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
 	</frame>
@@ -429,12 +435,42 @@
 					<set request="SET_LOCK"/>
 				</physical>
 			</parameter>
+			<parameter id="FORCE_OUTPUT_ON" operations="write" control="NONE">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="FORCE_OUTPUT_ON"/>
+				</physical>
+			</parameter>
+			<parameter id="FORCE_OUTPUT_OFF" operations="write" control="NONE">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="FORCE_OUTPUT_OFF"/>
+				</physical>
+			</parameter>
 		</paramset>
 	</channel>
 	
 	<channel index="10" count="3" physical_index_offset="-1" type="DELTA_T1">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x70">
-		<!--no config...-->
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x70">
+			<parameter id="RECEIVE_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="150" min="5" max="3600">
+					<special_value id="ERROR_HANDLING_DISABLED" value="0"/>
+				</logical>
+				<physical size="2" type="integer" interface="eeprom" endian="little">
+					<address index="+0.0"/>
+				</physical>
+				<!-- <conversion type="float_integer_scale" factor="0.2" offset="-5.0"/> --> <!-- 5 seconds stepping -->
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="0" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="ERROR_RETRY">
+				<logical type="integer" min="1" max="4" unit="times RECEIVE_MAX_INTERVAL"/>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+2.0"/>
+				</physical>
+				<conversion type="integer_integer_scale" offset="-1" factor="1"/>
+			</parameter>
 		</paramset>
 		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
@@ -495,8 +531,25 @@
 	</channel>
 	
 	<channel index="13" count="3" physical_index_offset="-1" type="DELTA_T2">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x73">
-		<!--no config...-->
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x79">
+			<parameter id="RECEIVE_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="150" min="5" max="3600">
+					<special_value id="ERROR_HANDLING_DISABLED" value="0"/>
+				</logical>
+				<physical size="2" type="integer" interface="eeprom" endian="little">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="0" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="ERROR_RETRY">
+				<logical type="integer" min="1" max="4" unit="times RECEIVE_MAX_INTERVAL"/>
+				<physical type="integer" size="0.2" interface="eeprom">
+					<address index="+2.0"/>
+				</physical>
+				<conversion type="integer_integer_scale" offset="-1" factor="1"/>
+			</parameter>
 		</paramset>
 		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="6" address_start="0x220" address_step="7">
 			<parameter id="UI_HINT">
