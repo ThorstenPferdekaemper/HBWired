@@ -14,10 +14,12 @@
 // - initial version
 // v0.20
 // - fix for repeatCounter reset handling
+// v0.3
+// - added buzzer for button feedback (uses tone() builtin function) - needs new XML due to additional config
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0014
+#define FIRMWARE_VERSION 0x001E
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 // + 1 türsummer?
@@ -49,10 +51,8 @@
   #define BUTTON_3 4
   #define BUTTON_4 A1
 
-  //#define BUZZER 6
-  
-  #define BACKLIGHT_PWM 9
-
+  #define BUZZER 11 // buzzer for key press feedback
+  #define BACKLIGHT_PWM 9  // timer1 (pin 9 & 10)
   #define LDR_PIN A0
   
 //  #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
@@ -69,14 +69,9 @@
   #define BUTTON_3 A2
   #define BUTTON_4 A3
   
-  //#define BUZZER 6 //TODO: add buzzer for key press feedback?
-  //#define BELL_1 10 //TODO: add bell outputs?
-  //#define BELL_2 11
-  //#define BELL_3 12
-  //#define BELL_4 7
-  
-  #define BACKLIGHT_PWM 5
-
+  #define BUZZER 11 // buzzer for key press feedback  (tone() timer prio: timer2, 1, 0)
+  // 11, 3 (controlled by timer2), timer0 (pin 5 & 6), timer1 (pin 9 & 10)
+  #define BACKLIGHT_PWM 9
   #define LDR_PIN A7
   
 //  #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
@@ -98,8 +93,8 @@ struct hbw_config {
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
-  hbw_config_dim_backlight BlDimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x0A (address step 2)
-  hbw_config_key_doorbell DBKeyCfg[NUMBER_OF_KEY_CHAN]; // 0x09 - 0x12 (address step 4)
+  hbw_config_dim_backlight BlDimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x08 (address step 2)
+  hbw_config_key_doorbell DBKeyCfg[NUMBER_OF_KEY_CHAN]; // 0x09 - 0x1C (address step 5)
 } hbwconfig;
 
 
@@ -117,7 +112,7 @@ void setup()
   
  #if (NUMBER_OF_KEY_CHAN == 4)
   for(uint8_t i = 0; i < NUMBER_OF_KEY_CHAN; i++) {
-    channels[i + NUMBER_OF_DIM_CHAN] = new HBWKeyDoorbell(BUTTON_PIN[i], &(hbwconfig.DBKeyCfg[i]));
+    channels[i + NUMBER_OF_DIM_CHAN] = new HBWKeyDoorbell(BUTTON_PIN[i], &(hbwconfig.DBKeyCfg[i]), BUZZER);
   }
  #else
   #error NUMBER_OF_KEY_CHAN channel missmatch!

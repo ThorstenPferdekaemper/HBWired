@@ -7,25 +7,25 @@
 #include "HBWKeyDoorbell.h"
 
 // Class HBWKeyDoorbell
-HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, boolean _activeHigh)
+HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, uint8_t _pinBuzzer, bool _activeHigh)
 {
   keyPressedMillis = 0;
   keyPressNum = 0;
   repeatCounter = 0;
   pin = _pin;
   config = _config;
+  pinBuzzer = _pinBuzzer;
   activeHigh = _activeHigh;
-}
-
+};
 
 void HBWKeyDoorbell::afterReadConfig()
 {
-  if(config->long_press_time == 0xFF) config->long_press_time = 10;
+  if(config->long_press_time == 0xFF) config->long_press_time = 10;  // 1.0 second
   if (config->pullup && !activeHigh)  pinMode(pin, INPUT_PULLUP);
   else  pinMode(pin, INPUT);
 
-  if (config->suppress_num == 255) config->suppress_num = 4;
-  if (config->suppress_time == 255) config->suppress_time = 30;  // 3.0 seconds
+  if (config->suppress_num == 0xF) config->suppress_num = 3;
+  if (config->suppress_time == 0xF) config->suppress_time = 3;  // 3 seconds
 
 #ifdef DEBUG_OUTPUT
   hbwdebug(F("cfg DBPin:"));
@@ -46,10 +46,10 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
   uint32_t now = millis();
   if (now == 0) now = 1;  // do not allow time=0 for the below code // AKA  "der Teufel ist ein Eichhoernchen"
   
-  boolean buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
+  bool buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
   
-  if (repeatCounter != 0 && now - lastKeyPressedMillis >= (uint32_t)config->suppress_time *100) {
-    repeatCounter = 0;  // reset repeat counter when suppress time has passed
+  if (repeatCounter != 0 && lastSentLong == 0 && (now - lastKeyPressedMillis >= (uint32_t)config->suppress_time *1000)) {
+    repeatCounter = 0;  // reset repeat counter when suppress time has passed and no buttons are pressed anymore
   }
 
  // sends short KeyEvent on short press and (repeated) long KeyEvent on long press
@@ -68,12 +68,12 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
           if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY)
           {
             repeatCounter = config->suppress_num;
-            //TODO: play buzzer feedback?
-            //playBuzzer = true;
+            buzzer(buzzerAction::SUCCESS, true);
           }
         }
         else {
           repeatCounter--;
+          buzzer(buzzerAction::BLOCKED);
         }
       }
       keyPressedMillis = 0;
@@ -85,12 +85,14 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
     if (keyPressedMillis) {
       // muessen wir ein "long" senden?
       if (lastSentLong) {   // schon ein LONG gesendet
-        if (now - lastSentLong >= (uint32_t)config->suppress_time *100 && config->repeat_long_press)
+        if (now - lastSentLong >= (uint32_t)config->suppress_time *1000 && config->repeat_long_press)
         {
           // alle suppress_time wiederholen, wenn repeat_long_press gesetzt
           // keyPressNum nicht erhoehen
           device->sendKeyEvent(channel, keyPressNum, true);  // long press
           lastSentLong = now;
+          repeatCounter = config->suppress_num;
+          buzzer(buzzerAction::SUCCESS);
         }
       }
       else if (now - keyPressedMillis >= long(config->long_press_time) * 100) {
@@ -101,8 +103,7 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
           {
             lastSentLong = now;
             repeatCounter = config->suppress_num;
-            ///TODO: play buzzer feedback?
-            //playBuzzer = true;
+            buzzer(buzzerAction::SUCCESS);
           }
         }
       }
@@ -112,6 +113,56 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
       keyPressedMillis = now;
       lastKeyPressedMillis = now;
       lastSentLong = 0;
+    }
+  }
+  
+  buzzer(buzzerAction::PLAY);
+};
+
+
+void HBWKeyDoorbell::buzzer(uint8_t _action, bool _forceChange)
+{
+  if (pinBuzzer == NOT_A_PIN)  return;
+  if (config->buzzer == 0)  return;
+
+  static unsigned char thisNote, selectedMelody, currentAction;
+  static unsigned long previousMillis;
+  static unsigned int melodyDelay;
+
+  if (_action != buzzerAction::PLAY && (melodyDelay == 0 || _forceChange))
+  {
+    // init
+    currentAction = _action;
+    selectedMelody = MAX_MELODY_CONFIG - config->buzzer;
+    melodyDelay = 1;
+    thisNote = 0;
+  }
+
+  if ((millis() - previousMillis >= melodyDelay) && (melodyDelay > 0 || thisNote != 0))
+  {
+    previousMillis = millis();
+
+    if (thisNote < NUM_NOTES) {
+      // to calculate the note duration, take one second divided by the note type.
+      //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+      // unsigned int noteDuration = pgm_read_word(&melodyNoteLen[selectedMelody][thisNote]);
+      unsigned int noteDuration = pgm_read_word(&melody[selectedMelody][currentAction][NOTE_LEN][thisNote]);
+      if (noteDuration > 0) {
+        noteDuration = 1000 / noteDuration;
+        // tone(pinBuzzer, pgm_read_word(&melodyNotes[selectedMelody][thisNote]), noteDuration);
+        tone(pinBuzzer, pgm_read_word(&melody[selectedMelody][currentAction][NOTE][thisNote]), noteDuration);
+      }
+      // to distinguish the notes, set a minimum time between them.
+      // the note's duration + 30% seems to work well:
+      melodyDelay = noteDuration * 1.30;
+  // hbwdebug(thisNote);hbwdebug(F(",dly "));hbwdebug(melodyDelay);hbwdebug(F("\n"));
+      thisNote++;  // iterate over the notes of the melody
+    }
+    else {
+      noTone(pinBuzzer);
+      thisNote = 0;
+      melodyDelay = 0;
+  // hbwdebug(F("melody done\n"));
     }
   }
 };
