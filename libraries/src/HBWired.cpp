@@ -98,7 +98,7 @@ boolean HBWDevice::parseFrame () { // returns true, if event needs to be process
 //   0 -> ok
 //   1 -> bus not idle (only if onlyIfIdle)
 //   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-byte HBWDevice::sendFrame(boolean onlyIfIdle, uint8_t retries){
+HBWDevice::sendFrameStatus HBWDevice::sendFrame(boolean onlyIfIdle, uint8_t retries) {
 // TODO: non-blocking
 // TODO: Wenn als Antwort kein reines ACK kommt, dann geht die Antwort verloren
 //       D.h. sie wird nicht interpretiert. Die Gegenstelle sollte es dann nochmal
@@ -662,7 +662,7 @@ void HBWDevice::processEmessage(uint8_t const * const frameData) {
 
 
 // "Announce-Message" ueber broadcast senden
-byte HBWDevice::broadcastAnnounce(byte channel) {
+uint8_t HBWDevice::broadcastAnnounce(byte channel) {
    txFrame.targetAddress = 0xFFFFFFFF;  // broadcast
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 16;      // Length

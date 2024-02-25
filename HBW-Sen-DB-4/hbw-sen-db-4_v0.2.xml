@@ -4,7 +4,7 @@
 	<type name="RS485 Doorbell (4 channel)" id="HBW-Sen-DB-4" priority="2">
 		<parameter index="0" size="1" const_value="0x98"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x001E" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x000A" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -222,7 +222,7 @@
 		<link_roles>
 			<source name="SWITCH"/>
 		</link_roles>
-		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x09" address_step="5">
+		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x09" address_step="4">
 		    <parameter id="INPUT_LOCKED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
@@ -262,38 +262,23 @@
 				</conversion>
 			</parameter>
 			<parameter id="SUPPRESS_NUM">
-				<logical type="integer" default="3" max="14" min="0"/>
-				<physical size="0.4" type="integer" interface="eeprom">
+				<logical type="integer" default="4" max="15" min="0"/>
+				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+2.0"/>
 				</physical>
 				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="4" device_value="0xf"/>
+					<value_map to_device="false" from_device="true" parameter_value="4" device_value="0xff"/>
 				</conversion>
 			</parameter>
 			<parameter id="SUPPRESS_TIME">
-				<logical type="float" unit="s" default="3.0" max="14.0" min="0"/>
-				<physical size="0.4" type="integer" interface="eeprom">
+				<logical type="float" unit="s" default="3.0" max="25.4" min="0"/>
+				<physical size="1.0" type="integer" interface="eeprom">
 					<address index="+3.0"/>
 				</physical>
-				<conversion type="float_integer_scale" factor="1"/>
+				<conversion type="float_integer_scale" factor="10"/>
 				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0xf"/>
+					<value_map to_device="false" from_device="true" parameter_value="30" device_value="0xff"/>
 				</conversion>
-			</parameter>
-			<parameter id="BUZZER">
-				<logical type="option">
-					<option id="DISABLED"/>
-					<option id="TODO_melody_random"/><!-- TODO add different melodies or so -->
-					<option id="TODO_melody5"/>
-					<option id="TODO_melody4"/>
-					<option id="TODO_melody3"/>
-					<option id="TODO_melody2"/>
-					<option id="TODO_melody1"/>
-					<option id="melody_0" default="true"/>
-				</logical>
-				<physical size="0.3" type="integer" interface="eeprom">
-					<address index="+3.4"/>
-				</physical>
 			</parameter>
 		</paramset>
 		<paramset id="hmw_input_ch_link" type="LINK" channel_param="CHANNEL" peer_param="ACTUATOR" count="20" address_start="0x13C" address_step="6">

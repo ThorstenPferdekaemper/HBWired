@@ -10,6 +10,10 @@
  * delta is below threshold or added if above. If DeltaTx channels are above maxT1 or 
  * below minT2, the output is switched off and no delta comparison is performed.
  *
+ * DeltaT channel can be peered with actuators and will send short/long key press.
+ * When key events can't be send (actualy only the status of the last peering is considered),
+ * key events will be resend after SEND_KEY_EVENT_RETRY_DELAY, for SEND_KEY_EVENT_MAX_RETRY.
+ *
  */
  
 #ifndef HBWDELTAT_H_
@@ -26,7 +30,7 @@
 #define OFF LOW
 #define ON HIGH
 
-static const uint16_t  DELTA_CALCULATION_WAIT_TIME = 3100;  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds - usually 10 seconds min pause)
+static const uint16_t  DELTAT_CALCULATION_WAIT_TIME = 3100;  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds - usually 10 seconds min pause)
 
 
 // config of one DeltaT channel, address step 7
@@ -38,7 +42,7 @@ struct hbw_config_DeltaT {
   uint8_t deltaT;   // temperature delta (factor 10), max. 254 = 25.4°C
   int16_t maxT1;   // centi celcius (factor 100)
   int16_t minT2;   // centi celcius (factor 100)
-  uint8_t output_change_wait_time:3;  // 5 seconds stepping, allowing 5 - 40 seconds (0...7 +1) *5
+  uint8_t output_change_wait_time:3;  // 5 seconds stepping, allowing 5 - 40 seconds ((0...7 +1)*5)
   uint8_t n_enableHysMaxT1:1;  // apply hysteresis on maxT1, 1=off (default) 0=on
   uint8_t n_enableHysMinT2:1;  // apply hysteresis on minT2, 1=off (default) 0=on
   uint8_t n_enableHysOFF:1;  // apply hysteresis on OFF transition, too. 1=off (default) 0=on
@@ -46,10 +50,11 @@ struct hbw_config_DeltaT {
   uint8_t :1;     //fillup
 };
 
-// config of one DeltaTx channel, address step 1
+// config of one DeltaTx channel, address step 3
 struct hbw_config_DeltaTx {
-  uint8_t unused;  // no config right now
-  //uint8_t :4;     //fillup
+  uint16_t receive_max_interval;  // max update frequency to get new temperature values (5...3600 seconds, any other value disables the timeout feature)
+  uint8_t max_tries:2;     // error counter 1-4 (no update for counter * receive_max_interval - sets error state for DeltaTx channel)
+  uint8_t :6;     //fillup/unused
 };
 
 
@@ -57,15 +62,17 @@ struct hbw_config_DeltaTx {
 class HBWDeltaTx : public HBWChannel {
   public:
     HBWDeltaTx(hbw_config_DeltaTx* _config);
-    // virtual void loop(HBWDevice*, uint8_t channel);
+    virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
-    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);  // allow set() only if not peered?
+    virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
 
     int16_t currentTemperature; // temperature in m°C
     
   private:
     hbw_config_DeltaTx* config;
+    uint32_t tempLastTime;    // last time temperature was received
+    uint8_t errorCounter;  // counts from 3 to 0 (depdending on MAX_TRIES xml config. xml will show value as +1)
 };
 
 
@@ -86,17 +93,20 @@ class HBWDeltaT : public HBWChannel {
 
     //uint8_t deltaT;
     int16_t deltaT;
-    uint32_t outputChangeLastTime;    // last time output state was changed
+    uint32_t setOutputLastTime;    // last time output state was checked
     uint32_t deltaCalcLastTime;    // last time of calculation
     uint8_t keyPressNum;
+    uint8_t sendKeyEventFailCounter;
 
     bool calculateNewState();
     bool setOutput(HBWDevice* device, uint8_t channel);
+    uint16_t setOutputWaitTime;
 
     bool currentState;
     bool nextState;
     bool initDone;
-    
+    bool forceOutputChange;
+    bool forcedState;
 
     union tag_state_flags {
       struct state_flags {
@@ -108,6 +118,8 @@ class HBWDeltaT : public HBWChannel {
       uint8_t byte:8;
     } stateFlags;
     
+    static const uint8_t SEND_KEY_EVENT_MAX_RETRY = 3;
+    static const uint16_t SEND_KEY_EVENT_RETRY_DELAY = 370;  // 370 ms
 };
 
 #endif /* HBWDELTAT_H_ */

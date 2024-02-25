@@ -29,8 +29,8 @@ HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _co
   blindForceNextState = false;
   blindPositionKnown = false;
   blindPositionActual = BL_POS_UNKNOWN;
-  blindAngleActual = 0;
-  blindDirection = UP;
+  blindAngleActual = 100;
+  blindDirection = DOWN;
   blindSearchingForRefPosition = false;
   blindPositionRequested = BL_POS_UNKNOWN;
   blindRunCounter = 0;
@@ -60,12 +60,11 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   }
   
   // blind control
-  if((*data) == SET_BLIND_TOGGLE) {
+  if(data[0] == SET_BLIND_TOGGLE) {
   #ifdef DEBUG
     hbwdebug(F("Toggle\n"));
   #endif
-    if (blindCurrentState == BL_STATE_TURN_AROUND)
-      blindNextState = BL_STATE_STOP;
+    if (blindCurrentState == BL_STATE_TURN_AROUND)  blindNextState = BL_STATE_STOP;
 
     blindForceNextState = true;
 
@@ -83,7 +82,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       }
     }
   }
-  else if ((*data) == SET_BLIND_STOP) {
+  else if (data[0] == SET_BLIND_STOP) {
   #ifdef DEBUG
     hbwdebug(F("Stop\n"));
   #endif
@@ -92,11 +91,11 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   }
   else { // set level
   
-    blindPositionRequested = (*data);
+    blindPositionRequested = data[0];
 
     if (blindPositionRequested > 200)  blindPositionRequested = 200;
   #ifdef DEBUG
-    hbwdebug(F("Requested Position: ")); hbwdebug(blindPositionRequested/2); hbwdebug(F("\n"));
+    hbwdebug(F("Requested Position: ")); hbwdebug((float)blindPositionRequested/2); hbwdebug(F("\n"));
   #endif
 
     if (!blindPositionKnown) {
@@ -112,14 +111,14 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       }
       else {  // Target position >0 and <100
       // for requested position 50% or lower, set target to 0% to move in right direction - set blindPositionActual (unknown anyway) as opposite (always 0 or 100%)
-        blindPositionActual = blindPositionRequested <= 100 ? 200 : 0;
+        blindPositionActual = (blindPositionRequested <= 100) ? 200 : 0;
         blindPositionRequestedSave = blindPositionRequested;
-        blindPositionRequested = blindPositionRequested <= 100 ? 0 : 200;
+        blindPositionRequested = (blindPositionRequested <= 100) ? 0 : 200;
         blindSearchingForRefPosition = true;
       }
     }
 
-    if ((blindCurrentState == BL_STATE_TURN_AROUND) || (blindCurrentState == BL_STATE_MOVE)) { // aktuelle Position ist nicht bekannt
+    if ((blindCurrentState == BL_STATE_TURN_AROUND) || (blindCurrentState == BL_STATE_MOVE)) { // in Bewegung - aktuelle Position ist nicht bekannt
 
       getCurrentPosition();
 
@@ -170,7 +169,7 @@ uint8_t HBWChanBl::get(uint8_t* data)
   }
   
   (*data++) = newData;
-  *data = stateFlag;
+  (*data) = stateFlag;
   return 2;
 };
 
@@ -184,7 +183,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
 
     switch(blindNextState) {
       case BL_STATE_RELAIS_OFF:
-        digitalWrite(blindAct, OFF);   // switch off the "active" relay (should be OFF already)
+        digitalWrite(blindAct, OFF);   // switch off the "active" relay (should be OFF already) - robustness
         digitalWrite(blindDir, OFF);   // Switch off the "direction" relay
         blindCurrentState = BL_STATE_RELAIS_OFF;
         blindTimeLastAction = now;
@@ -274,8 +273,8 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
         #ifdef DEBUG
           hbwdebug(F("Reference position reached. Moving to target position.\n"));
         #endif
-          uint8_t data = (blindPositionRequestedSave);
-          device->set(channel, 1, &data);
+          uint8_t data = blindPositionRequestedSave;
+          device->set(channel, sizeof(data), &data);
           blindSearchingForRefPosition = false;
           blindRunCounter = 0;
         }
