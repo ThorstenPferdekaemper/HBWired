@@ -80,7 +80,7 @@ class HBWChanBl : public HBWChannel {
     bool blindForceNextState;
     bool blindPositionKnown;
     bool blindSearchingForRefPosition;
-    unsigned int blindNextStateDelayTime;
+    unsigned long blindNextStateDelayTime;
     unsigned long blindTimeStart;
     unsigned long blindTimeLastAction;
     
