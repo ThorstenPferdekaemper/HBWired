@@ -255,7 +255,9 @@ class HBWDevice {
 	};
 	static s_PendingActions pendingActions;
 	
+   #if defined(BOOTSTART)
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
+   #endif
 	// Arduino Reset via Software function declaration, point to address 0 (reset vector)
 	void (* resetSoftware)(void) = 0;
 	

@@ -34,10 +34,12 @@
 // - MotorDelay (MOTOR_STARTUP_DELAY) fix
 // - Position on device reset can be set with BL_POS_UNKNOWN in HBWBlind.h. New value 1 == 0.5% (not 0% anymore)
 // - Fixed/switched UP/DOWN (UP=100%)
+// v0.7
+// - fixed overflow of runtime occuring over 32.8 seconds
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0040
+#define FIRMWARE_VERSION 0x0046
 #define HMW_DEVICETYPE 0x92 //BL8 device (make sure to import hbw_lc_bl-8.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 8

@@ -212,10 +212,10 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
         blindCurrentState = BL_STATE_MOVE;
         blindNextState = BL_STATE_STOP;
         if (blindDirection == UP) {
-          blindNextStateDelayTime = ((blindPositionRequested - blindPositionActual) * config->blindTimeBottomTop)/2;
+          blindNextStateDelayTime = ((unsigned long)(blindPositionRequested - blindPositionActual) * config->blindTimeBottomTop)/2;
         }
         else {
-          blindNextStateDelayTime = ((blindPositionActual - blindPositionRequested) * config->blindTimeTopBottom)/2;
+          blindNextStateDelayTime = ((unsigned long)(blindPositionActual - blindPositionRequested) * config->blindTimeTopBottom)/2;
         }
         blindNextStateDelayTime += config->blindMotorDelay *10;   // Motor lief nicht, eingestellte Anlaufzeit addieren
 		blindRunCounter++;

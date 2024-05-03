@@ -145,11 +145,9 @@ void HBWKeyDoorbell::buzzer(uint8_t _action, bool _forceChange)
     if (thisNote < NUM_NOTES) {
       // to calculate the note duration, take one second divided by the note type.
       //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
-      // unsigned int noteDuration = pgm_read_word(&melodyNoteLen[selectedMelody][thisNote]);
       unsigned int noteDuration = pgm_read_word(&melody[selectedMelody][currentAction][NOTE_LEN][thisNote]);
       if (noteDuration > 0) {
         noteDuration = 1000 / noteDuration;
-        // tone(pinBuzzer, pgm_read_word(&melodyNotes[selectedMelody][thisNote]), noteDuration);
         tone(pinBuzzer, pgm_read_word(&melody[selectedMelody][currentAction][NOTE][thisNote]), noteDuration);
       }
       // to distinguish the notes, set a minimum time between them.

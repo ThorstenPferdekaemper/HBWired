@@ -35,11 +35,15 @@ struct hbw_config_key_doorbell {
   uint8_t buzzer:3;          // +3.4 buzzer config (TODO: melody1, melody2, melody3, melody4), disabled=0, 7=default melody
   uint8_t fillup:1;
   uint8_t dummy;
+  // union dial_string {
+  //   char [18] phone_number;
+  //   char dial_button;
+  // };
 };
 
 #define NUM_NOTES 3
 // note=0 creates silence. length=1000 skips the note (dealy 1.3ms), length=0 stops the melody (starting with 0 will disable the whole melody!)
-// fields:        melody[melody 'pair'][fail/ok][note/note length][note]
+// fields: melody[melody 'pair'][fail|ok][note|note length][note]
 PROGMEM const int melody[][2][2][NUM_NOTES] = {
   { { {NOTE_A3, NOTE_C3, 0}, {8, 4, 0} }, { {0, NOTE_B5, NOTE_E6}, {1000, 16, 8} } },  // default melody
   { { {NOTE_A3, NOTE_C3, 0}, {8, 4, 0} }, { {NOTE_G4, NOTE_F4, NOTE_D5}, {16, 8, 0} } },  // melody1
