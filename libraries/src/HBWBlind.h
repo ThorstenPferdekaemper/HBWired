@@ -2,6 +2,7 @@
 ** HBWBlind
 **
 ** Rolladenaktor mit Richtungs und Aktiv Relais pro Kanal
+** (Position offen: 100%, geschlossen 0%)
 ** 
 ** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
@@ -19,23 +20,17 @@
 /* Config der Rollo-Steuerung:  */
 /********************************/
 
+#define BL_POS_UNKNOWN 1		// Position on device reset / unknown position (1 == 0.5%)
+
 #define ON HIGH					// Möglichkeit für invertierte Logik
 #define OFF LOW
-#define UP HIGH					// "Richtungs-Relais"
-#define DOWN LOW
+#define UP LOW					// "Richtungs-Relais"
+#define DOWN HIGH
 #define BLIND_WAIT_TIME 100		// Wartezeit [ms] zwischen Ansteuerung des "Richtungs-Relais" und des "Ein-/Aus-Relais" (Bei Richtungswechsel 8-fache Wartezeit)
 #define BLIND_OFFSET_TIME 1000	// Zeit [ms], die beim Anfahren der Endlagen auf die berechnete Zeit addiert wird, um die Endlagen wirklich sicher zu erreichen
 
 
-
 /* here comes the code... */
-#define BL_STATE_STOP 0
-#define BL_STATE_RELAIS_OFF 1
-#define BL_STATE_WAIT 2
-#define BL_STATE_TURN_AROUND 3
-#define BL_STATE_MOVE 4
-#define BL_STATE_SWITCH_DIRECTION 5
-
 
 // config of blind channel, address step 7
 struct hbw_config_blind {
@@ -59,6 +54,15 @@ class HBWChanBl : public HBWChannel {
     virtual void afterReadConfig();
 	
   private:
+    enum {
+      BL_STATE_STOP,
+      BL_STATE_RELAIS_OFF,
+      BL_STATE_WAIT,
+      BL_STATE_TURN_AROUND,
+      BL_STATE_MOVE,
+      BL_STATE_SWITCH_DIRECTION
+    };
+
     void getCurrentPosition();
     uint8_t blindDir;   // direction relay
     uint8_t blindAct;   // activity relay

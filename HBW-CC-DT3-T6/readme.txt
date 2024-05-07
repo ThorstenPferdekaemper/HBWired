@@ -3,7 +3,7 @@ Homematic Wired Homebrew Delta Temperature and Switch Module
 
 DeltaT Regler + 6 OneWire Temperatursensoren.
 
-Das Modul HBW-CC-DT3-T6 wurde für eine Ofensteuerung entwickelt. Eine Umwälzpumpe wird ab einer bestimmten Mindesttemperatur und Temperaturdifferenz ein- bzw. Ausgeschaltet.
+Das Modul HBW-CC-DT3-T6 wurde für eine Ofensteuerung entwickelt. Eine Umwälzpumpe wird ab einer bestimmten Mindesttemperatur und Temperaturdifferenz ein- bzw. Ausgeschaltet. Andere Anwendungsmöglichkeiten, z.B. Zirkulationspumpe oder Lüftungssteuerung.
 Basis ist ein Arduino NANO mit RS485-Interface.
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_cc_dt3_t6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x9C aus).
@@ -15,8 +15,8 @@ DS18B20 Gerätecode 0x28
 DS1822  Gerätecode 0x22
 
 Direktes Peering:
-Die tempsensor Kanäle können mit delta_t1, delta_t2 verknüpft werden, oder anderen externen Kanälen. (delta_t1/delta_t2 sollte nur jeweils ein Temperatursensor zugewiesen werden!)
-Der delta_t Kanaltyp kann mit Aktor Kanälen verknüpft werden, z.B. externe Relais, Display, o.ä.. (delta_t sendet short/long keyEvents)
+Die internen 'tempsensor' Kanäle können mit 'delta_t1' / 'delta_t2' verknüpft werden oder anderen externen 'tempsensor' Kanälen um einen Temperaturwert zur Steuerung zu erhalten. (delta_t1/delta_t2 sollte jeweils nur ein Temperatursensor zugewiesen werden!)
+Der 'delta_t' Kanaltyp kann mit Aktor-Kanälen verknüpft werden, z.B. externe Relais, Display, o.ä.. ('delta_t' sendet short/long keyEvents)
 
 
 Kanäle:

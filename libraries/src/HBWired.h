@@ -119,9 +119,13 @@ class HBWDevice {
 						   
 	// target_address = 0 sends info message to central address					   
 	// sendInfoMessage returns...
-	//  0 -> ok
-	//  1 -> bus not idle
-	//  2 -> missing ACK (three times)
+	enum sendFrameStatus
+	{
+		SUCCESS = 0,	//   0 -> ok
+		BUS_BUSY,	//   1 -> bus not idle (only if onlyIfIdle)
+		NO_ACK		//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
+	};
+
 	virtual uint8_t sendInfoMessage(uint8_t channel, uint8_t length, uint8_t const * const data, uint32_t target_address = 0);
   #ifdef Support_HBWLink_InfoEvent
 	// link/peer via i-message
@@ -147,13 +151,6 @@ class HBWDevice {
 	uint32_t getOwnAddress();
 	boolean busIsIdle();
 	
-	enum sendFrame_Status
-	{
-		SUCCESS = 0,	//   0 -> ok
-		BUS_BUSY,	//   1 -> bus not idle (only if onlyIfIdle)
-		NO_ACK		//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-	};
-
   private:
 	uint8_t numChannels;    // number of channels
 	HBWChannel** channels;  // channels
@@ -172,7 +169,7 @@ class HBWDevice {
 	//   0 -> ok
 	//   1 -> bus not idle (only if onlyIfIdle)
 	//   2 -> three times no ACK (cannot occur for broadcasts or ACKs)
-	uint8_t sendFrame(boolean onlyIfIdle = false, uint8_t retries = DEFAULT_SEND_RETRIES);
+	sendFrameStatus sendFrame(boolean onlyIfIdle = false, uint8_t retries = DEFAULT_SEND_RETRIES);
 	void sendAck();  // ACK fuer gerade verarbeitete Message senden
 
 	// eigene Adresse setzen und damit auch random seed
@@ -258,7 +255,9 @@ class HBWDevice {
 	};
 	static s_PendingActions pendingActions;
 	
+   #if defined(BOOTSTART)
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?
+   #endif
 	// Arduino Reset via Software function declaration, point to address 0 (reset vector)
 	void (* resetSoftware)(void) = 0;
 	

@@ -60,7 +60,7 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 {
   if (config->unlocked || setByPID)  // locked channels can still be set by PID, but are blocked for external changes
   {
-    if ((*data >= 0 && *data <= 200) && (!stateFlags.element.inAuto || setByPID))  // change level only if manual mode or setByPID
+    if ( *data <= 200 && (!stateFlags.element.inAuto || setByPID))  // change level only if manual mode or setByPID
     {
       setNewLevel(device, *data);
       

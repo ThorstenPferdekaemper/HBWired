@@ -20,8 +20,8 @@
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
 
-#define FIXED_SAMPLE_TIME  // removes setSampleTime() and set static PID_SAMPLE_TIME
-#define PID_SAMPLE_TIME 2000 // pid compute every 2 sec
+#define FIXED_SAMPLE_TIME 1000 // pid compute every second. Removes setSampleTime() from code
+
 
 // config of one PID channel, address step 9
 struct hbw_config_pid {
@@ -31,7 +31,7 @@ struct hbw_config_pid {
   uint16_t ki;    // integral
   uint16_t kd;    // derivative
   uint8_t windowSize;  // 10 seconds steps = max 2540 seconds (windowSize == CYCLE_TIME in XML)
-  uint8_t setPoint; // default setPoint (range 0...25.4°C)
+  uint8_t setPoint; // default setPoint (range 0.1 - 25.4°C)
 };
 
 
@@ -47,28 +47,25 @@ class HBWPids : public HBWChannel {
     
   private:
     hbw_config_pid* config;
-    HBWValve* valve {NULL};  // linked valve channel
+    HBWValve* valve {NULL};  // linked valve channel, needs input value of 0-200 (maps to 0-100%)
 
     bool initDone;
-    bool autoTuneRunning; // Todo 0 = off ; 1 = autotune running
+    bool autoTuneRunning; // TODO: implement // 0 = off ; 1 = autotune running
     bool inErrorState;
-    
     bool inAuto; // 1 = automatic ; 0 = manual
     bool oldInAuto; // auto or manual state stored here, when in error pos.
     int16_t setPoint; // temperatures in m°C
     uint32_t windowStartTime;
     
     // pidlib
-    uint32_t outMax;
-    double outputSum;
     int16_t input, lastInput;
    #ifdef FIXED_SAMPLE_TIME
-    static const uint16_t sampleTime = PID_SAMPLE_TIME;
+    static const uint16_t sampleTime = FIXED_SAMPLE_TIME;
    #else
-    uint32_t sampleTime;
+    uint32_t sampleTime = 100;  // lib default, 100 ms
    #endif
     uint32_t lastPidTime; // pid computes every sampleTime
-    double output;
+    double output, outputSum, outMax;
     double kp, ki, kd;
 
     void autoTune();
@@ -77,13 +74,14 @@ class HBWPids : public HBWChannel {
     void compute();
     void setTunings(double Kp, double Ki, double Kd);
     void setSampleTime(int NewSampleTime);
-    void setOutputLimits(uint32_t Max);
+    void setOutputLimits(double Max);
     void setMode(bool Mode);
     void initialize();
 
     static const bool MANUAL = false;
     static const bool AUTOMATIC = true;
     static const bool SET_BY_PID = true;
+    static const int16_t DEFAULT_SETPOINT = 2100;  // 21.00 °C
 
 };
 
