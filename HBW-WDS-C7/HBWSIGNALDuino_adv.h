@@ -1,0 +1,36 @@
+// Switches
+
+#ifndef HBWSIGNALDuino_adv_h
+#define HBWSIGNALDuino_adv_h
+
+#include <inttypes.h>
+// #include "HBWSwitch.h"
+
+
+// config of one channel, address step 6
+struct hbw_config_signalduino_adv {
+  uint8_t logging:1;              // 0x0000
+  uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED
+  uint8_t n_inverted:1;           // 0x07:2    0=inverted, 1=not inverted (device reset will set to 1!)
+  uint8_t        :5;              // 0x0000
+  uint16_t onTime;
+  uint16_t offTime;
+  uint8_t dummy;
+};
+
+
+class HBWSIGNALDuino_adv : public HBWChannel {
+  public:
+    HBWSIGNALDuino_adv(uint8_t _pin, hbw_config_signalduino_adv* _config);
+    virtual void loop(HBWDevice*, uint8_t channel);
+    virtual uint8_t get(uint8_t* data);
+    virtual void afterReadConfig();
+
+  private:
+//    uint8_t pin;
+//    uint8_t currentState;    // keep track of logical state, not real IO
+    hbw_config_signalduino_adv* config;
+    uint32_t lastOnOffTime;
+};
+
+#endif
