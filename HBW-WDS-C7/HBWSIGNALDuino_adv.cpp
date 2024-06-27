@@ -5,7 +5,7 @@
 
 // def
 HBWSIGNALDuino_adv::HBWSIGNALDuino_adv(uint8_t _pin, hbw_config_signalduino_adv* _config) {
-  //  pin = _pin;
+   pin = _pin;
    config = _config;
    clearFeedback();
   //  currentState = UNKNOWN_STATE;

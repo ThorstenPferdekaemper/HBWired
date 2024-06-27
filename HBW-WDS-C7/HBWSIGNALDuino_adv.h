@@ -4,7 +4,7 @@
 #define HBWSIGNALDuino_adv_h
 
 #include <inttypes.h>
-// #include "HBWSwitch.h"
+#include "HBWired.h"
 
 
 // config of one channel, address step 6
@@ -23,11 +23,12 @@ class HBWSIGNALDuino_adv : public HBWChannel {
   public:
     HBWSIGNALDuino_adv(uint8_t _pin, hbw_config_signalduino_adv* _config);
     virtual void loop(HBWDevice*, uint8_t channel);
-    virtual uint8_t get(uint8_t* data);
-    virtual void afterReadConfig();
+    // virtual uint8_t get(uint8_t* data);
+    virtual void set(HBWDevice* device, uint8_t length, uint8_t const * const data);
+    // virtual void afterReadConfig();
 
   private:
-//    uint8_t pin;
+   uint8_t pin;
 //    uint8_t currentState;    // keep track of logical state, not real IO
     hbw_config_signalduino_adv* config;
     uint32_t lastOnOffTime;

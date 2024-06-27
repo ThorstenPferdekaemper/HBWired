@@ -27,30 +27,42 @@
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
-// #include <HBWSoftwareSerial.h>
-#include <FreeRam.h>
+// #include <FreeRam.h>
+
+#if defined (ARDUINO_ARCH_RP2040)
+  // #include "MBED_RPi_Pico_TimerInterrupt.h"  // Timer for LED Blinking
+  #include <Scheduler.h>
+  #include <SparkFun_External_EEPROM.h>
+  ExternalEEPROM* EepromPtr;
+  // EepromPtr = new ExternalEEPROM;
+  // ExternalEEPROM* EEPROM = new ExternalEEPROM;
+  // // ExternalEEPROM *EEPROM;
+  // Valid types: 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1025, 2048
+  #define EEPROM_Memory_Type 4
+#else
+  #error Target Plattform not supported! Please contribute.
+#endif
 
 // HB Wired protocol and module
 #include <HBWired.h>
 #include "HBWSIGNALDuino_adv.h"
 
-#if defined (ARDUINO_ARCH_RP2040)
-  // #include "MBED_RPi_Pico_TimerInterrupt.h"  // Timer for LED Blinking
-  #include <Scheduler.h>
-#else
-  #error Target Plattform not supported! Please contribute.
-#endif
 
 // Pins
+// TODO move to own file (pins_default.h pins_custom.h - don't check-in last one)
 #define LED LED_BUILTIN      // Signal-LED
 
 #define RS485_TXEN 2  // Transmit-Enable
 #define BUTTON 21  // Button fuer Factory-Reset etc.
 
-#define SWITCH1_PIN A4  // Ausgangpins fuer die Relais
-#define SWITCH2_PIN A2
+#define SWITCH1_PIN 6  // Ausgangpins fuer die Relais
+#define SWITCH2_PIN 7
 
-
+// default pins:
+// USB Rx / Tx 0, 1
+// static const uint8_t SPIpins[] = {MOSI, SS, MISO, SCK}; // pin 16 - 19
+// static const uint8_t I2Cpins[] = {PIN_WIRE_SDA, PIN_WIRE_SCL}; // pin 4 & 5
+// UART1 8 & 9
 
 struct hbw_config {
   uint8_t logging_time;     // 0x01
@@ -58,7 +70,7 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_signalduino_adv signalduinoCfg[NUM_CHANNELS]; // 0x07-0x... ? (address step ?)
-  hbw_config_signalduino_wds wds7in1Cfg[NUM_CHANNELS]; // 0x07-0x... ? (address step ?)
+  // hbw_config_signalduino_wds wds7in1Cfg[NUM_CHANNELS]; // 0x07-0x... ? (address step ?)
 } hbwconfig;
 
 
@@ -66,65 +78,78 @@ struct hbw_config {
 HBWChannel* channels[NUM_CHANNELS];
 
 
-class HBSwDevice : public HBWDevice {
+class HBWDSDevice : public HBWDevice {
     public: 
-    HBSwDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
+    HBWDSDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
                Stream* _rs485, uint8_t _txen, 
+              //  UART* _rs485, uint8_t _txen, 
                uint8_t _configSize, void* _config, 
                uint8_t _numChannels, HBWChannel** _channels,
                Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
+              //  UART* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
     HBWDevice(_devicetype, _hardware_version, _firmware_version,
               _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
               _debugstream, linksender, linkreceiver) {
     };
-    virtual void afterReadConfig();
+    // virtual void afterReadConfig();
 };
 
 // device specific defaults
-void HBSwDevice::afterReadConfig() {
-  if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
-};
+// void HBWDSDevice::afterReadConfig() {
+//   if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
+// };
 
 
-HBSwDevice* device = NULL;
-
+HBWDSDevice* device = NULL;
 
 
 void setup()
 {
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, HIGH);
   Serial.begin(115200);  // Serial->USB for debug
-  Serial1.begin(19200, SERIAL_8E1);
+  Serial1.begin(19200, SERIAL_8E1);  // RS485 bus
 
+  #if defined (ARDUINO_ARCH_RP2040)
+    Wire.begin();
+    EepromPtr->setMemoryType(EEPROM_Memory_Type);
+    if (! EepromPtr->begin())
+    {
+      while (true) {
+        digitalWrite(LED, HIGH);
+        delay(200);
+        digitalWrite(LED, LOW);
+        delay(200);
+      }
+    }
+    // TODO stop without EEPROM?
+	#endif
 
   // create channels
   static const uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN};
   
   // creating to channels
   for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
-    channels[i] = new HBWSIGNALDuino_adv(pins[i], &(hbwconfig.switchCfg[i]));
+    channels[i] = new HBWSIGNALDuino_adv(pins[i], &(hbwconfig.signalduinoCfg[i]));
   }
 
-  device = new HBSwDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
-                         &Serial,
+  // create the device
+  device = new HBWDSDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &Serial1,
                          RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                          NUM_CHANNELS, (HBWChannel**)channels,
-                         NULL, new HBWLinkSwitchAdvanced<NUM_LINKS, LINKADDRESSSTART>());
+                        //  NULL, new HBWLinkSwitchAdvanced<NUM_LINKS, LINKADDRESSSTART>());
+                         &Serial);
 
   device->setConfigPins(BUTTON, LED);
-  
-  #elif defined (ARDUINO_ARCH_RP2040)
-    Wire.begin();
-    EEPROM.setMemoryType(4); // Valid types: 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1025, 2048
-    EEPROM.begin();
-	#endif
-  
-  hbwdebug(F("B: 2A "));
-  hbwdebug(freeRam());
-  hbwdebug(F("\n"));
+    
+  // hbwdebug(F("B: 2A "));
+  // hbwdebug(freeRam());
+  // hbwdebug(F("\n"));
 
   Scheduler.startLoop(loopHBW);
   Scheduler.startLoop(loop3);
+  // digitalWrite(LED, LOW);
 }
 
 void loop()
@@ -135,7 +160,7 @@ void loop()
 
 void loopHBW()
 {
-  device->loop();
+  // device->loop();
   // POWERSAVE();  // go sleep a bit
   // IMPORTANT:
   // We must call 'yield' at a regular basis to pass control to other tasks.
@@ -155,10 +180,10 @@ void loop3() {
       Serial.println("Led turned on!");
     }
     if (c == 'm') {
-        if (EEPROM.begin())
+        if (EepromPtr->isConnected())
         {
-          uint32_t memSize = EEPROM.detectMemorySizeBytes();
-          Serial.print("EEProm Size ");
+          uint32_t memSize = EepromPtr->getMemorySizeBytes();
+          Serial.print("EEProm Size bytes ");
           Serial.println(memSize);
         }
         else {
@@ -166,3 +191,4 @@ void loop3() {
         }
     }
   }
+};
