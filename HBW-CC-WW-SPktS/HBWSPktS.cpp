@@ -23,7 +23,7 @@ HBWSPktS::HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _te
   initDone = false;
 };
 
-void setup_timer()  // call from main setup()
+inline void setup_timer()  // call from main setup()
 {
   cli();//stop interrupts
 
@@ -70,21 +70,16 @@ void HBWSPktS::afterReadConfig()
 /* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
 void HBWSPktS::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
+  // data value is based on 100% *2 (200 == 100%)
   if (*data <= 200 && config->max_output != 0)
   {
-    //uint8_t newValue = *data;// /2;
     uint8_t maxOutput = (config->max_output +1) *20;
-    // if (newValue > maxOutput)
-    // {
-    //   newValue = maxOutput;
-    // }
     uint8_t newValue = *data > maxOutput ? maxOutput : *data;
-    *SPktSValue = newValue / (200 / WellenpaketSchritte);
-    currentValue = *SPktSValue *(200 / WellenpaketSchritte);  // recalculate current level with actual stepping
+    *SPktSValue = newValue / (200 / WELLENPAKETSCHRITTE);
+    currentValue = *SPktSValue *(200 / WELLENPAKETSCHRITTE);  // recalculate current level with actual stepping (possible rounding error)
     lastSetTime = millis();
     stateFlags.byte = 0;    // reset all flags
     stateFlags.state.working = true;
-    // stateFlags.state.tMax = false;
   }
 
   if (config->max_output == 0)	// chan disabled
@@ -112,7 +107,7 @@ uint8_t HBWSPktS::get(uint8_t* data)
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
 {
-  // TODO: add delay here? new temperatue will usually not come faster than evevery 10 seconds...
+  // TODO: add delay here? Check temp & timeout every 1 second...?
 
   if (*SPktSValue)
   {
@@ -137,19 +132,6 @@ void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
       setFeedback(device, config->logging);
     }
   }
-  
-  // if (*SPktSValue && millis() - lastSetTime >= (uint32_t)(config->auto_off) *1000)
-  // {
-  //   SPktSValue = 0;
-  //   stateFlags.state.working = false;
-  // }
-
-  // if (*SPktSValue && config->max_temp && (temp1->currentTemperature > (int16_t)(config->max_temp) *100 || temp1->currentTemperature < 0))
-  // {
-  //   *SPktSValue = 0;
-  //   stateFlags.state.working = false;
-  //   stateFlags.state.tMax = true;
-  // }
 
   // feedback trigger set?
   checkFeedback(device, channel);

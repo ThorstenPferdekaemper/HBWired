@@ -19,9 +19,9 @@
 // global vars
 // volatile unsigned char SPktS_currentValue;
 // uint8_t SPktS_outputPin;
-void setup_timer();
+inline void setup_timer();
 
-static const byte WellenpaketSchritte = 25; // 500ms / 20ms (20ms = 1/50Hz)
+static const byte WELLENPAKETSCHRITTE = 25; // 500ms / 20ms (20ms = 1/50Hz) - Anzahl Schritte bei enspr. Paketlänge und Periodendauer
 
 
 // config of SPktS (dimmer) channel, address step 4
@@ -100,7 +100,7 @@ class HBWSPktS : public HBWChannel {
 //   sei();//allow interrupts
 // }
 
-
+// TODO: put into hpp?
 // ISR(TIMER1_COMPA_vect)
 // {
 //   //timer1 interrupt 8kHz
@@ -110,7 +110,7 @@ class HBWSPktS : public HBWChannel {
 //   if (SPktS_currentValue && WellenpaketCnt <= SPktS_currentValue) digitalWrite(SPktS_outputPin, true);
 //   else  digitalWrite(SPktS_outputPin, false);
 
-//   if (WellenpaketCnt < WellenpaketSchritte) WellenpaketCnt++;
+//   if (WellenpaketCnt < WELLENPAKETSCHRITTE) WellenpaketCnt++;
 //   else WellenpaketCnt = 1;
 // }
 
@@ -121,7 +121,7 @@ class HBWSPktS : public HBWChannel {
 //   if (SPktS_currentValue && WellenpaketCnt <= SPktS_currentValue) digitalWrite(outputPin, true);
 //     else  digitalWrite(outputPin, false);
 
-//     if (WellenpaketCnt < WellenpaketSchritte) WellenpaketCnt++;
+//     if (WellenpaketCnt < WELLENPAKETSCHRITTE) WellenpaketCnt++;
 //     else WellenpaketCnt = 1;
 // }
 

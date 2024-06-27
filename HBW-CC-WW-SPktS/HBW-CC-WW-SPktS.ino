@@ -4,8 +4,8 @@
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
-// Schwingungspaketsteuerung mit Zusatzfunktionen (DeltaT Regler & OneWire Temperatursensoren)
-// - Direktes Peering für ....
+// Schwingungspaketsteuerung (Zero-crossing control) mit Zusatzfunktionen (DeltaT Regler & OneWire Temperatursensoren)
+// - Direktes Peering für Temperatursensoren und DeltaTx Eingänge
 //
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -137,8 +137,10 @@ void HBDCCDevice::afterReadConfig()
 HBDCCDevice* device = NULL;
 
 // global vars
-volatile unsigned char SPktS_currentValue; // = 0;?
+volatile unsigned char SPktS_currentValue;  // Schwingungspaketsteuerung, Anzahl "Ein" Wellen, basierend auf Sollwert
 uint8_t SPktS_outputPin;
+// TODO: put into hpp?
+// TODO: allow more channels? Use arrays SPktS_outputPin[], WellenpaketCnt[], ... and loop in ISR?
 
 ISR(TIMER1_COMPA_vect)
 {
@@ -149,7 +151,7 @@ ISR(TIMER1_COMPA_vect)
   if (SPktS_currentValue && WellenpaketCnt <= SPktS_currentValue) digitalWrite(SPktS_outputPin, HIGH);
   else  digitalWrite(SPktS_outputPin, LOW);
 
-  if (WellenpaketCnt < WellenpaketSchritte) WellenpaketCnt++;
+  if (WellenpaketCnt < WELLENPAKETSCHRITTE) WellenpaketCnt++;
   else WellenpaketCnt = 1;
 }
 
