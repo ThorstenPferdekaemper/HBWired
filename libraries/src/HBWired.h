@@ -10,7 +10,7 @@
 
 #include "Arduino.h"
 #include "hardware.h"
-#include "avr/wdt.h"
+// #include "avr/wdt.h"
 
 #define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
 
@@ -19,7 +19,7 @@
 // #define Support_HBWLink_InfoEvent
 
 // #define Support_ModuleReset  // enable reset comand, to restart module "!!" (hexstring 2121)
-#define Support_WDT  // enable 1 second watchdog timer
+// #define Support_WDT  // enable 1 second watchdog timer
 
 
 class HBWDevice;
@@ -222,7 +222,7 @@ class HBWDevice {
     unsigned long lastReceivedTime;
 //  current minimum idle time
 //  will be initialized in constructor
-    unsigned int minIdleTime;
+    uint16_t minIdleTime;
 	void receive();  // wird zyklisch aufgerufen
 	boolean parseFrame();
 	void sendFrameSingle();

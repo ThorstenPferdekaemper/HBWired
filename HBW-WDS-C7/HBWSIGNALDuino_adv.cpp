@@ -4,17 +4,19 @@
 
 
 // def
-HBWSIGNALDuino_adv::HBWSIGNALDuino_adv(uint8_t _pin, hbw_config_signalduino_adv* _config) {
-   pin = _pin;
+HBWSIGNALDuino_adv::HBWSIGNALDuino_adv(uint8_t _pin_receive, uint8_t _pin_send, uint8_t _pin_led, hbw_config_signalduino_adv* _config) {
+   pin_receive = _pin_receive;
+   pin_led = _pin_led;
    config = _config;
-   clearFeedback();
+  //  clearFeedback();
   //  currentState = UNKNOWN_STATE;
 };
 
 
 // channel specific settings or defaults
 // (This function is called after device read config from EEPROM)
-// void HBWSIGNALDuino_adv::afterReadConfig() {
+void HBWSIGNALDuino_adv::afterReadConfig() {
+  hbwdebug(F("SIGNALDuino_adv conf - ot: "));hbwdebug(config->offTime);hbwdebug(F("\n"));
 	// if (currentState == UNKNOWN_STATE) {
 	// // All off on init, but consider inverted setting
 		// digitalWrite(pin, config->n_inverted ? LOW : HIGH);		// 0=inverted, 1=not inverted (device reset will set to 1!)
@@ -25,7 +27,7 @@ HBWSIGNALDuino_adv::HBWSIGNALDuino_adv(uint8_t _pin, hbw_config_signalduino_adv*
 	// // Do not reset outputs on config change (EEPROM re-reads), but update its state
 		// digitalWrite(pin, !currentState ^ config->n_inverted);
 	// }
-// }
+}
 
 
 void HBWSIGNALDuino_adv::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
@@ -50,17 +52,17 @@ void HBWSIGNALDuino_adv::set(HBWDevice* device, uint8_t length, uint8_t const * 
 	}
 	// Logging
 	// set trigger to send info/notify message in loop()
-    setFeedback(device, config->logging);
+    // setFeedback(device, config->logging);
 };
 
 
-// uint8_t HBWSIGNALDuino_adv::get(uint8_t* data) {
+uint8_t HBWSIGNALDuino_adv::get(uint8_t* data) {
 	// if (currentState)
-		// (*data) = 200;
+		(*data) = 200;
 	// else
-		// (*data) = 0;
-	// return 1;
-// };
+	// 	(*data) = 0;
+	return 1;
+};
 
 
 void HBWSIGNALDuino_adv::loop(HBWDevice* device, uint8_t channel) {
@@ -71,5 +73,5 @@ void HBWSIGNALDuino_adv::loop(HBWDevice* device, uint8_t channel) {
   //   set(device, 1, &value); // set off
   // }
 	// feedback trigger set?
-    checkFeedback(device, channel);
+    // checkFeedback(device, channel);
 };

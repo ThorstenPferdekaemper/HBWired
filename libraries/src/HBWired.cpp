@@ -11,9 +11,7 @@
  */
 
 #include "HBWired.h"
-
-#include "Arduino.h"
-#include <EEPROM.h>
+// #include <EEPROM.h>
 
 // bus must be idle 210 + rand(0..100) ms
 #define DIFS_CONSTANT 210
@@ -511,7 +509,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
                hbwdebug(F("C: Read EEPROM\n"));
                adrStart = ((uint16_t)(frameData[1]) << 8) | frameData[2];  // start adress of eeprom
                for(byte i = 0; i < frameData[3]; i++) {
-            	   txFrame.data[i] = EEPROM.read(adrStart + i);
+            	   txFrame.data[i] = EepromPtr->read(adrStart + i);
                };
                txFrame.dataLength = frameData[3];
             };
@@ -652,7 +650,7 @@ void HBWDevice::processEmessage(uint8_t const * const frameData) {
    for(int block = 0; block <= blocknum; block++) {
       // check this memory block
       for(int byteIdx = 0; byteIdx < blocksize; byteIdx++) {
-         if(EEPROM.read(block * blocksize + byteIdx) != 0xFF) {
+         if(EepromPtr->read(block * blocksize + byteIdx) != 0xFF) {
             bitSet(txFrame.data[4 + block / 8], block % 8);
             break;
          }
@@ -765,8 +763,8 @@ void HBWDevice::writeEEPROM(uint16_t address, byte value, bool privileged ) {
    if(!privileged && (address > E2END - 4))
       return;
    // write if not anyway the same value
-   if(value != EEPROM.read(address))
-      EEPROM.write(address, value);
+   if(value != EepromPtr->read(address))
+      EepromPtr->write(address, value);
 };
 
 
@@ -776,12 +774,12 @@ void HBWDevice::readAddressFromEEPROM(){
    
    for(byte i = 0; i < 4; i++){
       address <<= 8;
-      address |= EEPROM.read(E2END - 3 + i);
+      address |= EepromPtr->read(E2END - 3 + i);
    }
    if(address == 0xFFFFFFFF)
       address = 0x42FFFFFF;
    setOwnAddress(address);
-}
+};
 
 
 void HBWDevice::determineSerial(uint8_t* buf, uint32_t address) {
@@ -805,11 +803,18 @@ void HBWDevice::determineSerial(uint8_t* buf, uint32_t address) {
 
 void HBWDevice::readConfig() {         // read config from EEPROM	
    // read EEPROM
+   // EepromPtr->read(0x01, config, configSize); / not included in standard EEPROM.h
    readEEPROM(config, 0x01, configSize);
    // turn around central address
-   uint32_t addr = *((uint32_t*)(config + 1));
-   for(uint8_t i = 0; i < 4; i++)
-     config[i+1] = ((uint8_t*)(&addr))[3-i];
+  // uint32_t addr = *((uint32_t*)(config + 1));
+   uint8_t addr[4];
+   for(uint8_t i = 0; i < 4; i++) {
+     addr[i] = config[i+1];
+   }
+   for(uint8_t i = 0; i < 4; i++) {
+     // config[i+1] = ((uint8_t*)(&addr))[3-i]; }
+     config[i+1] = addr[3-i];
+   }
    // set defaults if values not provided from EEPROM or other device specific stuff
    pendingActions.afterReadConfig = true; // tell main loop to run afterReadConfig() for device and channels
 }
@@ -817,7 +822,12 @@ void HBWDevice::readConfig() {         // read config from EEPROM
 
 // get central address
 uint32_t HBWDevice::getCentralAddress() {
-	return *((uint32_t*)(config + 1));
+	uint8_t addr[4];
+	for(uint8_t i = 0; i < 4; i++) {
+	     addr[i] = config[i+1];
+	}
+	return *((uint32_t*)addr);
+	//return *((uint32_t*)(config + 1));
 }
 
 
@@ -825,10 +835,11 @@ uint32_t HBWDevice::getCentralAddress() {
 void HBWDevice::readEEPROM(void* dst, uint16_t address, uint16_t length, 
                            boolean lowByteFirst) {
    byte* ptr = (byte*)(dst);
-   for(uint16_t offset = 0; offset < length; offset++){
-      *ptr = EEPROM.read(address + (lowByteFirst ? length - 1 - offset : offset));
-      ptr++;
-   };
+   for(uint16_t offset = 0; offset < length; offset++) {
+      *ptr = EepromPtr->read(address + (lowByteFirst ? length - 1 - offset : offset));
+      // ptr++;
+      if (offset < length) { ptr++; }
+   }
 };
 
 
@@ -861,6 +872,7 @@ void HBWDevice::handleResetSystem() {
   if (pendingActions.resetSystem) {
    #if defined (Support_ModuleReset)
     #if defined (Support_WDT)
+    // resetHardware();
     while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
     #else
     resetSoftware();  // otherwise jump to reset vector
@@ -918,8 +930,8 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    rxLedPin = NOT_A_PIN;     // inactive by default
    // upper layer
    deviceType = _devicetype;
-   readAddressFromEEPROM();
    hbwdebugstream = _debugstream;    // debug stream, might be NULL
+   readAddressFromEEPROM();
    configPin = NOT_A_PIN;  //inactive by default
    configButtonStatus = 0;
    readConfig();	// read config

@@ -10,6 +10,10 @@
 
 #include "Arduino.h"
 
+#if defined (ARDUINO_ARCH_RP2040)
+  #include <malloc.h>
+#endif
+
 int freeRam ();
 
 #endif /* FreeRam_h */

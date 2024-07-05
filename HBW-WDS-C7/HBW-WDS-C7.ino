@@ -4,9 +4,14 @@
 //
 // Homematic Wired Hombrew Hardware
 // Raspberry Pi Pico als Homematic-Device
-// - foobar
-//
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
+//
+// Arduino Boards: https://github.com/earlephilhower/arduino-pico
+//
+// Diese Modul stellt die Messwerte einer Bresser 7 in 1 oder 6 in 1
+// Wetterstation als Homematic Wired Gerät zur Verfügung.
+// Die Basis ist ein SIGNALDuino mit cc1101 868MhZ Modul:
+// https://github.com/Ralf9/SIGNALDuino/tree/dev-r335_cc1101
 //
 //*******************************************************************
 // Changes
@@ -18,7 +23,7 @@
 #define FIRMWARE_VERSION 0x0001
 #define HMW_DEVICETYPE 0x88
 
-#define NUM_CHANNELS 2
+#define NUM_CHANNELS 1
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x80
 
@@ -27,44 +32,40 @@
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
-// #include <FreeRam.h>
-
-#if defined (ARDUINO_ARCH_RP2040)
-  // #include "MBED_RPi_Pico_TimerInterrupt.h"  // Timer for LED Blinking
-  #include <Scheduler.h>
-  #include <SparkFun_External_EEPROM.h>
-  ExternalEEPROM* EepromPtr;
-  // EepromPtr = new ExternalEEPROM;
-  // ExternalEEPROM* EEPROM = new ExternalEEPROM;
-  // // ExternalEEPROM *EEPROM;
-  // Valid types: 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1025, 2048
-  #define EEPROM_Memory_Type 4
-#else
-  #error Target Plattform not supported! Please contribute.
-#endif
-
+#include <FreeRam.h>
 // HB Wired protocol and module
 #include <HBWired.h>
 #include "HBWSIGNALDuino_adv.h"
 
+
+/* harware specifics ------------------------ */
+#if defined (ARDUINO_ARCH_RP2040)
+  // #include "RPi_Pico_TimerInterrupt.h"  // https://github.com/khoih-prog/RPI_PICO_TimerInterrupt
+  // RPI_PICO_Timer Timer1(1);
+  #include <Wire.h>
+  AT24C04* EepromPtr = new AT24C04(AT24C_ADDRESS_0);
+#else
+  #error Target Plattform not supported! Please contribute.
+#endif
 
 // Pins
 // TODO move to own file (pins_default.h pins_custom.h - don't check-in last one)
 #define LED LED_BUILTIN      // Signal-LED
 
 #define RS485_TXEN 2  // Transmit-Enable
-#define BUTTON 21  // Button fuer Factory-Reset etc.
+#define BUTTON 22  // Button fuer Factory-Reset etc.
 
-#define SWITCH1_PIN 6  // Ausgangpins fuer die Relais
-#define SWITCH2_PIN 7
+// cc1101 @ SPI0
+#define PIN_SEND              20   // gdo0Pin TX out
+#define PIN_RECEIVE           21   // gdo2
 
 // default pins:
 // USB Rx / Tx 0, 1
-// static const uint8_t SPIpins[] = {MOSI, SS, MISO, SCK}; // pin 16 - 19
+// static const uint8_t SPIpins[] = {MISO, MOSI, SS, SCK}; // pin 16 - 19
 // static const uint8_t I2Cpins[] = {PIN_WIRE_SDA, PIN_WIRE_SCL}; // pin 4 & 5
 // UART1 8 & 9
 
-struct hbw_config {
+static struct hbw_config {
   uint8_t logging_time;     // 0x01
   uint32_t central_address;  // 0x02 - 0x05
   uint8_t direct_link_deactivate:1;   // 0x06:0
@@ -81,12 +82,10 @@ HBWChannel* channels[NUM_CHANNELS];
 class HBWDSDevice : public HBWDevice {
     public: 
     HBWDSDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
-               Stream* _rs485, uint8_t _txen, 
-              //  UART* _rs485, uint8_t _txen, 
+               Stream* _rs485, uint8_t _txen,
                uint8_t _configSize, void* _config, 
                uint8_t _numChannels, HBWChannel** _channels,
                Stream* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
-              //  UART* _debugstream, HBWLinkSender* linksender = NULL, HBWLinkReceiver* linkreceiver = NULL) :
     HBWDevice(_devicetype, _hardware_version, _firmware_version,
               _rs485, _txen, _configSize, _config, _numChannels, ((HBWChannel**)(_channels)),
               _debugstream, linksender, linkreceiver) {
@@ -102,37 +101,39 @@ class HBWDSDevice : public HBWDevice {
 
 HBWDSDevice* device = NULL;
 
+// #include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
 
 void setup()
 {
   pinMode(LED, OUTPUT);
-  digitalWrite(LED, HIGH);
+  // digitalWrite(LED, HIGH);
   Serial.begin(115200);  // Serial->USB for debug
   Serial1.begin(19200, SERIAL_8E1);  // RS485 bus
-
+delay(1000);Serial.println("init1");
   #if defined (ARDUINO_ARCH_RP2040)
-    Wire.begin();
-    EepromPtr->setMemoryType(EEPROM_Memory_Type);
-    if (! EepromPtr->begin())
-    {
-      while (true) {
-        digitalWrite(LED, HIGH);
-        delay(200);
-        digitalWrite(LED, LOW);
-        delay(200);
-      }
-    }
-    // TODO stop without EEPROM?
+    // Wire.begin();
+    // EepromPtr->setMemoryType(EEPROM_Memory_Type);
+    // if (! EepromPtr->begin())
+    // {
+    //   Serial.println("No EEPROM! Halting!");  // stop without EEPROM
+    //   // TODO: disable watchdog to stay in this loop
+    //   while (true) {
+    //     digitalWrite(LED, HIGH);
+    //     delay(200);
+    //     digitalWrite(LED, LOW);
+    //     delay(200);
+    //   }
+    // }
 	#endif
 
   // create channels
-  static const uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN};
+  // static const uint8_t pins[NUM_CHANNELS] = {SWITCH1_PIN, SWITCH2_PIN};
   
   // creating to channels
-  for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
-    channels[i] = new HBWSIGNALDuino_adv(pins[i], &(hbwconfig.signalduinoCfg[i]));
-  }
-
+  // for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
+    channels[0] = new HBWSIGNALDuino_adv(PIN_RECEIVE, PIN_SEND, PIN_LED, &(hbwconfig.signalduinoCfg[0]));
+  // }
+// delay(500);Serial.println("create dev");
   // create the device
   device = new HBWDSDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
                          &Serial1,
@@ -142,47 +143,54 @@ void setup()
                          &Serial);
 
   device->setConfigPins(BUTTON, LED);
-    
-  // hbwdebug(F("B: 2A "));
-  // hbwdebug(freeRam());
-  // hbwdebug(F("\n"));
+  
+  hbwdebug(F("B: 2A "));
+  hbwdebug(freeRam());
+  hbwdebug(F("\n"));
 
-  Scheduler.startLoop(loopHBW);
-  Scheduler.startLoop(loop3);
+  Serial.println("setup1 done");
   // digitalWrite(LED, LOW);
-}
-
-void loop()
-{
-  // device->loop();
-  // POWERSAVE();  // go sleep a bit
 };
 
-void loopHBW()
-{
+// #include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
+
+// setup for second core
+// void setup1() {
+//   delay(1000);  Serial.println("core2");
+
+// };
+
+// void loop()
+// {
   // device->loop();
   // POWERSAVE();  // go sleep a bit
-  // IMPORTANT:
-  // We must call 'yield' at a regular basis to pass control to other tasks.
-  yield();
-};
+// };
 
-// TODO 3rd loop for serial input?
-void loop3() {
+
+// loop for second core
+void loop() {
+  device->loop();
+
   if (Serial.available()) {
     char c = Serial.read();
-    if (c == '0') {
-      // digitalWrite(led1, LOW);
-      Serial.println("Led turned off!");
+    if (c == 'g') {
+      uint8_t data[2];
+      device->get(0, data);
+      Serial.print("get: ");Serial.println(data[0]);
     }
-    if (c == '1') {
-      // digitalWrite(led1, HIGH);
-      Serial.println("Led turned on!");
+    if (c == 'c') {
+      Serial.print("dev conf, centralAddr: ");Serial.print(hbwconfig.central_address);
+      Serial.print(" ownAddr: ");Serial.println(device->getOwnAddress());
+          //  uint8_t aData[4] = {0x42, 0x00, 0x09, 0x99}; //1107298713 | 99090042 | 2576351268
+          //  for(byte i = 0; i < 4; i++) {
+        	//    EepromPtr->write(E2END - 3 + i, aData[i]);
+          //  }
     }
     if (c == 'm') {
-        if (EepromPtr->isConnected())
+        EepromPtr->read(0x0); // dummy read, to check result
+        if (EepromPtr->getLastError() != 0)
         {
-          uint32_t memSize = EepromPtr->getMemorySizeBytes();
+          uint32_t memSize = EepromPtr->length();
           Serial.print("EEProm Size bytes ");
           Serial.println(memSize);
         }
