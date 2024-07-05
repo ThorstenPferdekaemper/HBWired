@@ -56,8 +56,8 @@
 #define BUTTON 22  // Button fuer Factory-Reset etc.
 
 // cc1101 @ SPI0
-#define PIN_SEND              20   // gdo0Pin TX out
-#define PIN_RECEIVE           21   // gdo2
+// #define PIN_SEND              20   // gdo0Pin TX out
+// #define PIN_RECEIVE           21   // gdo2
 
 // default pins:
 // USB Rx / Tx 0, 1
@@ -101,10 +101,14 @@ class HBWDSDevice : public HBWDevice {
 
 HBWDSDevice* device = NULL;
 
-// #include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
+/*--------------------------------------------SIGNALDuino-------------------------------------------------*/
+#include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
+/* providing setup() and loop() for core0 */
+/*--------------------------------------------SIGNALDuino-------------------------------------------------*/
 
-void setup()
+void setup1()
 {
+  delay(3000);
   pinMode(LED, OUTPUT);
   // digitalWrite(LED, HIGH);
   Serial.begin(115200);  // Serial->USB for debug
@@ -152,7 +156,6 @@ delay(1000);Serial.println("init1");
   // digitalWrite(LED, LOW);
 };
 
-// #include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
 
 // setup for second core
 // void setup1() {
@@ -168,35 +171,36 @@ delay(1000);Serial.println("init1");
 
 
 // loop for second core
-void loop() {
+void loop1() {
   device->loop();
 
-  if (Serial.available()) {
-    char c = Serial.read();
-    if (c == 'g') {
-      uint8_t data[2];
-      device->get(0, data);
-      Serial.print("get: ");Serial.println(data[0]);
-    }
-    if (c == 'c') {
-      Serial.print("dev conf, centralAddr: ");Serial.print(hbwconfig.central_address);
-      Serial.print(" ownAddr: ");Serial.println(device->getOwnAddress());
-          //  uint8_t aData[4] = {0x42, 0x00, 0x09, 0x99}; //1107298713 | 99090042 | 2576351268
-          //  for(byte i = 0; i < 4; i++) {
-        	//    EepromPtr->write(E2END - 3 + i, aData[i]);
-          //  }
-    }
-    if (c == 'm') {
-        EepromPtr->read(0x0); // dummy read, to check result
-        if (EepromPtr->getLastError() != 0)
-        {
-          uint32_t memSize = EepromPtr->length();
-          Serial.print("EEProm Size bytes ");
-          Serial.println(memSize);
-        }
-        else {
-          Serial.println("No Memory detected!");
-        }
-    }
-  }
+// can only read once...
+  // if (Serial.available()) {
+  //   char c = Serial.read();
+  //   if (c == 'g') {
+  //     uint8_t data[2];
+  //     device->get(0, data);
+  //     Serial.print("get: ");Serial.println(data[0]);
+  //   }
+  //   if (c == 'c') {
+  //     Serial.print("dev conf, centralAddr: ");Serial.print(hbwconfig.central_address);
+  //     Serial.print(" ownAddr: ");Serial.println(device->getOwnAddress());
+  //         //  uint8_t aData[4] = {0x42, 0x00, 0x09, 0x99}; //1107298713 | 99090042 | 2576351268
+  //         //  for(byte i = 0; i < 4; i++) {
+  //       	//    EepromPtr->write(E2END - 3 + i, aData[i]);
+  //         //  }
+  //   }
+  //   if (c == 'm') {
+  //       EepromPtr->read(0x1); // dummy read, to check result
+  //       if (EepromPtr->getLastError() != 0)
+  //       {
+  //         uint32_t memSize = EepromPtr->length();
+  //         Serial.print("EEProm Size bytes ");
+  //         Serial.println(memSize);
+  //       }
+  //       else {
+  //         Serial.println("No Memory detected!");
+  //       }
+  //   }
+  // }
 };
