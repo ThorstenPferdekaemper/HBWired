@@ -12,18 +12,20 @@
 // Wetterstation als Homematic Wired Gerät zur Verfügung.
 // Die Basis ist ein SIGNALDuino mit cc1101 868MhZ Modul:
 // https://github.com/Ralf9/SIGNALDuino/tree/dev-r335_cc1101
+// Es kann parallel am RS485 Bus und USB betrieben werden. Die Funktion
+// des SIGNALDuino (advanced) ist nicht eingeschränkt.
 //
 //*******************************************************************
 // Changes
 // v0.01
-// - initial
+// - initial version/testing
 
 
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0001
 #define HMW_DEVICETYPE 0x88
 
-#define NUM_CHANNELS 1
+#define NUM_CHANNELS 2
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x80
 
@@ -36,6 +38,7 @@
 // HB Wired protocol and module
 #include <HBWired.h>
 #include "HBWSIGNALDuino_adv.h"
+#include "HBWSIGNALDuino_bresser7in1.h"
 
 
 /* harware specifics ------------------------ */
@@ -71,7 +74,9 @@ static struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_signalduino_adv signalduinoCfg[NUM_CHANNELS]; // 0x07-0x... ? (address step ?)
+  hbw_config_signalduino_wds_7in1 wds7in1Cfg[NUM_CHANNELS]; // 0x07-0x... ? (address step ?)
   // hbw_config_signalduino_wds wds7in1Cfg[NUM_CHANNELS]; // 0x07-0x... ? (address step ?)
+  // TempH channel? (provide temp and humidity in separate channel for peering?)
 } hbwconfig;
 
 
@@ -101,17 +106,20 @@ class HBWDSDevice : public HBWDevice {
 
 HBWDSDevice* device = NULL;
 
+
 /*--------------------------------------------SIGNALDuino-------------------------------------------------*/
 #include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
 /* providing setup() and loop() for core0 */
 /*--------------------------------------------SIGNALDuino-------------------------------------------------*/
 
+
+// core1 running the Homematic device
 void setup1()
 {
   delay(3000);
-  pinMode(LED, OUTPUT);
+  // pinMode(LED, OUTPUT);
   // digitalWrite(LED, HIGH);
-  Serial.begin(115200);  // Serial->USB for debug
+  Serial.begin(115200);  // Serial->USB for debug (shared with SIGNALDuino, turn debug off?)
   Serial1.begin(19200, SERIAL_8E1);  // RS485 bus
 delay(1000);Serial.println("init1");
   #if defined (ARDUINO_ARCH_RP2040)
@@ -136,6 +144,8 @@ delay(1000);Serial.println("init1");
   // creating to channels
   // for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
     channels[0] = new HBWSIGNALDuino_adv(PIN_RECEIVE, PIN_SEND, PIN_LED, &(hbwconfig.signalduinoCfg[0]));
+    // channels[1] = new HBWSIGNALDuino_bresser7in1(ccBuf, &g_ccBuf_ready, &(hbwconfig.wds7in1Cfg[0]));
+    channels[1] = new HBWSIGNALDuino_bresser7in1(ccBuf, g_hbw_link, &(hbwconfig.wds7in1Cfg[0]));
   // }
 // delay(500);Serial.println("create dev");
   // create the device
@@ -174,7 +184,7 @@ delay(1000);Serial.println("init1");
 void loop1() {
   device->loop();
 
-// can only read once...
+// can only read once from serial buffer...
   // if (Serial.available()) {
   //   char c = Serial.read();
   //   if (c == 'g') {
@@ -190,17 +200,22 @@ void loop1() {
   //       	//    EepromPtr->write(E2END - 3 + i, aData[i]);
   //         //  }
   //   }
-  //   if (c == 'm') {
-  //       EepromPtr->read(0x1); // dummy read, to check result
-  //       if (EepromPtr->getLastError() != 0)
-  //       {
-  //         uint32_t memSize = EepromPtr->length();
-  //         Serial.print("EEProm Size bytes ");
-  //         Serial.println(memSize);
-  //       }
-  //       else {
-  //         Serial.println("No Memory detected!");
-  //       }
-  //   }
+    // if (c == 'm') {
+    // if (!(millis() % 15000)) {
+    //     EepromPtr->read(0x0); // dummy read, to check result
+    //     uint8_t ee_err = EepromPtr->getLastError();
+    //     if (ee_err == 0)
+    //     {
+    //       uint32_t memSize = EepromPtr->length();
+    //       Serial.print("EEProm Size bytes ");
+    //       Serial.println(memSize);
+    //       Serial.print("read magic byte ");
+    //       Serial.println(EepromPtr->read(0x0));
+    //     }
+    //     else {
+    //       Serial.print(ee_err);
+    //       Serial.println(" No Memory detected!");
+    //     }
+    // }
   // }
 };

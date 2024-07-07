@@ -551,11 +551,11 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 						patternInt = pattern[idx];
 
 						if (patternInt < 0) {
-							patternIdx = idx | B10100000;    // Bit5 = 1 (Vorzeichen negativ)
+							patternIdx = idx | 0b10100000;    // Bit5 = 1 (Vorzeichen negativ)
 							patternInt = -patternInt;
 						}
 						else {
-							patternIdx = idx | B10000000;    // Bit5 = 0 (Vorzeichen positiv)
+							patternIdx = idx | 0b10000000;    // Bit5 = 0 (Vorzeichen positiv)
 						}
 						
 						patternLow = lowByte(patternInt);
@@ -567,7 +567,7 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 						}
 						MSG_WRITE(patternIdx);
 						MSG_WRITE(patternLow);
-						MSG_WRITE(highByte(patternInt) | B10000000);
+						MSG_WRITE(highByte(patternInt) | 0b10000000);
 						MSG_PRINT(SERIAL_DELIMITER);
 					}
 
@@ -703,7 +703,7 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 			success = true;
 		  }
 		  else {		  // m_endfound && (mend - mstart) < minMessageLen)  -> weiter mit MU message verarbeitung
-			success == false;
+			success = false;
 		  }
 		}
 		if (success == false && (MUenabled || MCenabled)) {
@@ -936,11 +936,11 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 						patternInt = pattern[idx];
 
 						if (patternInt < 0) {
-							patternIdx = idx | B10100000;    // Bit5 = 1 (Vorzeichen negativ)
+							patternIdx = idx | 0b10100000;    // Bit5 = 1 (Vorzeichen negativ)
 							patternInt = -patternInt;
 						}
 						else {
-							patternIdx = idx | B10000000;    // Bit5 = 0 (Vorzeichen positiv)
+							patternIdx = idx | 0b10000000;    // Bit5 = 0 (Vorzeichen positiv)
 						}
 						
 						patternLow = lowByte(patternInt);
@@ -952,7 +952,7 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 						}
 						MSG_WRITE(patternIdx);
 						MSG_WRITE(patternLow);
-						MSG_WRITE(highByte(patternInt) | B10000000);
+						MSG_WRITE(highByte(patternInt) | 0b10000000);
 						MSG_PRINT(SERIAL_DELIMITER);
 					}
 					MSG_PRINT("C");  MSG_PRINT(clock, HEX);  MSG_PRINT(SERIAL_DELIMITER);
@@ -1227,19 +1227,19 @@ void SignalDetectorClass::calcHisto(const uint8_t startpos, uint8_t endpos)
 	if (startpos % 2 == 1)  // ungerade
 	{
 		message.getByte(bstartpos,&bval);
-		histo[bval & B00001111]++;
+		histo[bval & 0b00001111]++;
 		bstartpos++;
 	}
 	for (uint8_t i = bstartpos; i <= bendpos; ++i)
 	{
 		message.getByte(i,&bval);
 		histo[bval >> 4]++;
-		histo[bval & B00001111]++;
+		histo[bval & 0b00001111]++;
 	}
 	if (endpos % 2 == 0)  // gerade
 	{
 		message.getByte(bendpos, &bval);
-		histo[bval & B00001111]--;
+		histo[bval & 0b00001111]--;
 	}
 	
 	/*

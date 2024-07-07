@@ -8,7 +8,7 @@
 // #include <SPI.h>
 
 
-// config of one channel, address step 6
+// config of one channel, address step ?
 struct hbw_config_signalduino_adv {
   uint8_t logging:1;              // 0x0000
   uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED

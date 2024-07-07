@@ -288,6 +288,16 @@ uint8_t rssiCallback() { return 0; };	// Dummy return if no rssi value can be re
 void eepromHelperWrite(int idx, uint8_t val );
 uint8_t eepromHelperRead(int idx);
 
+// HBW integration
+// static struct s_hbw_link { TODO: would ever work in global scope?
+	// uint8_t msg_ready:1;
+	// uint8_t fillup:7;
+	// uint8_t rssi;
+// } g_hbw_link;
+static const uint8_t hbw_link_msg_ready = 0;
+static const uint8_t hbw_link_rssi = 1;
+uint8_t g_hbw_link[2] = {0};
+
 
 void setup() {
 	delay(500);delay(2000);
@@ -509,8 +519,8 @@ void loop() {
 		fifoBytes = cc1101::getRXBYTES(); // & 0x7f; // read len, transfer RX fifo
 		if (fifoBytes > 0) {
 			uint8_t marcstate;
-			bool appendRSSI = false;
-			uint8_t RSSI;
+			bool appendRSSI = false;  // don't append rssi to data stream
+			uint8_t RSSI = 0;
 			if ((EepromPtr->read(bankOffset + 2 +CC1101_PKTCTRL1) & 4) == 4) {
 				appendRSSI = true;
 			}
@@ -533,6 +543,8 @@ void loop() {
 						MSG_PRINT(MSG_START);
 						MSG_PRINT(F("MN;D="));
 					}
+					g_hbw_link[hbw_link_msg_ready] = true;	// signal new message ready (for HBWSIGNALDuino_bresser7in1)
+					g_hbw_link[hbw_link_rssi] = RSSI;
 					for (uint8_t i = 0; i < fifoBytes; i++) {
 						printHex2(ccBuf[i]);
 						//MSG_PRINT(" ");

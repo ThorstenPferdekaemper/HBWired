@@ -8,7 +8,7 @@
 #else
 	//#include "WProgram.h"
 #endif
-//#include <EepromPtr->h>
+//#include <EEPROM.h>
 #include "output.h"
 #include <hardware.h>
 #if defined(MAPLE_Mini) || defined(ESP32) || defined(ARDUINO_ARCH_RP2040)
