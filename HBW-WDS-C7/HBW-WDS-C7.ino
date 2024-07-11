@@ -33,8 +33,10 @@
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
+#define Support_ModuleReset
 
 #include <FreeRam.h>
+#include <HBW_eeprom.h>
 // HB Wired protocol and module
 #include <HBWired.h>
 #include "HBWSIGNALDuino_adv.h"
@@ -46,14 +48,15 @@
   // #include "RPi_Pico_TimerInterrupt.h"  // https://github.com/khoih-prog/RPI_PICO_TimerInterrupt
   // RPI_PICO_Timer Timer1(1);
   #include <Wire.h>
-  AT24C04* EepromPtr = new AT24C04(AT24C_ADDRESS_0);
+  AT24C128* EepromPtr = new AT24C128(AT24C_ADDRESS_0);
+  // Eeprom24C04_16* EepromPtr = new Eeprom24C04_16(AT24C_ADDRESS_0);
 #else
   #error Target Plattform not supported! Please contribute.
 #endif
 
 // Pins
 // TODO move to own file (pins_default.h pins_custom.h - don't check-in last one)
-#define LED LED_BUILTIN      // Signal-LED
+#define LED 3//LED_BUILTIN      // Signal-LED
 
 #define RS485_TXEN 2  // Transmit-Enable
 #define BUTTON 22  // Button fuer Factory-Reset etc.
@@ -112,7 +115,7 @@ HBWDSDevice* device = NULL;
 /* providing setup() and loop() for core0 */
 /*--------------------------------------------SIGNALDuino-------------------------------------------------*/
 
-
+// #include "EEPROM_24cXX.h"
 // core1 running the Homematic device
 void setup1()
 {
@@ -122,6 +125,19 @@ void setup1()
   Serial.begin(115200);  // Serial->USB for debug (shared with SIGNALDuino, turn debug off?)
   Serial1.begin(19200, SERIAL_8E1);  // RS485 bus
 delay(1000);Serial.println("init1");
+
+// EE dump
+// uint8_t ee_buff[16];
+// for (uint i = 0; i < 2064; i+=16) {
+// // int totalRead = EepromPtr->readBuffer(i, ee_buff, sizeof(ee_buff));
+// Serial.print("EE ");Serial.print(i);Serial.print(": ");
+// for (uint x = 0; x < 16; x++){
+// // Serial.print(ee_buff[x], HEX);Serial.print(" ");
+// Serial.print(EepromPtr->read(x+i), HEX);Serial.print(" ");
+// }
+// // Serial.print(":");Serial.print(totalRead);
+// Serial.println("");
+// }
   #if defined (ARDUINO_ARCH_RP2040)
     // Wire.begin();
     // EepromPtr->setMemoryType(EEPROM_Memory_Type);

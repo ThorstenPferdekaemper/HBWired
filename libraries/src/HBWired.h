@@ -9,8 +9,8 @@
 #define HBWired_h
 
 #include "Arduino.h"
-#include "hardware.h"
-// #include "avr/wdt.h"
+#include "HBW_hardware.h"
+
 
 #define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
 

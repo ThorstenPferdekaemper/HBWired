@@ -441,7 +441,7 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 		} else if (MuMoveCount > 0) {
 			calcHisto();
 		} else if (MuOverflCount > 0) {
-			state == syncfound;
+			state = syncfound;
 		}
 		
 		if (state == searching) {

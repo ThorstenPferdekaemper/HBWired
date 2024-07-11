@@ -11,6 +11,7 @@
  */
 
 #include "HBWired.h"
+#include "HBW_eeprom.h"
 // #include <EEPROM.h>
 
 // bus must be idle 210 + rand(0..100) ms
@@ -763,8 +764,12 @@ void HBWDevice::writeEEPROM(uint16_t address, byte value, bool privileged ) {
    if(!privileged && (address > E2END - 4))
       return;
    // write if not anyway the same value
+  #if defined (EEPROM_no_update_function)
    if(value != EepromPtr->read(address))
       EepromPtr->write(address, value);
+  #else
+   EepromPtr->update(address, value);
+  #endif
 };
 
 

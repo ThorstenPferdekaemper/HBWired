@@ -1,4 +1,5 @@
 // TODO
+// placheholder - chan should allow basic config for SIGNALDuino, like mode, frequency, bWidth, etc.
 
 #ifndef HBWSIGNALDuino_adv_h
 #define HBWSIGNALDuino_adv_h

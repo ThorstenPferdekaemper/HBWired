@@ -114,18 +114,19 @@ bool HBWSIGNALDuino_bresser7in1::parseMsg() {
     unsigned int light_lux = lght_raw;
     float uv_index = uv_raw * 0.1f;
 
-    // int rssiDb = calcRSSI(rssi);
+ #if defined (HBW_CHANNEL_DEBUG)
   Serial.print("id: ");Serial.println(id, HEX);
   Serial.print("batt ok: ");Serial.println(!battery_low);
   Serial.print("wind_dir: ");Serial.println(wdir);
   Serial.print("wind_max_m_s: ");Serial.println(wgst);
   Serial.print("wind_avg_m_s: ");Serial.println(wavg);
-  Serial.print("rain: ");Serial.println((uint)rain_raw);
-  Serial.print("temp_mc: ");Serial.println(temp_mc);
+  Serial.print("rain_mm: ");Serial.println(rain_mm);
+  Serial.print("temp_c: ");Serial.println(temp_c);
   Serial.print("humidity: ");Serial.println(humidity);
   Serial.print("light_lux: ");Serial.println(light_lux);
   Serial.print("uv_index: ");Serial.println(uv_index);
-  Serial.print("RSSI db: ");Serial.println(calcRSSI(rssi));
+  Serial.print("RSSI db: ");Serial.println(HBWSIGNALDuino_calcRSSI(rssi));
+ #endif
     
     return true;
   }
@@ -138,9 +139,10 @@ bool HBWSIGNALDuino_bresser7in1::parseMsg() {
   return false;
 }
 
-// calculated RSSI and RSSI value
-// https://github.com/Ralf9/SIGNALduinoAdv_FHEM/blob/master/FHEM/00_SIGNALduinoAdv.pm
-int HBWSIGNALDuino_bresser7in1::calcRSSI(uint8_t _rssi) {
-  return (_rssi>=128 ? ((_rssi-256)/2-74) : (_rssi/2-74));
-}
+
+// // calculated RSSI and RSSI value
+// // https://github.com/Ralf9/SIGNALduinoAdv_FHEM/blob/master/FHEM/00_SIGNALduinoAdv.pm
+// int HBWSIGNALDuino_bresser7in1::calcRSSI(uint8_t _rssi) {
+//   return (_rssi>=128 ? ((_rssi-256)/2-74) : (_rssi/2-74));
+// }
 

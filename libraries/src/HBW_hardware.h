@@ -1,35 +1,29 @@
 /*
  * hardware.h
+ * Macros for different function calls or defines, if not set by the board
  *
  *  Created on: 23.05.2018
  *      Author: loetmeister.de
  */
 
-#ifndef _hardware_h
-#define _hardware_h
+#ifndef _HBW_hardware_h
+#define _HBW_hardware_h
 
-
-#if defined (ARDUINO_ARCH_RP2040)
-  // #include <SparkFun_External_EEPROM.h>
-  // class ExternalEEPROM;    // forward declare class
-  // extern ExternalEEPROM* EepromPtr;
-  #include <at24c04.h>
-  class AT24C04;
-  extern AT24C04* EepromPtr;
-
-  // max EEPROM address for HBW device. Usual EEPROM size is 1024 (as defined in XML)
-  #define E2END 0x3FF
-  #ifndef NOT_A_PIN
-  #define NOT_A_PIN 0xFF
-  // #include <Watchdog.h>
-  #endif
-#else
-  #include <EEPROM.h>
-  #include "avr/wdt.h"
-  extern EEPROMClass* EepromPtr;
-#endif
 
 //#define _HAS_BOOTLOADER_    // enable bootlader support of the device. BOOTSTART must be defined as well
+
+
+
+#ifndef NOT_A_PIN
+#define NOT_A_PIN 0xFF
+#endif
+
+#if defined (ARDUINO_ARCH_RP2040)
+  // #include <Watchdog.h>
+#else
+  #include "avr/wdt.h"
+#endif
+
 
 /* Start Boot Program section and RAM address start */
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__) || defined (__AVR_ATmega328PB__)
@@ -68,7 +62,7 @@
   #define POWERSAVE() set_sleep_mode(0); \
                       sleep_mode();
 #elif defined (ARDUINO_ARCH_RP2040)
-  #define POWERSAVE() sleep();
+  // #define POWERSAVE() sleep()
   
 //#elif defined (__AVR_ATmega644P__)... // TODO: add others
 #endif
@@ -79,14 +73,14 @@
   // #include "avr/wdt.h"
   // inline void resetHardware() {
     // while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
-  // };
+  // }
 // #elif defined (ARDUINO_ARCH_RP2040)
   // // #include <hardware/watchdog.h>
   // inline void resetHardware() {
-  // watchdog_reboot(0, SRAM_END, 0);
+    // watchdog_reboot(0, SRAM_END, 0)
   // //watchdog_reboot(0, 0, 10);  // watchdog fire after 10us and busy waits
     // for (;;) {
-    // };
+    // }
 // #endif
 
-#endif /* _hardware_h */
+#endif /* _HBW_hardware_h */

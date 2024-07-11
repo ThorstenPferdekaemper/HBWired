@@ -10,7 +10,10 @@
 #endif
 //#include <EEPROM.h>
 #include "output.h"
-#include <hardware.h>
+#include <HBW_eeprom.h>
+/* map to new EEPROM space */
+static uint16_t const RECEIVER_EE_START_ADDR = 0x400;  // first start address for SigDuino (0...1023 is used by Homematic module)
+
 #if defined(MAPLE_Mini) || defined(ESP32) || defined(ARDUINO_ARCH_RP2040)
 	#include <SPI.h>
 #endif
@@ -20,22 +23,15 @@ extern uint16_t bankOffset;
 extern String cmdstring;
 extern uint8_t ccBuf[ccMaxBuf + 2];
 
+void eepromHelperWrite(int idx, uint8_t val );
+uint8_t eepromHelperRead(int idx);
 
 namespace cc1101 {
-	
-	/*
-	#ifdef ARDUINO_AVR_ICT_BOARDS_ICT_BOARDS_AVR_RADINOCC1101
-	#define SS					  8  
-	#define PIN_MARK433			  4  // LOW -> 433Mhz | HIGH -> 868Mhz
-	
-	#elif ARDUINO_ATMEGA328P_MINICUL  // 8Mhz 
-	#define PIN_MARK433			  0
-	#endif
-	*/
 	
 	#define addr_CWccreset     0x3A   // wenn A5 oder A6, dann erfolgt bei CW (ccRegWrite) ein ccReset
 	#define addr_CWccTEST      0x3B   // wenn = 6x und addr_CWccreset = A5 dann werden beim CCinit_reg auch CC1101_TEST2 - TEST0 gesetzt
 	
+	//TODO allow custom config via compile_config.h?
 	#define csPin	SS	   // CSN  out
 	#define mosiPin MOSI   // MOSI out
 	#define misoPin MISO   // MISO in
@@ -305,7 +301,7 @@ namespace cc1101 {
 		//waitV_Miso();                                    // wait until MISO goes low
 		sendSPI(CC1101_PATABLE | CC1101_WRITE_BURST);   // send register address
 		for (uint8_t i = 0; i < 8; i++) {
-			sendSPI(EepromPtr->read(bankOffset + EE_CC1101_PA+i));                     // send value
+			sendSPI(eepromHelperRead(bankOffset + EE_CC1101_PA+i));                     // send value
 		}
 			cc1101_Deselect();
 	}
@@ -414,9 +410,9 @@ namespace cc1101 {
 void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa ramping)
 	for (uint8_t i = 0; i < 8; i++) {
 		if (i == 1) {
-			EepromPtr->write(bankOffset + EE_CC1101_PA + i, var);
+			eepromHelperWrite(bankOffset + EE_CC1101_PA + i, var);
 		} else {
-			EepromPtr->write(bankOffset + EE_CC1101_PA + i, 0);
+			eepromHelperWrite(bankOffset + EE_CC1101_PA + i, 0);
 		}
 	}
 	writePatable();
@@ -425,21 +421,21 @@ void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa
 
 	void ccFactoryReset(bool flag) {
 		for (uint8_t i = 0; i<sizeof(initVal); i++) {
-			EepromPtr->write(bankOffset + EE_CC1101_CFG + i, pgm_read_byte(&initVal[i]));
+			eepromHelperWrite(bankOffset + EE_CC1101_CFG + i, pgm_read_byte(&initVal[i]));
 		}
-		EepromPtr->write(bankOffset + addr_CWccreset, 0xFF);
+		eepromHelperWrite(bankOffset + addr_CWccreset, 0xFF);
 		if (flag == false) {
 			return;
 		}
 		for (uint8_t i = 0; i < 8; i++) {
 			if (i == 1) {
 				if (bankOffset == 0) {	// Bank 0 normalerweise 433 Mhz
-					EepromPtr->write(bankOffset + EE_CC1101_PA + i, PATABLE_DEFAULT_433);
+					eepromHelperWrite(bankOffset + EE_CC1101_PA + i, PATABLE_DEFAULT_433);
 				} else {
-					EepromPtr->write(bankOffset + EE_CC1101_PA + i, PATABLE_DEFAULT_868);
+					eepromHelperWrite(bankOffset + EE_CC1101_PA + i, PATABLE_DEFAULT_868);
 				}
 			} else {
-				EepromPtr->write(bankOffset + EE_CC1101_PA + i, 0);
+				eepromHelperWrite(bankOffset + EE_CC1101_PA + i, 0);
 			}
 		}
 		MSG_PRINTLN(F("ccFactoryReset done"));  
@@ -664,14 +660,14 @@ void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa
 		
 		sendSPI(CC1101_WRITE_BURST);
 		for (uint8_t i = 0; i<sizeof(initVal); i++) {              // write EEPROM value to cc1101
-			sendSPI(EepromPtr->read(bankOffset + EE_CC1101_CFG + i));
+			sendSPI(eepromHelperRead(bankOffset + EE_CC1101_CFG + i));
 		}
 		cc1101_Deselect();
 		delayMicroseconds(10);            // ### todo: welcher Wert ist als delay sinnvoll? ###
 
-		if (EepromPtr->read(bankOffset + addr_CWccreset) == 0xA5 && ((EepromPtr->read(bankOffset + addr_CWccTEST) & 0xF0) == 0x60)) {
+		if (eepromHelperRead(bankOffset + addr_CWccreset) == 0xA5 && ((eepromHelperRead(bankOffset + addr_CWccTEST) & 0xF0) == 0x60)) {
 			for (uint8_t i = 0; i<3; i++) {
-				writeReg(CC1101_TEST2 + i, EepromPtr->read(bankOffset + CC1101_TEST2 + i));
+				writeReg(CC1101_TEST2 + i, eepromHelperRead(bankOffset + CC1101_TEST2 + i));
 			}
 		}
 		writePatable();                                 // write PatableArray to patable reg
@@ -698,6 +694,24 @@ void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa
 		return (readReg(CC1101_PKTCTRL0, CC1101_CONFIG) == initVal[CC1101_PKTCTRL0]) && (readReg(CC1101_IOCFG2, CC1101_CONFIG) == initVal[CC1101_IOCFG2]);
 	}
 
+}
+
+
+/* map to new EEPROM space */
+void eepromHelperWrite(int _addr, uint8_t _val)
+{
+	// MSG_PRINT(F("W eeprom: "));MSG_PRINTLN(_addr + RECEIVER_EE_START_ADDR);
+	#if defined (EEPROM_no_update_function)
+	  if (EepromPtr->write(_addr + RECEIVER_EE_START_ADDR, _val) != _val)
+		  EepromPtr->write(_addr + RECEIVER_EE_START_ADDR, _val);
+	#else
+		EepromPtr->update(_addr + RECEIVER_EE_START_ADDR, _val);
+	#endif
+}
+
+uint8_t eepromHelperRead(int _addr)
+{
+	return EepromPtr->read(_addr + RECEIVER_EE_START_ADDR);
 }
 
 #endif
