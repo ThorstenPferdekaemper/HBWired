@@ -808,18 +808,11 @@ void HBWDevice::determineSerial(uint8_t* buf, uint32_t address) {
 
 void HBWDevice::readConfig() {         // read config from EEPROM	
    // read EEPROM
-   // EepromPtr->read(0x01, config, configSize); / not included in standard EEPROM.h
    readEEPROM(config, 0x01, configSize);
    // turn around central address
-  // uint32_t addr = *((uint32_t*)(config + 1));
-   uint8_t addr[4];
+   uint32_t addr = *((uint32_t*)(config + 1));  // central address hardcoded at config struct position 1
    for(uint8_t i = 0; i < 4; i++) {
-     addr[i] = config[i+1];
-   }
-   for(uint8_t i = 0; i < 4; i++) {
-     // config[i+1] = ((uint8_t*)(&addr))[3-i]; }
-     config[i+1] = addr[3-i];
-   }
+     config[i+1] = ((uint8_t*)(&addr))[3-i]; }
    // set defaults if values not provided from EEPROM or other device specific stuff
    pendingActions.afterReadConfig = true; // tell main loop to run afterReadConfig() for device and channels
 }
@@ -827,12 +820,9 @@ void HBWDevice::readConfig() {         // read config from EEPROM
 
 // get central address
 uint32_t HBWDevice::getCentralAddress() {
-	uint8_t addr[4];
-	for(uint8_t i = 0; i < 4; i++) {
-	     addr[i] = config[i+1];
-	}
-	return *((uint32_t*)addr);
-	//return *((uint32_t*)(config + 1));
+	return *((uint32_t*)(config + 1));
+	/* doing this will crash RP2040 boards, when 4 bytes spann variables (e.g. default config struct has 3 bytes
+	   at (config + 1) and 1 byte of next uint32_t). Create child class to 'override' this method and readConfig. */
 }
 
 
@@ -842,7 +832,6 @@ void HBWDevice::readEEPROM(void* dst, uint16_t address, uint16_t length,
    byte* ptr = (byte*)(dst);
    for(uint16_t offset = 0; offset < length; offset++) {
       *ptr = EepromPtr->read(address + (lowByteFirst ? length - 1 - offset : offset));
-      // ptr++;
       if (offset < length) { ptr++; }
    }
 };
@@ -939,7 +928,6 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    readAddressFromEEPROM();
    configPin = NOT_A_PIN;  //inactive by default
    configButtonStatus = 0;
-   readConfig();	// read config
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
    #ifdef Support_ModuleReset
    pendingActions.resetSystem = false;
@@ -949,8 +937,11 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    #endif
 }
   
-
+//TODO rename to begin()?
+// This method should be called right after class instantiation (device->setConfigPins() to keep default pins)
 void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
+	readConfig();	// read config
+	
 	configPin = _configPin;
 	if(configPin != NOT_A_PIN) {
 	#if (defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)) && not (defined(ARDUINO_AVR_ATMEL_ATMEGA328PB_XMINI) || defined(__AVR_ATmega328PB__))
