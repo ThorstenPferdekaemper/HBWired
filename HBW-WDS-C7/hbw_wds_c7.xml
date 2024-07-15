@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<device version="12" eep_size="1024">
+<supported_types>
+	<type name="RS485 Weather Module" id="HBW-WDS-C7" priority="2">
+		<parameter index="0" size="1" const_value="0x88"/><!--HMW_DEVICETYPE-->
+		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
+		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+	</type>
+</supported_types>
+
+<paramset type="MASTER" id="hbw_wds_c7_dev_master">
+	<parameter id="DIRECT_LINK_DEACTIVATE" hidden="true">
+		<logical type="boolean" default="false"/>
+		<physical interface="eeprom" size="0.1" type="integer">
+			<address index="0x0004"/>
+		</physical>	
+	</parameter>
+	<parameter id="CENTRAL_ADDRESS" hidden="true">
+		<logical type="integer"/>
+		<physical type="integer" size="4" interface="eeprom">
+			<address index="0x0005"/>
+		</physical>
+	</parameter>
+	<enforce id="CENTRAL_ADDRESS" value="1"/>
+	<enforce id="DIRECT_LINK_DEACTIVATE" value="true"/>
+</paramset>
+
+<frames>
+	<frame id="LEVEL_SET" type="#x" channel_field="10" direction="to_device">
+		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
+	</frame>
+	<frame id="LEVEL_GET" direction="to_device" type="#S" channel_field="10"/>
+	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
+		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
+		<parameter type="integer" index="12.4" size="0.4" param="STATE_FLAGS"/>
+	</frame>
+	<frame id="WEATHER_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" index="11.0" size="2.0" signed="true" param="TEMPERATURE"/>
+		<parameter type="integer" index="13.0" size="1.0" param="HUMIDITY"/>
+		<parameter type="integer" index="14.0" size="2.0" param="RAIN_MM"/>
+		<parameter type="integer" index="16.0" size="2.0" param="WIND_SPEED_MAX"/>
+		<parameter type="integer" index="18.0" size="2.0" param="WIND_SPEED_AVG"/>
+		<parameter type="integer" index="20.0" size="0.5" param="WIND_DIRECTION"/>
+		<parameter type="integer" index="20.5" size="0.1" param="BATTERY_STATE"/>
+		<parameter type="integer" index="21.0" size="2.0" param="BRIGHTNESS_LUX"/>
+		<parameter type="integer" index="23.0" size="1.0" param="UV_INDEX"/>
+		<parameter type="integer" index="24.0" size="1.0" signed="true" param="RSSI"/>
+	</frame>
+	<frame id="TH_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" signed="true" index="11.0" size="2.0" param="TH_TEMPERATURE"/>
+		<parameter type="integer" index="13.0" size="1.0" param="TH_HUMIDITY"/>
+	</frame>
+</frames>
+
+<channels>
+	<channel index="0" type="MAINTENANCE" ui_flags="internal" class="maintenance" count="1">
+		<paramset type="MASTER" id="maint_ch_master"/>
+		<paramset type="VALUES" id="maint_ch_values">
+			<parameter id="UNREACH" operations="read,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="UNREACH"/>
+			</parameter>
+			<parameter id="STICKY_UNREACH" operations="read,write,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="STICKY_UNREACH"/>
+			</parameter>
+			<parameter id="CONFIG_PENDING" operations="read,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="CONFIG_PENDING"/>
+			</parameter>
+		</paramset>
+	</channel>
+	<channel index="1" count="1" physical_index_offset="-1" type="HBWSIGNALDuino">
+		<paramset type="MASTER" id="hbw_hbwsignalduino_ch_master" address_step="16" address_start="0x09">
+			<parameter id="undef1">
+				<logical type="integer">
+					<special_value id="UNKNOWN" value="0xFF"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="0xff" device_value="0x0"/>
+				</conversion>
+			</parameter>
+			<parameter id="FREQUENCY">
+				<logical type="float" unit="MHz" default="868" min="400" max="870">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom">
+					<address index="+1.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="5" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="undef2">
+				<logical type="integer" min="-127" max="127" unit="&#x2103;"/>
+				<physical type="integer" size="1" interface="eeprom">
+					<address index="+3.0"/>
+				</physical>
+				<conversion type="integer_integer_scale" offset="127" factor="100"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="127" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="undef3">
+			   <logical type="integer" unit="s" default="10" min="5" max="3600">
+				 <special_value id="NOT_USED" value="0"/>
+			   </logical>
+			   <physical size="2.0" type="integer" interface="eeprom" endian="little">
+				  <address index="+4.0"/>
+			   </physical>
+			   <conversion type="integer_integer_map">
+				 <value_map to_device="false" from_device="true" parameter_value="10" device_value="0xffff"/>
+			   </conversion>
+			</parameter>
+			<parameter id="SEND_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="150" min="5" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+5.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="150" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+		</paramset>
+		<paramset type="VALUES" id="hbw_hbwsignalduino_input_values">
+			<parameter id="VALUE" operations="write">
+				<logical type="string"/>
+				<physical type="integer" interface="command" value_id="LEVEL">
+					<set request="LEVEL_SET"/>
+				</physical>
+			</parameter>
+		</paramset>
+	</channel>
+
+	<channel index="2" count="1" physical_index_offset="-1" type="WEATHER">
+		<link_roles>
+			<source name="TEST"/>
+		</link_roles>
+		<paramset type="MASTER" id="hbw_wds_c7_ch_master" address_step="16" address_start="0x19">
+			<parameter id="SENSOR_ID">
+				<logical type="integer">
+					<special_value id="UNKNOWN" value="0xFFFF"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="0xffff" device_value="0x0"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_DELTA_TEMP">
+				<logical type="float" unit="&#x2103;" default="0.5" min="0.1" max="25.0">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+3.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="5" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="OFFSET">
+				<logical type="integer" min="-127" max="127" unit="&#x2103;"/>
+				<physical type="integer" size="1" interface="eeprom">
+					<address index="+4.0"/>
+				</physical>
+				<conversion type="integer_integer_scale" offset="127" factor="100"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="127" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_MIN_INTERVAL">
+			   <logical type="integer" unit="s" default="30" min="5" max="3600">
+				 <special_value id="NOT_USED" value="0"/>
+			   </logical>
+			   <physical size="2.0" type="integer" interface="eeprom" endian="little">
+				  <address index="+5.0"/>
+			   </physical>
+			   <conversion type="integer_integer_map">
+				 <value_map to_device="false" from_device="true" parameter_value="30" device_value="0xffff"/>
+			   </conversion>
+			</parameter>
+			<parameter id="SEND_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="300" min="5" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+7.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="300" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+		</paramset>
+		
+	<!--	<paramset type="LINK" id="hmw_wds_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0xE6" address_step="6">
+			<parameter id="CHANNEL" operations="none" hidden="true">
+				<logical type="integer" min="0" max="255" default="255"/>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+			</parameter>
+			<parameter id="ACTUATOR" operations="none" hidden="true">
+				<logical type="address"/>
+				<physical type="array">
+					<physical type="integer" size="4.0" interface="eeprom">
+						<address index="+1"/>
+					</physical>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+5"/>
+					</physical>
+				</physical>
+			</parameter>
+		</paramset> -->
+		
+		<paramset type="VALUES" id="hmw_weather_output_values">
+			<parameter id="TEMPERATURE" operations="read,event">
+				<logical type="float" min="-273.15" max="327.67" unit="&#x2103;"/>
+				<physical type="integer" interface="command" value_id="TEMPERATURE">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+			</parameter>
+			<parameter id="HUMIDITY" operations="read,event">
+				<logical type="integer" min="0" max="99" unit="%"/>
+				<physical type="integer" interface="command" value_id="HUMIDITY">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+			</parameter>
+			<parameter id="RAIN_MM" operations="read,event">
+				<logical type="float" min="0.0" max="6553.5" unit="mm"/> <!-- TODO check max value -->
+				<physical type="integer" interface="command" value_id="RAIN_MM">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+			</parameter>
+			<parameter id="WIND_SPEED_MAX_KMH" operations="read,event">
+				<logical type="float" min="0.0" max="300.0" unit="km/h"/>
+				<physical type="integer" interface="command" value_id="WIND_SPEED_MAX">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="2.77777778"/>
+			</parameter>
+			<parameter id="WIND_SPEED_MAX" operations="read,event">
+				<logical type="float" min="0.0" max="300.0" unit="m/s"/> <!-- TODO check max value -->
+				<physical type="integer" interface="command" value_id="WIND_SPEED_MAX">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+			</parameter>
+			<parameter id="WIND_SPEED_AVG_KMH" operations="read,event">
+				<logical type="float" min="0.0" max="300.0" unit="km/h"/>
+				<physical type="integer" interface="command" value_id="WIND_SPEED_AVG">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="2.77777778"/>
+			</parameter>
+			<parameter id="WIND_SPEED_AVG" operations="read,event">
+				<logical type="float" min="0.0" max="300.0" unit="m/s"/> <!-- TODO check max value -->
+				<physical type="integer" interface="command" value_id="WIND_SPEED_AVG">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+			</parameter>
+			<parameter id="WIND_DIRECTION" operations="read,event">
+				<!-- <logical type="integer" min="0" max="350" unit="degree"/> -->
+				<logical type="option">
+					<option id="N" default="true"/>
+					<option id="NNE"/>
+					<option id="NE"/>
+					<option id="ENE"/>
+					<option id="E"/>
+					<option id="ESE"/>
+					<option id="SE"/>
+					<option id="SSE"/>
+					<option id="S"/>
+					<option id="SSW"/>
+					<option id="SW"/>
+					<option id="WSW"/>
+					<option id="W"/>
+					<option id="WNW"/>
+					<option id="NW"/>
+					<option id="NNW"/>
+					<option id="N"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="WIND_DIRECTION">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<!-- <conversion type="integer_integer_scale" div="5"/> -->
+			</parameter>
+			<parameter id="BATTERY_STATE" operations="read,event">
+				<logical type="option">
+					<option id="BAD" default="true"/>
+					<option id="OK"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="BATTERY_STATE">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<!-- <conversion type="option_integer"> -->
+					<!-- <value_map device_value="0x00" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x01" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x02" parameter_value="2"/> -->
+					<!-- <value_map device_value="0x03" parameter_value="3"/> -->
+				<!-- </conversion> -->
+			</parameter>
+			<parameter id="BRIGHTNESS_LUX" operations="read,event">
+				<logical type="float" min="0.0" max="650000.0" unit="lux"/>
+				<physical type="integer" interface="command" value_id="BRIGHTNESS_LUX">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1"/>
+			</parameter>
+			<parameter id="UV_INDEX" operations="read,event">
+				<logical type="float" min="0.0" max="10.0" unit="uv_index"/>
+				<physical type="integer" interface="command" value_id="UV_INDEX">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+			</parameter>
+			<parameter id="RSSI" operations="read,event">
+				<logical type="integer" min="-127" max="127" unit="db"/>
+				<physical type="integer" interface="command" value_id="RSSI">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+				<!-- <conversion type="integer_integer_scale" factor="1"/> -->
+			</parameter>
+		</paramset>	
+	</channel>
+</channels>
+</device>

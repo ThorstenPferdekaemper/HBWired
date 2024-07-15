@@ -1,7 +1,7 @@
-
+// Homematic Wired Hombrew (HBW), with SIGNALDuino
+// loetmeister.de - 2024.07.14
 
 #include "HBWSIGNALDuino_adv.h"
-
 
 // def
 HBWSIGNALDuino_adv::HBWSIGNALDuino_adv(uint8_t _pin_receive, uint8_t _pin_send, uint8_t _pin_led, hbw_config_signalduino_adv* _config) {
@@ -16,7 +16,7 @@ HBWSIGNALDuino_adv::HBWSIGNALDuino_adv(uint8_t _pin_receive, uint8_t _pin_send, 
 // channel specific settings or defaults
 // (This function is called after device read config from EEPROM)
 void HBWSIGNALDuino_adv::afterReadConfig() {
-  hbwdebug(F("SIGNALDuino_adv conf - ot: "));hbwdebug(config->offTime);hbwdebug(F("\n"));
+  // hbwdebug(F("SIGNALDuino_adv conf - ot: "));hbwdebug(config->offTime);hbwdebug(F("\n"));
 	// if (currentState == UNKNOWN_STATE) {
 	// // All off on init, but consider inverted setting
 		// digitalWrite(pin, config->n_inverted ? LOW : HIGH);		// 0=inverted, 1=not inverted (device reset will set to 1!)
@@ -31,7 +31,7 @@ void HBWSIGNALDuino_adv::afterReadConfig() {
 
 
 void HBWSIGNALDuino_adv::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
-	if (config->output_unlocked) {	//0=LOCKED, 1=UNLOCKED
+	// if (config->output_unlocked) {	//0=LOCKED, 1=UNLOCKED
 		// if(*data > 200) {   // toggle
 		// 	digitalWrite(pin, digitalRead(pin) ? LOW : HIGH);  // TODO: force offTime...
 		// 	currentState = (currentState ? OFF_STATE : ON_STATE);
@@ -49,7 +49,7 @@ void HBWSIGNALDuino_adv::set(HBWDevice* device, uint8_t length, uint8_t const * 
 		// 		currentState = OFF_STATE;
 		// 	}
 		// }
-	}
+	// }
 	// Logging
 	// set trigger to send info/notify message in loop()
     // setFeedback(device, config->logging);

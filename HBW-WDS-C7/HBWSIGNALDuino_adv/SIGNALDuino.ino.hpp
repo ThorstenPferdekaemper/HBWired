@@ -35,7 +35,7 @@
 #include "compile_config.h"
 
 #define PROGNAME               "RF_RECEIVER"
-#define PROGVERS               "3.3.5-adv-rpi"
+#define PROGVERS               "3.3.6-adv-rpi"
 #define VERSION_1               0x33
 #define VERSION_2               0x40
 
@@ -90,10 +90,9 @@
 #include "output.h"
 #include "bitstore.h"
 #include "signalDecoder.h"
+#include <HBW_eeprom.h>
 #if defined (ARDUINO_ARCH_RP2040)
   #include <FreeRam.h>
-  // #include <hardware.h>
-  #include <HBW_eeprom.h>
   #include <RPi_Pico_TimerInterrupt.h>  // https://github.com/khoih-prog/RPI_PICO_TimerInterrupt 
   RPI_PICO_Timer ITimer1(1);
 #else
@@ -106,7 +105,6 @@ SimpleFIFO<int,FIFO_LENGTH> FiFo; //store FIFO_LENGTH # ints
 SignalDetectorClass musterDec;
 
 
-// #include <EEPROM.h>
 #include "cc1101.h"
 
 #define pulseMin  90
@@ -290,30 +288,30 @@ uint8_t rssiCallback() { return 0; };	// Dummy return if no rssi value can be re
 // uint8_t eepromHelperRead(int idx);
 
 // HBW integration
-// static struct s_hbw_link { TODO: would ever work in global scope?
-	// uint8_t msg_ready:1;
-	// uint8_t fillup:7;
-	// uint8_t rssi;
-// } g_hbw_link;
-static const uint8_t hbw_link_msg_ready = 0;
-static const uint8_t hbw_link_rssi = 1;
 uint8_t g_hbw_link[2] = {0};
+#ifndef HMW_DEVICETYPE
+enum hbw_link_pos {
+  MSG_COUNTER = 0,
+  RSSI
+};
+#endif
 
 
 void setup() {
-	delay(500);delay(2000);
-  Wire.begin();
-  EepromPtr->read(RECEIVER_EE_START_ADDR); // dummy read, to check result
-  if (EepromPtr->getLastError() != 0)
-  // if (!EepromPtr->available())
-  {
-    Serial.println("No memory detected. Freezing.");
-    #ifdef WATCHDOG
-      wdt_disable();
-    #endif
-    while (true)
-      ;
-  }
+	delay(500);
+  #ifdef DEBUG
+	delay(2000);
+  #endif
+	Wire.begin();
+	if (!EepromPtr->available()) {
+		Serial.println("No memory detected. Freezing.");
+		#ifdef WATCHDOG
+		  wdt_disable();
+		#endif
+		// TODO: LED panic blink?
+		while (true)
+		  ;
+	}
 #if defined(ARDUINO_BUSWARE_CUL)
 	clock_prescale_set(clock_div_1);
 #endif
@@ -545,8 +543,8 @@ void loop() {
 						MSG_PRINT(MSG_START);
 						MSG_PRINT(F("MN;D="));
 					}
-					g_hbw_link[hbw_link_msg_ready] = true;	// signal new message ready (for HBWSIGNALDuino_bresser7in1)
-					g_hbw_link[hbw_link_rssi] = RSSI;
+					g_hbw_link[hbw_link_pos::MSG_COUNTER] += 1;	// signal new message for other channels, like HBWSIGNALDuino_bresser7in1
+					g_hbw_link[hbw_link_pos::RSSI] = RSSI;
 					for (uint8_t i = 0; i < fifoBytes; i++) {
 						printHex2(ccBuf[i]);
 						//MSG_PRINT(" ");

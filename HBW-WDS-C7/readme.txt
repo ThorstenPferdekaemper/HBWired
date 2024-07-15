@@ -1,8 +1,8 @@
-Homematic Wired Homebrew S0-Interface
-=====================================
+Homematic Wired Homebrew Wetterstation
+======================================
 
-Diese Modul stellt die Messwerte einer Bresser 7 in 1 oder 6 in 1 Wetterstation als Homematic Wired Gerät zur Verfügung.
-Die Code-Basis ist ein SIGNALDuino mit cc1101 868 Mhz Modul: https://github.com/Ralf9/SIGNALDuino/tree/dev-r335_cc1101
+Diese Modul stellt die Messwerte einer Bresser 7 in 1 oder 5 in 1 Wetterstation als Homematic Wired Gerät zur Verfügung.
+Die Code-Basis ist ein SIGNALDuino: https://github.com/Ralf9/SIGNALDuino/tree/dev-r335_cc1101 mit cc1101 868 Mhz Modul.
 Es kann parallel am RS485 Bus und USB betrieben werden. Die Funktion des SIGNALDuino (advanced) ist nicht eingeschränkt.
 Entwickelt auf/für einen Raspberry Pi Pico. Kompiliert mit dem Arduino Boards: https://github.com/earlephilhower/arduino-pico
 
@@ -11,6 +11,7 @@ Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw_sen_ep.xml in
 Config der Kanäle kann über das FHEM-Webfrontend vorgenommen werden:
 # ...
 
+--- WORK IN PROGRESS ---- 
 
 Pinbelegung:
 0 - Rx Serial -> USB

@@ -5,19 +5,20 @@
 #define HBWSIGNALDuino_adv_h
 
 #include <inttypes.h>
-#include "HBWired.h"
+#include <HBWired.h>
 // #include <SPI.h>
 
 
-// config of one channel, address step ?
+// config of one channel, address step ? 16
 struct hbw_config_signalduino_adv {
-  uint8_t logging:1;              // 0x0000
-  uint8_t output_unlocked:1;      // 0x07:1    0=LOCKED, 1=UNLOCKED
-  uint8_t n_inverted:1;           // 0x07:2    0=inverted, 1=not inverted (device reset will set to 1!)
-  uint8_t        :5;              // 0x0000
-  uint16_t onTime;
-  uint16_t offTime;
-  uint8_t dummyx;
+  // uint8_t unused;              // 0x0000
+    // uint8_t free;
+  uint16_t oexyz;   // start must be multiple of four
+  uint16_t ofxyz;
+  uint16_t dummy;
+  uint32_t dummyx;
+  uint32_t dummyz;
+  // TODO allow to set frequency and other options? (use bank0, other bank for other channels?)
 };
 
 
