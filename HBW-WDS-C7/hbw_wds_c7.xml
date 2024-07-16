@@ -145,7 +145,7 @@
 		<paramset type="MASTER" id="hbw_wds_c7_ch_master" address_step="16" address_start="0x19">
 			<parameter id="SENSOR_ID">
 				<logical type="integer">
-					<special_value id="UNKNOWN" value="0xFFFF"/>
+					<special_value id="UNDEFINED" value="0xFFFF"/>
 				</logical>
 				<physical size="2.0" type="integer" interface="eeprom" endian="little">
 					<address index="+0.0"/>
@@ -177,7 +177,7 @@
 				</conversion>
 			</parameter>
 			<parameter id="SEND_MIN_INTERVAL">
-			   <logical type="integer" unit="s" default="30" min="5" max="3600">
+			   <logical type="integer" unit="s" default="30" min="15" max="3600">
 				 <special_value id="NOT_USED" value="0"/>
 			   </logical>
 			   <physical size="2.0" type="integer" interface="eeprom" endian="little">
@@ -188,7 +188,7 @@
 			   </conversion>
 			</parameter>
 			<parameter id="SEND_MAX_INTERVAL">
-				<logical type="integer" unit="s" default="300" min="5" max="3600">
+				<logical type="integer" unit="s" default="300" min="15" max="3600">
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="2.0" type="integer" interface="eeprom" endian="little">

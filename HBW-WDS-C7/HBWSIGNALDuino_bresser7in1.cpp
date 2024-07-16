@@ -80,19 +80,19 @@ uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
 
 /* main channel loop, called by device loop */
 void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
-  // copy new message asap, else buffer might be overwriten by other sender
+  // check for new message. Copy message directly, else buffer might be overwriten by other sender
   if (hbw_link[hbw_link_pos::MSG_COUNTER] != msgCounter) {
     memset(message_buffer, 0, sizeof(message_buffer));  // make sure it's clean
     memcpy(message_buffer, msg_buffer_ptr, sizeof(message_buffer));
     rssi_raw = hbw_link[hbw_link_pos::RSSI];
-    msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];
+    msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // remember counter to not process same msg again
     lastCheck = millis();
     // parse msg directly, on success force to wait min e.g. 5 seconds
     printDebug = true;
   }
   if (millis() - lastCheck >= 500 && printDebug) {  // delay output (check Serial is free?)
     // lastCheck = millis();
-    parseMsg(); // TODO: read return code and move parsing to main loop
+    parseMsg(); // TODO: read return code and move parsing to main loop if (parseMsg() == SUCCESS)
     printDebug = false;
   }
 
@@ -101,12 +101,12 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
     
     uint8_t data[14];
     get(data);
-// for (char i=0; i<14;i++){Serial.print((uint8_t)data[i], HEX);Serial.print(":");}Serial.println("");
     if (device->sendInfoMessage(channel, sizeof(data), data) != HBWDevice::BUS_BUSY) {
      #ifdef Support_HBWLink_InfoEvent
-      //  uint8_t level[2];
-      //  get_temp(level);
+      // //  uint8_t level[2];
+      // //  get_temp(level);
       // // device->sendInfoEvent(channel, 2, level, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
+      // only send temperature value for peerings (first 2 bytes of data[14])
       // device->sendInfoEvent(channel, 2, data, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
      #endif
     }
@@ -145,11 +145,12 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
 
   if (s_type == SENSOR_TYPE_WEATHER) {
     if (config->id == 0x0 || config->id == 0xFFFF) {
+      // if no ID was saved, use the one we got now
       config->id = id;
       EepromPtr->update(eeprom_address_start, (uint8_t)id);
-      EepromPtr->update(eeprom_address_start +1, (uint8_t)(id>>8));  // must match address of hbw_config_signalduino_wds_7in1->id
+      EepromPtr->update(eeprom_address_start +1, (uint8_t)(id>>8));  // must match address of condig struct (hbw_config_signalduino_wds_7in1->id)
       }
-    if (id != config->id) //Serial.println("ID_MISSMATCH!");
+    if (id != config->id)
       return ID_MISSMATCH;
     
     int wdir     = (message_buffer[4] >> 4) * 100 + (message_buffer[4] & 0x0f) * 10 + (message_buffer[5] >> 4);
@@ -187,7 +188,9 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
   float uv_index = uv_raw * 0.1f;
   hbwdebug(F("id: "));hbwdebug(id);hbwdebug(F("\n"));
   hbwdebug(F("batt ok: "));hbwdebug(!battery_low);hbwdebug(F("\n"));
-  hbwdebug(F("wind_dir: "));hbwdebug(wdir);hbwdebug(F(" wind_dir_state: "));hbwdebug((float)windDir / 22.5);hbwdebug(F("\n"));
+  hbwdebug(F("wind_dir: "));hbwdebug(wdir);
+    hbwdebug(F(" wind_dir_state: "));hbwdebug((float)windDir / 22.5);
+    hbwdebug(F(" rounded: "));hbwdebug(round((float)windDir / 22.5));hbwdebug(F("\n"));
   hbwdebug(F("wind_max_m_s: "));hbwdebug(wgst);hbwdebug(F("\n"));
   hbwdebug(F("wind_avg_m_s: "));hbwdebug(wavg);hbwdebug(F("\n"));
   hbwdebug(F("rain_mm: "));hbwdebug(rain_mm);hbwdebug(F("\n"));

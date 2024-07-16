@@ -33,13 +33,10 @@
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
-#else
-	//#include "WProgram.h"
 #endif
 
 #include "compile_config.h"
 
-#define DEBUG 1
 
 #include "output.h"
 #include "bitstore.h"

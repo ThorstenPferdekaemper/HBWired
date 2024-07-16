@@ -17,7 +17,7 @@
 //
 //*******************************************************************
 // Changes
-// v0.01
+// v0.03
 // - initial version/testing
 
 
@@ -25,7 +25,7 @@
 #define FIRMWARE_VERSION 0x0003
 #define HMW_DEVICETYPE 0x88
 
-#define NUM_CHANNELS 2
+#define NUM_CHANNELS 2  // total number of channels
 #define NUM_LINKS 30
 #define ADDRESSSTART_WDS_CONF 0x019 // start address of hbw_config_signalduino_wds_7in1 // TODO? make array for multiple channels (start+ sizeof(hbw_config_signalduino_wds_7in1))
 #define LINKADDRESSSTART_ACT 0xE6 // start for any ACTUATOR peering (must have same 'address_step')
@@ -47,10 +47,10 @@
 
 /* harware specifics ------------------------ */
 #if defined (ARDUINO_ARCH_RP2040)
-  #include <Wire.h>
-  // AT24C128* EepromPtr = new AT24C128(AT24C_ADDRESS_0);
-  EEPROM24* EepromPtr = new EEPROM24(Wire, EEPROM_24LC128);
+  // #include <Wire.h>
+  EEPROM24* EepromPtr = new EEPROM24(Wire, EEPROM_24LC128);  // 16 kBytes EEPROM @ first I2C / Wire0 interface
 #else
+  // below customizations are probably not compatible with other architectures
   #error Target Plattform not supported! Please contribute.
 #endif
 
@@ -68,8 +68,8 @@
 
 // default pins:
 // USB Rx / Tx 0, 1 (UART0)
-// static const uint8_t SPIpins[] = {MISO, MOSI, SS, SCK}; // GPIO pin 16 - 19
-// static const uint8_t I2Cpins[] = {PIN_WIRE0_SDA, PIN_WIRE0_SCL}; // GPIO pin 4 & 5
+// SPI0[] = {MISO, MOSI, SS, SCK}; // GPIO pin 16 - 19
+// I2C0[] = {PIN_WIRE0_SDA, PIN_WIRE0_SCL}; // GPIO pin 4 & 5
 // UART1 GPIO 8 & 9
 
 // device config
@@ -105,18 +105,17 @@ class HBWDSDevice : public HBWDevice {
               _debugstream, linksender, linkreceiver) {
     };
     // virtual void afterReadConfig();
+
     protected:
       void readConfig() override {         // read config from EEPROM	
         // read EEPROM
         EepromPtr->read(0x01, config, configSize);
-        //  readEEPROM(config, 0x01, configSize);
         // turn around central address
         uint8_t addr[4];
         for(uint8_t i = 0; i < 4; i++) {
           addr[i] = hbwconfig.central_address[i]; //config[i+4];
         }
         for(uint8_t i = 0; i < 4; i++) {
-          //  config[i+4] = addr[3-i];
           hbwconfig.central_address[i] = addr[3-i];
         }
         // set defaults if values not provided from EEPROM or other device specific stuff
@@ -126,11 +125,6 @@ class HBWDSDevice : public HBWDevice {
       // get central address
       uint32_t getCentralAddress() override {
         return *((uint32_t*)hbwconfig.central_address);
-        // uint8_t addr[4];
-        // for(uint8_t i = 0; i < 4; i++) {
-        //      addr[i] = hbwconfig.central_address[i]; //config[i+4];
-        // }
-        // return *((uint32_t*)addr);
       }
 };
 
@@ -146,6 +140,7 @@ HBWDevice* device = NULL;
 /*--------------------------------------------SIGNALDuino-------------------------------------------------*/
 #include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
 /* providing setup() and loop() for core0 */
+// external EEPROM started here, too!
 // see: HBWSIGNALDuino_adv/compile_config.h and HBWSIGNALDuino_adv/cc1101.h for further config
 /*--------------------------------------------SIGNALDuino-------------------------------------------------*/
 
@@ -153,25 +148,24 @@ HBWDevice* device = NULL;
 // core1 running the Homematic device
 void setup1()
 {
-  delay(3000);
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
-  Serial.begin(115200);  // Serial->USB for debug (shared with SIGNALDuino, turn debug off?)
+  delay(3000);
+  Serial.begin(115200);  // Serial->USB for debug (shared with SIGNALDuino, turn all debug off?)
   Serial2.begin(19200, SERIAL_8E1);  // RS485 bus @UART1
-// delay(1000);Serial.println("init1");
 
 // EE dump ---------------
-// uint8_t ee_buff[16];
-for (uint i = 0; i < 2064; i+=16) {
-// int totalRead = EepromPtr->readBuffer(i, ee_buff, sizeof(ee_buff));
-Serial.print("EE ");Serial.print(i);Serial.print(": ");
-for (uint x = 0; x < 16; x++){
-// Serial.print(ee_buff[x], HEX);Serial.print(" ");
-Serial.print(EepromPtr->read(x+i), HEX);Serial.print(" ");
-}
-// Serial.print(":");Serial.print(totalRead);
-Serial.println("");
-}
+// // uint8_t ee_buff[16];
+// for (uint i = 0; i < 2064; i+=16) {
+// // int totalRead = EepromPtr->readBuffer(i, ee_buff, sizeof(ee_buff));
+// Serial.print("EE ");Serial.print(i);Serial.print(": ");
+// for (uint x = 0; x < 16; x++){
+// // Serial.print(ee_buff[x], HEX);Serial.print(" ");
+// Serial.print(EepromPtr->read(x+i), HEX);Serial.print(" ");
+// }
+// // Serial.print(":");Serial.print(totalRead);
+// Serial.println("");
+// }
 //------------
   #if defined (ARDUINO_ARCH_RP2040)
     // Wire.begin();

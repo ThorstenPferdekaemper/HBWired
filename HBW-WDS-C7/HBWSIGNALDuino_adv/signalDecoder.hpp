@@ -1928,13 +1928,11 @@ const bool ManchesterpatternDecoder::doDecode() {
 													//MSG_PRINT(" ES MC ");
 
 }
-/*
-
+*/
 /** @brief (Verifies if found signal data is a valid manchester signal, returns true or false)
 *
 * (Check signal based on patternLen, histogram and pattern store for valid manchester style.Provides key indexes for the 4 signal states for later decoding)
 */
-
 const bool ManchesterpatternDecoder::isManchester()
 {
 	// Durchsuchen aller Musterpulse und prueft ob darin eine clock vorhanden ist

@@ -32,12 +32,14 @@ struct hbw_config_signalduino_wds_7in1 {
   uint16_t id;  // sensor ID, to read always same sensor (0xFFFF or 0x0 == auto learn)
   uint8_t type:2; // Bresser 7in1 (default == 3) or 5in1 sensor (TODO other simlar ones?) -- as reading??
   uint8_t fillup:6;
-  uint8_t dummy;//send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird
+  uint8_t wind_storm_threshold_level:5;        // factor 10: 10...300 km/h
+  uint8_t wind_storm_readings_trigger:3;       // storm_threshold readings in a row to trigger storm status (0...7)
+  uint8_t send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird (eher nützlich bei goßem Sendeintervall)
   uint8_t dummy2;//send_delta_humidity
-  uint8_t temp_offset;                           // offset in c°C (-1.27..+1.27 °C)
   uint16_t send_min_interval;            // Minimum-Sendeintervall
   uint16_t send_max_interval;            // Maximum-Sendeintervall
   uint32_t dummyx;
+  // Strom threshold limit? + duration to trigger / reset "storm" state?
 };
 
  // TODO? WDS base class + bresser7in1 child?

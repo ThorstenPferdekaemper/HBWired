@@ -16,9 +16,7 @@
 
 
 #if defined (ARDUINO_ARCH_RP2040)
-  // #include <at24c128.h>
-  // class AT24C128;    // forward declare class
-  // extern AT24C128* EepromPtr;
+  #include <Wire.h>
   #include "extras/EEPROM24.h"
   class EEPROM24;    // forward declare class
   extern EEPROM24* EepromPtr;
