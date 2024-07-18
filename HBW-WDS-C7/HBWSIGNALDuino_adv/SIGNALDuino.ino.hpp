@@ -298,11 +298,11 @@ enum hbw_link_pos {
 
 
 void setup() {
-	delay(500);
+	delay(200);
+	Wire.begin();
   #ifdef DEBUG
 	delay(2000);
   #endif
-	Wire.begin();
 	if (!EepromPtr->available()) {
 		Serial.println("No memory detected. Freezing.");
 		#ifdef WATCHDOG

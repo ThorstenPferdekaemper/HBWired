@@ -37,11 +37,14 @@
 	<frame id="WEATHER_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="2.0" signed="true" param="TEMPERATURE"/>
 		<parameter type="integer" index="13.0" size="1.0" param="HUMIDITY"/>
-		<parameter type="integer" index="14.0" size="2.0" param="RAIN_MM"/>
-		<parameter type="integer" index="16.0" size="2.0" param="WIND_SPEED_MAX"/>
-		<parameter type="integer" index="18.0" size="2.0" param="WIND_SPEED_AVG"/>
+		<parameter type="integer" index="14.0" size="3.0" param="RAIN_MM"/> <!-- upper 6 bits unused -->
+		<parameter type="integer" index="17.0" size="1.2" param="WIND_SPEED_MAX"/>
+		<parameter type="integer" index="18.0" size="1.2" param="WIND_SPEED_AVG"/>
+		<!-- <parameter type="integer" index="19.4" size="0.3" param="unused"/> -->
+		<parameter type="integer" index="19.7" size="0.1" param="STORM_STATE"/>
 		<parameter type="integer" index="20.0" size="0.5" param="WIND_DIRECTION"/>
 		<parameter type="integer" index="20.5" size="0.1" param="BATTERY_STATE"/>
+		<!-- <parameter type="integer" index="20.6" size="0.1" param="STORM_STATE"/>-->
 		<parameter type="integer" index="21.0" size="2.0" param="BRIGHTNESS_LUX"/>
 		<parameter type="integer" index="23.0" size="1.0" param="UV_INDEX"/>
 		<parameter type="integer" index="24.0" size="1.0" signed="true" param="RSSI"/>
@@ -154,22 +157,40 @@
 					<value_map to_device="false" from_device="true" parameter_value="0xffff" device_value="0x0"/>
 				</conversion>
 			</parameter>
+			<parameter id="STORM_THRESHOLD_LEVEL">
+				<logical type="integer" unit="km/h" default="85" min="5" max="150">
+					<special_value id="NOT_USED" value="0x1f"/>
+				</logical>
+				<physical size="0.5" type="integer" interface="eeprom">
+					<address index="+3.0"/>
+				</physical>
+				<conversion type="integer_integer_scale" factor="0.2"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="16" device_value="0x1f"/>
+				</conversion>
+			</parameter>
+			<parameter id="STORM_READINGS_TRIGGER">
+				<logical type="integer" unit="consecutive thresholds" default="7" min="1" max="7"/>
+				<physical size="0.3" type="integer" interface="eeprom">
+					<address index="+3.5"/>
+				</physical>
+			</parameter>
 			<parameter id="SEND_DELTA_TEMP">
-				<logical type="float" unit="&#x2103;" default="0.5" min="0.1" max="25.0">
+				<logical type="float" unit="&#x2103;" default="1.0" min="0.1" max="25.0">
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="1.0" type="integer" interface="eeprom">
-					<address index="+3.0"/>
+					<address index="+4.0"/>
 				</physical>
 				<conversion type="float_integer_scale" factor="10"/>
 				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="5" device_value="0xff"/>
+					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
 				</conversion>
 			</parameter>
-			<parameter id="OFFSET">
+			<parameter id="unused">
 				<logical type="integer" min="-127" max="127" unit="&#x2103;"/>
 				<physical type="integer" size="1" interface="eeprom">
-					<address index="+4.0"/>
+					<address index="+5.0"/>
 				</physical>
 				<conversion type="integer_integer_scale" offset="127" factor="100"/>
 				<conversion type="integer_integer_map">
@@ -181,7 +202,7 @@
 				 <special_value id="NOT_USED" value="0"/>
 			   </logical>
 			   <physical size="2.0" type="integer" interface="eeprom" endian="little">
-				  <address index="+5.0"/>
+				  <address index="+8.0"/>
 			   </physical>
 			   <conversion type="integer_integer_map">
 				 <value_map to_device="false" from_device="true" parameter_value="30" device_value="0xffff"/>
@@ -192,7 +213,7 @@
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="2.0" type="integer" interface="eeprom" endian="little">
-					<address index="+7.0"/>
+					<address index="+10.0"/>
 				</physical>
 				<conversion type="integer_integer_map">
 					<value_map to_device="false" from_device="true" parameter_value="300" device_value="0xffff"/>
@@ -200,7 +221,7 @@
 			</parameter>
 		</paramset>
 		
-	<!--	<paramset type="LINK" id="hmw_wds_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0xE6" address_step="6">
+		<paramset type="LINK" id="hmw_wds_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0xE6" address_step="6">
 			<parameter id="CHANNEL" operations="none" hidden="true">
 				<logical type="integer" min="0" max="255" default="255"/>
 				<physical type="integer" size="1.0" interface="eeprom">
@@ -218,7 +239,7 @@
 					</physical>
 				</physical>
 			</parameter>
-		</paramset> -->
+		</paramset>
 		
 		<paramset type="VALUES" id="hmw_weather_output_values">
 			<parameter id="TEMPERATURE" operations="read,event">
@@ -237,7 +258,7 @@
 				</physical>
 			</parameter>
 			<parameter id="RAIN_MM" operations="read,event">
-				<logical type="float" min="0.0" max="6553.5" unit="mm"/> <!-- TODO check max value -->
+				<logical type="float" min="0.0" max="9999.9" unit="mm"/>
 				<physical type="integer" interface="command" value_id="RAIN_MM">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -245,7 +266,7 @@
 				<conversion type="float_integer_scale" factor="10"/>
 			</parameter>
 			<parameter id="WIND_SPEED_MAX_KMH" operations="read,event">
-				<logical type="float" min="0.0" max="300.0" unit="km/h"/>
+				<logical type="float" min="0.0" max="180.0" unit="km/h"/>
 				<physical type="integer" interface="command" value_id="WIND_SPEED_MAX">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -253,7 +274,7 @@
 				<conversion type="float_integer_scale" factor="2.77777778"/>
 			</parameter>
 			<parameter id="WIND_SPEED_MAX" operations="read,event">
-				<logical type="float" min="0.0" max="300.0" unit="m/s"/> <!-- TODO check max value -->
+				<logical type="float" min="0.0" max="55.0" unit="m/s"/>
 				<physical type="integer" interface="command" value_id="WIND_SPEED_MAX">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -261,7 +282,7 @@
 				<conversion type="float_integer_scale" factor="10"/>
 			</parameter>
 			<parameter id="WIND_SPEED_AVG_KMH" operations="read,event">
-				<logical type="float" min="0.0" max="300.0" unit="km/h"/>
+				<logical type="float" min="0.0" max="200.0" unit="km/h"/>
 				<physical type="integer" interface="command" value_id="WIND_SPEED_AVG">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -269,7 +290,7 @@
 				<conversion type="float_integer_scale" factor="2.77777778"/>
 			</parameter>
 			<parameter id="WIND_SPEED_AVG" operations="read,event">
-				<logical type="float" min="0.0" max="300.0" unit="m/s"/> <!-- TODO check max value -->
+				<logical type="float" min="0.0" max="55.0" unit="m/s"/>
 				<physical type="integer" interface="command" value_id="WIND_SPEED_AVG">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -319,6 +340,16 @@
 					<!-- <value_map device_value="0x03" parameter_value="3"/> -->
 				<!-- </conversion> -->
 			</parameter>
+			<parameter id="STORM_STATE" operations="read,event">
+				<logical type="option">
+					<option id="NO" default="true"/>
+					<option id="YES"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="STORM_STATE">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+			</parameter>
 			<parameter id="BRIGHTNESS_LUX" operations="read,event">
 				<logical type="float" min="0.0" max="650000.0" unit="lux"/>
 				<physical type="integer" interface="command" value_id="BRIGHTNESS_LUX">
@@ -328,7 +359,7 @@
 				<conversion type="float_integer_scale" factor="0.1"/>
 			</parameter>
 			<parameter id="UV_INDEX" operations="read,event">
-				<logical type="float" min="0.0" max="10.0" unit="uv_index"/>
+				<logical type="float" min="0.0" max="12.0" unit="uv_index"/>
 				<physical type="integer" interface="command" value_id="UV_INDEX">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>

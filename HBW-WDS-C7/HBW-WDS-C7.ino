@@ -8,7 +8,7 @@
 //
 // Arduino Boards: https://github.com/earlephilhower/arduino-pico
 //
-// Diese Modul stellt die Messwerte einer Bresser 7 in 1 oder 5 in 1
+// Diese Modul stellt die Messwerte einer Bresser 7 in 1 [oder 5 in 1]
 // Wetterstation als Homematic Wired Gerät zur Verfügung.
 // Die Basis ist ein SIGNALDuino mit cc1101 868MhZ Modul:
 // https://github.com/Ralf9/SIGNALDuino/tree/dev-r335_cc1101
@@ -42,7 +42,7 @@
 #include <HBWired.h>
 #include "HBWSIGNALDuino_adv.h"
 #include "HBWSIGNALDuino_bresser7in1.h"
-// add link event lib
+#include <HBWLinkInfoEventSensor.h>
 
 
 /* harware specifics ------------------------ */
@@ -72,20 +72,19 @@
 // I2C0[] = {PIN_WIRE0_SDA, PIN_WIRE0_SCL}; // GPIO pin 4 & 5
 // UART1 GPIO 8 & 9
 
+
 // device config
-// different layout/central_address position for RP2040. Variable start must be multiple of four / cannot access a 16bit type at an odd address?
+// different layout/central_address position for RP2040! Variable start must be multiple of four / cannot access a 16bit type at an odd address?
 static struct hbw_config {
   uint8_t logging_time;     // 0x01 - eeprom addr
   uint8_t padding[2];     // 0x02 - 03
   uint8_t direct_link_deactivate:1;   // 0x04:0
   uint8_t fillup         :7;   // 0x04:1-7
   uint8_t central_address[4];  // 0x05 - 0x08
-  // s_hbw_device_config hbw_device_config;
   hbw_config_signalduino_adv signalduinoCfg[1]; // 0x09-0x... ? (address step 16)
   hbw_config_signalduino_wds_7in1 wds7in1Cfg[1]; // 0x19-0x... ? (address step 16)
-  // hbw_config_signalduino_wds wds7in1Cfg[NUM_CHANNELS]; // 0x22-0x... ? (address step ?)
   // TempH channel? (provide temp and humidity in separate channel for peering?)
-  // virtual BRIGHTNESS chan?
+  // virtual BRIGHTNESS (0...100%) chan?
 } hbwconfig;
 
 
@@ -150,7 +149,10 @@ void setup1()
 {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
-  delay(3000);
+  delay(1500);  // must wait for core0 to start Wire/EEPROM
+ #ifdef DEBUG
+  delay(2000);
+ #endif
   Serial.begin(115200);  // Serial->USB for debug (shared with SIGNALDuino, turn all debug off?)
   Serial2.begin(19200, SERIAL_8E1);  // RS485 bus @UART1
 
@@ -191,8 +193,11 @@ void setup1()
                          &Serial2,
                          RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
                          NUM_CHANNELS, (HBWChannel**)channels,
-                        //  NULL, new HBWLinkSwitchAdvanced<NUM_LINKS, LINKADDRESSSTART>());
-                         &Serial);
+  #ifdef HBW_DEBUG
+                        &Serial, new HBWLinkInfoEventSensor<NUM_LINKS, LINKADDRESSSTART_ACT>());
+  #else
+                        NULL, new HBWLinkInfoEventSensor<NUM_LINKS, LINKADDRESSSTART_ACT>());
+  #endif
 
   device->setConfigPins(BUTTON, LED);
 
@@ -203,7 +208,6 @@ void setup1()
   hbwdebug(F("\n"));
  #endif
 
-  // Serial.println("setup1 done");
   digitalWrite(LED, LOW);
 };
 

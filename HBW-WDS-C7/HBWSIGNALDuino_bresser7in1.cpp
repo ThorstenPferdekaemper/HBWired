@@ -16,19 +16,31 @@ HBWSIGNALDuino_bresser7in1::HBWSIGNALDuino_bresser7in1(uint8_t* _msg_buffer_ptr,
    config = _config;
    eeprom_address_start = _eeprom_address_start;  // TODO: external / static const? ADDRESSSTART_WDS_CONF
    currentTemp = DEFAULT_TEMP;
-   lastSend = 0;
+   lastSentTemp = 0;
    msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // skip first message
+   stormy = false;
+   stormyTriggerCounter = config->storm_readings_trigger;
+   lastSentTime = 20000;  // wait 20 seconds after statup
+  //  avgSampleIdx = 0;
+  //  avgSamples = 0;
 };
 
 
 // channel specific settings or defaults
 // (This function is called after device read config from EEPROM)
 void HBWSIGNALDuino_bresser7in1::afterReadConfig() {
-  if (config->send_max_interval == 0xFFFF) config->send_max_interval = 300;
+  if (config->send_max_interval == 0xFFFF) config->send_max_interval = 300; // 5 minutes
   if (config->send_min_interval == 0xFFFF) config->send_min_interval = 30;
+  if (config->send_delta_temp == 0xFF) config->send_delta_temp = 10;  // 1.0 °C
+  if (config->storm_threshold_level > 30) config->storm_threshold_level = 17;  // 85 km/h
 
  #if defined (HBW_CHANNEL_DEBUG)
   hbwdebug(F("wds_7-1 conf - id: "));hbwdebug(config->id);hbwdebug(F("\n"));
+  hbwdebug(F("wds_7-1 conf - max_interval: "));hbwdebug(config->send_max_interval);hbwdebug(F("\n"));
+  hbwdebug(F("wds_7-1 conf - min_interval: "));hbwdebug(config->send_min_interval);hbwdebug(F("\n"));
+  hbwdebug(F("wds_7-1 conf - delta_temp: "));hbwdebug(config->send_delta_temp);hbwdebug(F("\n"));
+  hbwdebug(F("wds_7-1 conf - storm_lvl: "));hbwdebug(config->storm_threshold_level);hbwdebug(F("\n"));
+  hbwdebug(F("wds_7-1 conf - storm_trig: "));hbwdebug(config->storm_readings_trigger);hbwdebug(F("\n"));
  #endif
 };
 
@@ -48,20 +60,29 @@ uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
   stateAndWdir.field.windDir = windDirState;
   stateAndWdir.field.battOk = batteryOk;
 
-  // for 2 byte values, MSB first
+  u_wind_speed windSpeed;
+  windSpeed.field.windAvgMs = windAvgMsRaw & 0x3FF;
+  windSpeed.field.windMaxMs = windMaxMsRaw & 0x3FF;
+  windSpeed.field.storm = stormy;
+
+  // for multi byte values, MSB first
   // write value and increment pointer for next value
   *data++ = (currentTemp >> 8);
   *data++ = currentTemp & 0xFF;
-  *data++ = humidity_pct;
+  *data++ = humidityPct;
+  *data++ = (rainMm >> 16);
   *data++ = (rainMm >> 8);
   *data++ = rainMm & 0xFF;
-  *data++ = (windMaxMs >> 8);
-  *data++ = windMaxMs & 0xFF;
-  *data++ = (windAvgMs >> 8);
-  *data++ = windAvgMs & 0xFF;
-  *data++ = stateAndWdir.byte; //(batteryOk << 5) & windDirState;
-  *data++ = (lightLuxTenth >> 8);
-  *data++ = lightLuxTenth & 0xFF;
+  // *data++ = (windMaxMsRaw >> 8);
+  // *data++ = windMaxMsRaw & 0xFF;
+  // *data++ = (windAvgMsRaw >> 8);
+  // *data++ = windAvgMsRaw & 0xFF;
+  *data++ = windSpeed.first_byte;
+  *data++ = windSpeed.secnd_byte;
+  *data++ = windSpeed.third_byte;
+  *data++ = stateAndWdir.byte;
+  *data++ = (lightLuxDeci >> 8);
+  *data++ = lightLuxDeci & 0xFF;
   *data++ = uvIndex;
   *data = rssiDb;
 
@@ -86,31 +107,68 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
     memcpy(message_buffer, msg_buffer_ptr, sizeof(message_buffer));
     rssi_raw = hbw_link[hbw_link_pos::RSSI];
     msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // remember counter to not process same msg again
-    lastCheck = millis();
-    // parse msg directly, on success force to wait min e.g. 5 seconds
-    printDebug = true;
-  }
-  if (millis() - lastCheck >= 500 && printDebug) {  // delay output (check Serial is free?)
-    // lastCheck = millis();
-    parseMsg(); // TODO: read return code and move parsing to main loop if (parseMsg() == SUCCESS)
-    printDebug = false;
+    
+    if (parseMsg() == SUCCESS) {  // new message for this sensor channel!
+      // manage index for average calculation
+      // if (config->average_samples) {
+      //   if (avgSamples < WDS_7IN1_AVG_SAMPLES)  avgSamples++;  // avoid to calculate the average on array elements that have not been updated with a reading
+      //   if (avgSampleIdx < WDS_7IN1_AVG_SAMPLES)  avgSampleIdx++;
+      //   else avgSampleIdx = 0;
+      // }
+      // else {
+      //   avgSampleIdx = 0;  // only use single/last value
+      //   avgSamples = 1;
+      // }
+
+      // check new storm status, if enabled (storm_threshold_level < 30)
+      // TODO: check if windMax or Avg should be used
+      if (config->storm_threshold_level < 0x1F && (float)windMaxMsRaw *0.36 > config->storm_threshold_level *5) {
+        if (stormyTriggerCounter < config->storm_readings_trigger)  stormyTriggerCounter--;
+        else stormy = true;
+      }
+      else {
+        // not stormy (anymore) reset state & counter
+        stormy = lastStormy = false;
+        stormyTriggerCounter = config->storm_readings_trigger;
+      }
+    }
   }
 
-  // check for new value, only send on the bus if values changed as set by delta or max send invervall is passed
-  if (millis() - lastSend >= 30000) {
-    
+  // if (millis() - lastCheck >= 500 && printDebug) {  // delay output (check Serial is free?)
+    // lastCheck = millis();
+    // printDebug = false;
+  // }
+  
+  unsigned long now = millis();
+
+  // check for new values. Only send on the bus, if values changed as set by delta or max send invervall is passed
+  // never send before min_interval, if enabled
+  if (config->send_min_interval && now - lastSentTime <= (unsigned long)config->send_min_interval *1000)  return;
+  // int32_t currentTempAvg = 0;
+  // unint16_t humidityPctAvg = 0;
+  // for (i=0; i < avgSamples; i++) {
+  //   currentTempAvg += currentTemp[i];
+  //   humidityPctAvg += humidityPct[i];
+  // }
+  // currentTempAvg = currentTempAvg / avgSamples;
+  // humidityPctAvg = humidityPctAvg / avgSamples;
+
+  if ((config->send_max_interval && now - lastSentTime >= (unsigned long)config->send_max_interval * 1000) ||
+      (config->send_delta_temp && abs(currentTemp - lastSentTemp) >= (unsigned int)config->send_delta_temp * 10) ||
+      // (other urgent new value?) ||
+      (stormy && stormy != lastStormy) )
+  {
     uint8_t data[14];
     get(data);
     if (device->sendInfoMessage(channel, sizeof(data), data) != HBWDevice::BUS_BUSY) {
      #ifdef Support_HBWLink_InfoEvent
-      // //  uint8_t level[2];
-      // //  get_temp(level);
-      // // device->sendInfoEvent(channel, 2, level, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
       // only send temperature value for peerings (first 2 bytes of data[14])
-      // device->sendInfoEvent(channel, 2, data, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
+      device->sendInfoEvent(channel, 2, data, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
      #endif
+    lastSentTemp = currentTemp;   // store last value only on success
+    lastStormy = stormy;
     }
-    lastSend = millis();
+    lastSentTime = now;  // if send failed, next try will be on send_max_interval or send_min_interval in case a value changed
   }
 };
 
@@ -126,6 +184,7 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
       message_buffer[i] ^= 0xAA;
   }
  #if defined (HBW_CHANNEL_DEBUG)
+  delay(500);  // TODO fixme: add own debug output in loop - avoid conflict on same serial output!
   hbwdebug(F("type: "));hbwdebughex(s_type);hbwdebug(F("\n"));
  #endif
 
@@ -173,12 +232,12 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
 
     // store values
     windDir = wdir;
-    windMaxMs = wgst_raw;
-    windAvgMs = wavg_raw;
+    windMaxMsRaw = wgst_raw;
+    windAvgMsRaw = wavg_raw;
     rainMm = rain_raw;
-    lightLuxTenth = lght_raw /10;  // max 655,350 sufficent?
-    currentTemp = temp_mc *10; // temperature from milli to centi celsius (need factor 100. 2000 == 20.00 °C)
-    humidity_pct = humidity;
+    lightLuxDeci = lght_raw /10;  // ingnore lowest digit and transfer as 2 byte value. Allowing max value 655,350
+    currentTemp = temp_mc *10; // temperature from milli to centi celsius (HM uses factor 100. e.g. 2000 == 20.00 °C)
+    humidityPct = humidity;
     uvIndex = uv_raw;
     batteryOk = !battery_low;
     int rssi_tmp = HBWSIGNALDuino_calcRSSI(rssi_raw);
@@ -189,8 +248,8 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
   hbwdebug(F("id: "));hbwdebug(id);hbwdebug(F("\n"));
   hbwdebug(F("batt ok: "));hbwdebug(!battery_low);hbwdebug(F("\n"));
   hbwdebug(F("wind_dir: "));hbwdebug(wdir);
-    hbwdebug(F(" wind_dir_state: "));hbwdebug((float)windDir / 22.5);
-    hbwdebug(F(" rounded: "));hbwdebug(round((float)windDir / 22.5));hbwdebug(F("\n"));
+   hbwdebug(F(" wind_dir_state: "));hbwdebug((float)windDir / 22.5);
+   hbwdebug(F(" rounded: "));hbwdebug(round((float)windDir / 22.5));hbwdebug(F("\n"));
   hbwdebug(F("wind_max_m_s: "));hbwdebug(wgst);hbwdebug(F("\n"));
   hbwdebug(F("wind_avg_m_s: "));hbwdebug(wavg);hbwdebug(F("\n"));
   hbwdebug(F("rain_mm: "));hbwdebug(rain_mm);hbwdebug(F("\n"));
@@ -199,19 +258,13 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
   hbwdebug(F("light_lux: "));hbwdebug(lght_raw);hbwdebug(F("\n"));
   hbwdebug(F("uv_index: "));hbwdebug(uv_index);hbwdebug(F("\n"));
   hbwdebug(F("RSSI db: "));hbwdebug(rssiDb);hbwdebug(F("\n"));
+  hbwdebug(F("stormy: "));hbwdebug(stormy);hbwdebug(F("\n"));
  #endif
-    
     return SUCCESS;
   }
-
-// hbwdebug(F("msg_buff#");
-// for (unsigned char i = 0; i < sizeof (message_buffer); ++i) {
-//     hbwdebug(F(message_buffer[i], HEX);
-// }
-#if defined (HBW_CHANNEL_DEBUG)
- Serial.println("ingnored");
-#endif
+ #if defined (HBW_CHANNEL_DEBUG)
+  Serial.println("ingnored");
+ #endif
   return MSG_IGNORED;
 }
-
 

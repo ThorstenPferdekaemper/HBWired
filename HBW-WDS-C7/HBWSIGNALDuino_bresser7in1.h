@@ -20,6 +20,8 @@
 #define HBW_CHANNEL_DEBUG
 
 
+static const byte WDS_7IN1_AVG_SAMPLES = 3;  // calculate average of last 3 samples for: temperatue, humidity
+
 // array positions for extern struct s_hbw_link:
 enum hbw_link_pos {
   MSG_COUNTER = 0,
@@ -30,16 +32,18 @@ enum hbw_link_pos {
 // for Raspberry Pi Pico: for 16bit types start must be at multiple of four!
 struct hbw_config_signalduino_wds_7in1 {
   uint16_t id;  // sensor ID, to read always same sensor (0xFFFF or 0x0 == auto learn)
-  uint8_t type:2; // Bresser 7in1 (default == 3) or 5in1 sensor (TODO other simlar ones?) -- as reading??
-  uint8_t fillup:6;
-  uint8_t wind_storm_threshold_level:5;        // factor 10: 10...300 km/h
-  uint8_t wind_storm_readings_trigger:3;       // storm_threshold readings in a row to trigger storm status (0...7)
+  uint8_t type:2; // Bresser 7in1 (default == 3) or 5in1 sensor (TODO other simlar ones? -- auto-learn? Or must be set manually?)
+  uint8_t average_samples:1;            // TODO: ? average last 3 samples for: temperatue, humidity
+  uint8_t fillup:5;
+  uint8_t storm_threshold_level:5;        // factor 5: 5...150 km/h
+  uint8_t storm_readings_trigger:3;       // storm_threshold readings in a row to trigger storm status (0...7)
   uint8_t send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird (eher nützlich bei goßem Sendeintervall)
-  uint8_t dummy2;//send_delta_humidity
+  uint8_t dummy1;  // not in use now...
+  uint8_t dummy2;
+  uint8_t dummy3;
   uint16_t send_min_interval;            // Minimum-Sendeintervall
   uint16_t send_max_interval;            // Maximum-Sendeintervall
-  uint32_t dummyx;
-  // Strom threshold limit? + duration to trigger / reset "storm" state?
+  uint32_t dummy4;  // not in use now...
 };
 
  // TODO? WDS base class + bresser7in1 child?
@@ -62,13 +66,22 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     uint8_t message_buffer[26];  // need only 25? / ccMaxBuf 50; ccBuf[ccMaxBuf + 2] from cc1101.h
     uint8_t msgCounter;
     // current readings
-    uint16_t windDir, windMaxMs, windAvgMs, rainMm;
-    uint32_t lightLuxTenth;
+    uint16_t lightLuxDeci, windDir, windMaxMsRaw, windAvgMsRaw;
+    uint32_t rainMm;
     int16_t currentTemp; // temperature in centi celsius
-    uint8_t humidity_pct, uvIndex;
+    uint8_t humidityPct;
+    // int16_t currentTemp[WDS_7IN1_AVG_SAMPLES]; // temperature in centi celsius
+    // uint8_t humidityPct[WDS_7IN1_AVG_SAMPLES];
+    uint8_t avgSampleIdx, avgSamples;
+    uint8_t uvIndex;
     bool batteryOk;
     int16_t rssi_raw;
     int8_t rssiDb;
+    // previous readings, other states
+    bool stormy, lastStormy;
+    uint8_t stormyTriggerCounter;
+    int16_t lastSentTemp;
+    uint32_t lastCheck, lastSentTime;
 
     union u_state_and_wdir {
       struct s_fields {
@@ -79,7 +92,18 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
       uint8_t byte:8;
     };
 
-    uint32_t lastCheck, lastSend;
+    union u_wind_speed {
+      struct s_fields {
+        uint16_t windMaxMs :10;
+        uint16_t windAvgMs :10;
+        uint8_t free :3;
+        uint8_t storm :1;
+      } field;
+      uint8_t first_byte:8;
+      uint8_t secnd_byte:8;
+      uint8_t third_byte:8;
+    };
+    
     bool printDebug = false;
 
     enum msg_parser_ret_code {
@@ -90,8 +114,7 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     };
 
     // uint8_t const preamble_pattern[5] = {0xaa, 0xaa, 0xaa, 0x2d, 0xd4};
-    // char winddirtxt = {'N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW','N'};
-    // uint8_t windDirState; // 0 - 16
+    // char winddirtxt[] = {'N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW','N'};
     };
 
 
@@ -103,7 +126,7 @@ inline int HBWSIGNALDuino_calcRSSI(uint8_t _rssi) {
 
 #endif
 
-/* Message layout
+/* Message layout, 7in1 sensor:
 # 0CF0A6F5B98A10AAAAAAAAAAAAAABABC3EAABBFCAAAAAAAAAA000000   original message
 # A65A0C5F1320BA000000000000001016940011560000000000AAAAAA   message after all nibbles xor 0xA
 # CCCCIIIIDDD??FGGGWWWRRRRRR??TTTBHHbbbbbbVVVttttttt
