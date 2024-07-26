@@ -37,7 +37,7 @@
 	<frame id="WEATHER_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="2.0" signed="true" param="TEMPERATURE"/>
 		<parameter type="integer" index="13.0" size="1.0" param="HUMIDITY"/>
-		<parameter type="integer" index="14.0" size="3.0" param="RAIN_MM"/> <!-- upper 6 bits unused -->
+		<parameter type="integer" index="14.0" size="3.0" param="RAIN_MM"/> <!-- upper 3 bits unused? max value not clear! -->
 		<parameter type="integer" index="17.0" size="1.2" param="WIND_SPEED_MAX"/>
 		<parameter type="integer" index="18.0" size="1.2" param="WIND_SPEED_AVG"/>
 		<!-- <parameter type="integer" index="19.4" size="0.3" param="unused"/> -->
@@ -75,6 +75,7 @@
 	</channel>
 	<channel index="1" count="1" physical_index_offset="-1" type="HBWSIGNALDuino">
 		<paramset type="MASTER" id="hbw_hbwsignalduino_ch_master" address_step="16" address_start="0x09">
+		<!-- TODO add config. Below is placeholder/dummy config only! -->
 			<parameter id="undef1">
 				<logical type="integer">
 					<special_value id="UNKNOWN" value="0xFF"/>
@@ -187,16 +188,16 @@
 					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
 				</conversion>
 			</parameter>
-			<parameter id="unused">
-				<logical type="integer" min="-127" max="127" unit="&#x2103;"/>
-				<physical type="integer" size="1" interface="eeprom">
-					<address index="+5.0"/>
-				</physical>
-				<conversion type="integer_integer_scale" offset="127" factor="100"/>
-				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="127" device_value="0xff"/>
-				</conversion>
-			</parameter>
+			<!-- <parameter id="unused"> -->
+				<!-- <logical type="integer" min="-127" max="127" unit="&#x2103;"/> -->
+				<!-- <physical type="integer" size="1" interface="eeprom"> -->
+					<!-- <address index="+5.0"/> -->
+				<!-- </physical> -->
+				<!-- <conversion type="integer_integer_scale" offset="127" factor="100"/> -->
+				<!-- <conversion type="integer_integer_map"> -->
+					<!-- <value_map to_device="false" from_device="true" parameter_value="127" device_value="0xff"/> -->
+				<!-- </conversion> -->
+			<!-- </parameter> -->
 			<parameter id="SEND_MIN_INTERVAL">
 			   <logical type="integer" unit="s" default="30" min="15" max="3600">
 				 <special_value id="NOT_USED" value="0"/>
@@ -258,7 +259,7 @@
 				</physical>
 			</parameter>
 			<parameter id="RAIN_MM" operations="read,event">
-				<logical type="float" min="0.0" max="9999.9" unit="mm"/>
+				<logical type="float" min="0.0" max="19999.9" unit="mm"/>
 				<physical type="integer" interface="command" value_id="RAIN_MM">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -266,7 +267,7 @@
 				<conversion type="float_integer_scale" factor="10"/>
 			</parameter>
 			<parameter id="WIND_SPEED_MAX_KMH" operations="read,event">
-				<logical type="float" min="0.0" max="180.0" unit="km/h"/>
+				<logical type="float" min="0.0" max="200.0" unit="km/h"/> <!-- manual only says display range 180 km/h / 50 m/s -->
 				<physical type="integer" interface="command" value_id="WIND_SPEED_MAX">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -359,7 +360,7 @@
 				<conversion type="float_integer_scale" factor="0.1"/>
 			</parameter>
 			<parameter id="UV_INDEX" operations="read,event">
-				<logical type="float" min="0.0" max="12.0" unit="uv_index"/>
+				<logical type="float" min="0.0" max="16.0" unit="uv_index"/>
 				<physical type="integer" interface="command" value_id="UV_INDEX">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
@@ -372,7 +373,6 @@
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
 					<event frame="WEATHER_EVENT"/>
 				</physical>
-				<!-- <conversion type="integer_integer_scale" factor="1"/> -->
 			</parameter>
 		</paramset>	
 	</channel>

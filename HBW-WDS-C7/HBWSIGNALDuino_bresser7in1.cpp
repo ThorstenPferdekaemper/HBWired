@@ -70,9 +70,9 @@ uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
   *data++ = (currentTemp >> 8);
   *data++ = currentTemp & 0xFF;
   *data++ = humidityPct;
-  *data++ = (rainMm >> 16);
-  *data++ = (rainMm >> 8);
-  *data++ = rainMm & 0xFF;
+  *data++ = (rainMmRaw >> 16);
+  *data++ = (rainMmRaw >> 8);
+  *data++ = rainMmRaw & 0xFF;
   // *data++ = (windMaxMsRaw >> 8);
   // *data++ = windMaxMsRaw & 0xFF;
   // *data++ = (windAvgMsRaw >> 8);
@@ -234,7 +234,7 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
     windDir = wdir;
     windMaxMsRaw = wgst_raw;
     windAvgMsRaw = wavg_raw;
-    rainMm = rain_raw;
+    rainMmRaw = rain_raw;
     lightLuxDeci = lght_raw /10;  // ingnore lowest digit and transfer as 2 byte value. Allowing max value 655,350
     currentTemp = temp_mc *10; // temperature from milli to centi celsius (HM uses factor 100. e.g. 2000 == 20.00 °C)
     humidityPct = humidity;
@@ -263,7 +263,7 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
     return SUCCESS;
   }
  #if defined (HBW_CHANNEL_DEBUG)
-  Serial.println("ingnored");
+  hbwdebug(F("ingnored"));hbwdebug(F("\n"));
  #endif
   return MSG_IGNORED;
 }

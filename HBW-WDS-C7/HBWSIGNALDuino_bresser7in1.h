@@ -17,7 +17,7 @@
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
 
-#define HBW_CHANNEL_DEBUG
+// #define HBW_CHANNEL_DEBUG
 
 
 static const byte WDS_7IN1_AVG_SAMPLES = 3;  // calculate average of last 3 samples for: temperatue, humidity
@@ -67,7 +67,7 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     uint8_t msgCounter;
     // current readings
     uint16_t lightLuxDeci, windDir, windMaxMsRaw, windAvgMsRaw;
-    uint32_t rainMm;
+    uint32_t rainMmRaw;
     int16_t currentTemp; // temperature in centi celsius
     uint8_t humidityPct;
     // int16_t currentTemp[WDS_7IN1_AVG_SAMPLES]; // temperature in centi celsius
