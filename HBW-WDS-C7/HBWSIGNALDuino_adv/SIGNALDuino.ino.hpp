@@ -81,7 +81,7 @@
 #define BAUDRATE               57600
 #define FIFO_LENGTH            140 // 50
 
-#define DEBUG                  1
+// #define DEBUG                  1
 
 #ifdef WATCHDOG
 	#include <avr/wdt.h>

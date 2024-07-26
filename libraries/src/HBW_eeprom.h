@@ -3,9 +3,9 @@
  *
  * Helper to allow for different EEPROM libs / different boards
  *
- * The EEPROM class must have write() and read() functions for single bytes.
+ * The EEPROM class must have write() and read() methods for single bytes.
  * When it does only write after read, you may want to use update() instead.
- * For I2C EEPROMs, it should also have an available() class function.
+ * For I2C EEPROMs, it should also have an available() method.
  *
  *  Created on: 10.07.2024
  *      Author: loetmeister.de

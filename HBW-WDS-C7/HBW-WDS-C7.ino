@@ -56,8 +56,8 @@
 
 // Pins
 // TODO move to own file (pins_default.h pins_custom.h - exclude pins_custom from Git)
-#define LED 3//LED_BUILTIN      // Signal-LED
-#define RS485_TXEN 2  // Transmit-Enable
+#define LED 6      // Signal-LED
+#define RS485_TXEN 7  // Transmit-Enable
 // UART1==Serial2 for HM bus
 #define BUTTON 22  // Button fuer Factory-Reset etc.
 
@@ -68,10 +68,10 @@
 
 // default pins:
 // USB Rx / Tx 0, 1 (UART0)
-// SPI0[] = {MISO, MOSI, SS, SCK}; // GPIO pin 16 - 19
-// I2C0[] = {PIN_WIRE0_SDA, PIN_WIRE0_SCL}; // GPIO pin 4 & 5
+// SPI0[] = {MISO, SS, SCK, MOSI}; // GPIO 16 - 19
+// I2C0[] = {PIN_WIRE0_SDA, PIN_WIRE0_SCL}; // GPIO 4 & 5
 // UART1 GPIO 8 & 9
-
+// possible to use BOOTSEL button in sketch?
 
 // device config
 // different layout/central_address position for RP2040! Variable start must be multiple of four / cannot access a 16bit type at an odd address?
@@ -112,7 +112,7 @@ class HBWDSDevice : public HBWDevice {
         // turn around central address
         uint8_t addr[4];
         for(uint8_t i = 0; i < 4; i++) {
-          addr[i] = hbwconfig.central_address[i]; //config[i+4];
+          addr[i] = hbwconfig.central_address[i];
         }
         for(uint8_t i = 0; i < 4; i++) {
           hbwconfig.central_address[i] = addr[3-i];
@@ -149,6 +149,17 @@ void setup1()
 {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
+  // set_sys_clock_khz(50000, true); // Set System clock to 40 MHz
+  // TODO not working... Serial USB not working
+  // // set_sys_clock_khz(48000, false);
+  // clock_configure(
+  //     clk_peri,
+  //     0,                                                // No glitchless mux
+  //     CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, // System PLL on AUX mux
+  //     50000 * 1000,                                     // Input frequency
+  //     50000 * 1000                                      // Output (must be same as no divider)
+  // );
+
   delay(1500);  // must wait for core0 to start Wire/EEPROM
  #ifdef DEBUG
   delay(2000);
@@ -169,7 +180,7 @@ void setup1()
 // Serial.println("");
 // }
 //------------
-  #if defined (ARDUINO_ARCH_RP2040)
+  // #if defined (ARDUINO_ARCH_RP2040)
     // Wire.begin();
     // if (! EepromPtr->available())
     // {
@@ -182,7 +193,7 @@ void setup1()
     //     delay(200);
     //   }
     // }
-	#endif
+	// #endif
 
   // create channels
   channels[0] = new HBWSIGNALDuino_adv(PIN_RECEIVE, PIN_SEND, PIN_LED, &(hbwconfig.signalduinoCfg[0]));
@@ -216,3 +227,8 @@ void setup1()
 void loop1() {
   device->loop();
 };
+
+// check if HBWLinkInfoEvent support is enabled, when links are set
+#if !defined(Support_HBWLink_InfoEvent) && defined(NUM_LINKS)
+#error enable/define Support_HBWLink_InfoEvent in HBWired.h!
+#endif
