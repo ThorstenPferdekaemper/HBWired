@@ -12,7 +12,7 @@
 
 #include "HBWired.h"
 #include "HBW_eeprom.h"
-// #include <EEPROM.h>
+
 
 // bus must be idle 210 + rand(0..100) ms
 #define DIFS_CONSTANT 210
@@ -866,10 +866,9 @@ void HBWDevice::handleResetSystem() {
   if (pendingActions.resetSystem) {
    #if defined (Support_ModuleReset)
     #if defined (Support_WDT)
-    // resetHardware();
-    while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
+    RESET_HARDWARE();
     #else
-    resetSoftware();  // otherwise jump to reset vector
+    RESET_SOFTWARE();
     #endif
    #endif
   }
@@ -933,7 +932,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    pendingActions.resetSystem = false;
    #endif
    #ifdef Support_WDT
-   wdt_enable(WDTO_1S);
+   ENABLE_WATCHDOG();
    #endif
 }
   
@@ -1009,7 +1008,7 @@ void HBWDevice::loop()
   for (uint8_t loopCurrentChannel = 0; loopCurrentChannel < numChannels; loopCurrentChannel++)
   {
    #ifdef Support_WDT
-   wdt_reset();
+   RESET_WATCHDOG();
    #endif
   // Daten empfangen und alles, was zur Kommunikationsschicht gehört
   // processEvent vom Modul wird als Callback aufgerufen

@@ -19,7 +19,7 @@
 // #define Support_HBWLink_InfoEvent
 
 // #define Support_ModuleReset  // enable reset comand, to restart module "!!" (hexstring 2121)
-// #define Support_WDT  // enable 1 second watchdog timer
+#define Support_WDT  // enable 1 second watchdog timer
 
 
 class HBWDevice;

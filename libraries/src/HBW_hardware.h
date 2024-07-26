@@ -62,25 +62,31 @@
   #define POWERSAVE() set_sleep_mode(0); \
                       sleep_mode();
 #elif defined (ARDUINO_ARCH_RP2040)
-  // #define POWERSAVE() sleep()
+  // #define POWERSAVE() sleep modes seem to be unstable / complicated. Lower sys_clock instead...
   
 //#elif defined (__AVR_ATmega644P__)... // TODO: add others
 #endif
 
 
 /* watchdog macros, config, reboot and reset*/
-// #if defined (__AVR__)
-  // #include "avr/wdt.h"
-  // inline void resetHardware() {
-    // while(1){}  // if watchdog is used & active, just run into infinite loop to force reset
-  // }
-// #elif defined (ARDUINO_ARCH_RP2040)
-  // // #include <hardware/watchdog.h>
-  // inline void resetHardware() {
-    // watchdog_reboot(0, SRAM_END, 0)
-  // //watchdog_reboot(0, 0, 10);  // watchdog fire after 10us and busy waits
-    // for (;;) {
-    // }
-// #endif
+#if defined (__AVR__)
+  #include "avr/wdt.h"
+  // if watchdog is used & active, just run into infinite loop to force reset
+  #define RESET_HARDWARE() while(1){}
+  #define ENABLE_WATCHDOG() wdt_enable(WDTO_1S)
+  #define RESET_WATCHDOG() wdt_reset()
+  // Arduino Reset via Software function declaration, point to address 0 (reset vector)
+  #define RESET_SOFTWARE() resetSoftware()
+
+#elif defined (ARDUINO_ARCH_RP2040)
+  #include <hardware/watchdog.h>
+  #define ENABLE_WATCHDOG() watchdog_enable(1000, 0)
+  #define RESET_WATCHDOG() watchdog_update()
+//watchdog_reboot(0, 0, 10);  // watchdog fire after 10us and busy waits (SRAM_END will not be ignored,, when first parameter is 0)
+  #define RESET_HARDWARE() watchdog_reboot(0, SRAM_END, 10);\
+    for (;;) { }
+  // always reboot via watchdog
+  #define RESET_SOFTWARE() RESET_HARDWARE()
+#endif
 
 #endif /* _HBW_hardware_h */
