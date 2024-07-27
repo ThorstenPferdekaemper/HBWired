@@ -937,7 +937,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
 }
   
 //TODO rename to begin()?
-// This method should be called right after class instantiation (device->setConfigPins() to keep default pins)
+// This method should be called right after class instantiation (use device->setConfigPins() for default pins)
 void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 	readConfig();	// read config
 	

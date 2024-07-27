@@ -29,9 +29,10 @@
 #ifndef EEPROM24_h
 #define EEPROM24_h
 
-#include <inttypes.h>
-#include <stddef.h>
-#include "Wire.h"
+#include <Arduino.h>
+// #include <inttypes.h>
+// #include <stddef.h>
+#include <Wire.h>
 
 
 // Block select modes.

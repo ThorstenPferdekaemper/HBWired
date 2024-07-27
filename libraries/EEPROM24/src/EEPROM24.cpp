@@ -21,7 +21,7 @@
  */
  
 /* loetmeister, Jul-2024
- * Updated compile on current Arduino/Rasperri Pi Pico, using TwoWire.
+ * Updated to compile on current Arduino/Raspberry Pi Pico, using TwoWire.
  * Added methods available()/isConnected() for I2C bus status check
  * and update() for single byte write.
 */
@@ -177,7 +177,7 @@ uint8_t EEPROM24::read(unsigned long address)
     writeAddress(address);
     if (_bus->endTransmission() != 0)  // bus error
         return 0;
-    if (!_bus->requestFrom(i2cAddress, 1))
+    if (_bus->requestFrom(i2cAddress, 1) == 0)
         return 0;
     return _bus->read();
 }
@@ -201,7 +201,7 @@ size_t EEPROM24::read(unsigned long address, void *data, size_t length)
     writeAddress(address);
     if (_bus->endTransmission() != 0)  // bus error
         return 0;
-    if (!_bus->requestFrom(i2cAddress, length))
+    if (_bus->requestFrom(i2cAddress, length) == 0)
         return 0;
     uint8_t *d = (uint8_t *)data;
     unsigned int count = 0;
@@ -313,19 +313,8 @@ void EEPROM24::writeAddress(unsigned long address)
 
 bool EEPROM24::waitForWrite()
 {
-    // 1000 iterations is going to be approximately 100ms when the I2C
-    // clock is 100 kHz.  If there has been no response in that time
-    // then we assume that the write has failed and timeout.
     if (_bus->endTransmission() != 0)  // bus error
         return false;
-    // unsigned count = 1000;
-    // while (count > 0) {
-        // _bus->startWrite(i2cAddress);
-        // if (_bus->endWrite())
-            // return true;
-        // --count;
-    // }
     delay(5);  // TODO custom value for differen EEPROM types?
-    // return false;
     return true;
 }

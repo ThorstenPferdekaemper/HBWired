@@ -16,8 +16,7 @@
 
 
 #if defined (ARDUINO_ARCH_RP2040)
-  #include <Wire.h>
-  #include "extras/EEPROM24.h"
+  #include <EEPROM24.h>
   class EEPROM24;    // forward declare class
   extern EEPROM24* EepromPtr;
   // define this, if the class has no update() function, or you don't want to use it
