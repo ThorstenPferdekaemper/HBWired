@@ -47,7 +47,6 @@
 
 /* harware specifics ------------------------ */
 #if defined (ARDUINO_ARCH_RP2040)
-  // #include <Wire.h>
   EEPROM24* EepromPtr = new EEPROM24(Wire, EEPROM_24LC128);  // 16 kBytes EEPROM @ first I2C / Wire0 interface
 #else
   // below customizations are probably not compatible with other architectures
@@ -92,9 +91,9 @@ static struct hbw_config {
 HBWChannel* channels[NUM_CHANNELS];
 
 // new child class, to set custom methods for plattform (RP2040)
-class HBWDSDevice : public HBWDevice {
+class HBWRpiPicoDevice : public HBWDevice {
     public: 
-    HBWDSDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
+    HBWRpiPicoDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
                Stream* _rs485, uint8_t _txen,
                uint8_t _configSize, void* _config, 
                uint8_t _numChannels, HBWChannel** _channels,
@@ -128,7 +127,7 @@ class HBWDSDevice : public HBWDevice {
 };
 
 // device specific defaults
-// void HBWDSDevice::afterReadConfig() {
+// void HBWRpiPicoDevice::afterReadConfig() {
 //   if(hbwconfig.logging_time == 0xFF) hbwconfig.logging_time = 50;
 // };
 
@@ -149,15 +148,15 @@ void setup1()
 {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
-  // set_sys_clock_khz(50000, true); // Set System clock to 40 MHz
+  // set_sys_clock_khz(48000, true); // Set System clock to 48 MHz
   // TODO not working... Serial USB not working
   // // set_sys_clock_khz(48000, false);
   // clock_configure(
   //     clk_peri,
   //     0,                                                // No glitchless mux
   //     CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, // System PLL on AUX mux
-  //     50000 * 1000,                                     // Input frequency
-  //     50000 * 1000                                      // Output (must be same as no divider)
+  //     48000 * 1000,                                     // Input frequency
+  //     48000 * 1000                                      // Output (must be same as no divider)
   // );
 
   delay(1500);  // must wait for core0 to start Wire/EEPROM
@@ -200,14 +199,14 @@ void setup1()
   channels[1] = new HBWSIGNALDuino_bresser7in1(ccBuf, g_hbw_link, &(hbwconfig.wds7in1Cfg[0]), ADDRESSSTART_WDS_CONF);
 
   // create the device
-  device = new HBWDSDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
-                         &Serial2,
-                         RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
-                         NUM_CHANNELS, (HBWChannel**)channels,
+  device = new HBWRpiPicoDevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
+                                &Serial2,
+                                RS485_TXEN, sizeof(hbwconfig), &hbwconfig,
+                                NUM_CHANNELS, (HBWChannel**)channels,
   #ifdef HBW_DEBUG
-                        &Serial, new HBWLinkInfoEventSensor<NUM_LINKS, LINKADDRESSSTART_ACT>());
+                                &Serial, new HBWLinkInfoEventSensor<NUM_LINKS, LINKADDRESSSTART_ACT>());
   #else
-                        NULL, new HBWLinkInfoEventSensor<NUM_LINKS, LINKADDRESSSTART_ACT>());
+                                NULL, new HBWLinkInfoEventSensor<NUM_LINKS, LINKADDRESSSTART_ACT>());
   #endif
 
   device->setConfigPins(BUTTON, LED);

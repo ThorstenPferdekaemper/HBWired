@@ -468,12 +468,10 @@ void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa
 	#else
 		pinAsOutput(sckPin);
 		pinAsOutput(mosiPin);
-		SPCR = _BV(SPE) | _BV(MSTR);               // SPI speed = CLK/4
 		pinAsInput(misoPin);
 	#endif
-  	pinAsOutput(csPin);                    // set pins for SPI communication
+		pinAsOutput(csPin);                    // set pins for SPI communication
 		digitalHigh(csPin);                 // SPI init
-
 		
 		#ifdef PIN_MARK433
 		pinAsInputPullUp(PIN_MARK433);
@@ -493,6 +491,7 @@ void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa
 		//pinAsInput(PIN_SEND);        // gdo0Pi, sicherheitshalber bis zum CC1101 init erstmal input   
 
 	#if !defined(MAPLE_Mini) && !defined(ESP32) && !defined(ARDUINO_ARCH_RP2040)
+		SPCR = _BV(SPE) | _BV(MSTR);               // SPI speed = CLK/4
 		digitalHigh(sckPin);
 		digitalLow(mosiPin);
 	#endif
