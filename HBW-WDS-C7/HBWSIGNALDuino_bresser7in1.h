@@ -37,9 +37,10 @@ struct hbw_config_signalduino_wds_7in1 {
   uint8_t fillup:5;
   uint8_t storm_threshold_level:5;        // factor 5: 5...150 km/h
   uint8_t storm_readings_trigger:3;       // storm_threshold readings in a row to trigger storm status (0...7)
-  uint8_t send_delta_temp;                  // Temperaturdifferenz, ab der gesendet wird (eher nützlich bei goßem Sendeintervall)
-  uint8_t dummy1;  // not in use now...
-  uint8_t dummy2;
+  uint8_t send_delta_temp;                // Temperaturdifferenz, ab der gesendet wird (eher nützlich bei goßem Sendeintervall)
+  uint8_t timeout_rx:5;                // set timeout after x seconds, 15...450 seconds (0 = disabled). (factor 15: sensor TX interval) 
+  uint8_t fillup1:3;
+  uint8_t dummy2;  // not in use now...
   uint8_t dummy3;
   uint16_t send_min_interval;            // Minimum-Sendeintervall
   uint16_t send_max_interval;            // Maximum-Sendeintervall
@@ -53,7 +54,6 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     HBWSIGNALDuino_bresser7in1(uint8_t* _msg_buffer_ptr, uint8_t* _hbw_link, hbw_config_signalduino_wds_7in1* _config, uint16_t _eeprom_address_start);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
-    // virtual void set(HBWDevice* device, uint8_t length, uint8_t const * const data);
     virtual void afterReadConfig();
 
   private:
@@ -79,15 +79,17 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     int8_t rssiDb;
     // previous readings, other states
     bool stormy, lastStormy;
+    bool msgTimeout;
     uint8_t stormyTriggerCounter;
     int16_t lastSentTemp;
-    uint32_t lastCheck, lastSentTime;
+    uint32_t lastCheck, lastSentTime, lastMsgTime;
 
     union u_state_and_wdir {
       struct s_fields {
         uint8_t windDir :5;
         uint8_t battOk :1;
-        uint8_t free :2;
+        uint8_t timeout :1;
+        uint8_t free :1;
       } field;
       uint8_t byte:8;
     };

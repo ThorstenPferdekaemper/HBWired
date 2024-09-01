@@ -21,6 +21,7 @@ HBWSIGNALDuino_bresser7in1::HBWSIGNALDuino_bresser7in1(uint8_t* _msg_buffer_ptr,
    stormy = false;
    stormyTriggerCounter = config->storm_readings_trigger;
    lastSentTime = 20000;  // wait 20 seconds after statup
+   msgTimeout = true;  // true until we get a message
   //  avgSampleIdx = 0;
   //  avgSamples = 0;
 };
@@ -32,7 +33,8 @@ void HBWSIGNALDuino_bresser7in1::afterReadConfig() {
   if (config->send_max_interval == 0xFFFF) config->send_max_interval = 300; // 5 minutes
   if (config->send_min_interval == 0xFFFF) config->send_min_interval = 30;
   if (config->send_delta_temp == 0xFF) config->send_delta_temp = 10;  // 1.0 °C
-  if (config->storm_threshold_level > 30) config->storm_threshold_level = 17;  // 85 km/h
+  if (config->storm_threshold_level > 30) config->storm_threshold_level = 16;  // 80 km/h
+  if (config->timeout_rx > 30) config->timeout_rx = 6;  // 90 seconds
 
  #if defined (HBW_CHANNEL_DEBUG)
   hbwdebug(F("wds_7-1 conf - id: "));hbwdebug(config->id);hbwdebug(F("\n"));
@@ -59,6 +61,7 @@ uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
   u_state_and_wdir stateAndWdir;
   stateAndWdir.field.windDir = windDirState;
   stateAndWdir.field.battOk = batteryOk;
+  stateAndWdir.field.timeout = msgTimeout;
 
   u_wind_speed windSpeed;
   windSpeed.field.windAvgMs = windAvgMsRaw & 0x3FF;
@@ -109,6 +112,8 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
     msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // remember counter to not process same msg again
     
     if (parseMsg() == SUCCESS) {  // new message for this sensor channel!
+      msgTimeout = false;
+      lastMsgTime = millis();
       // manage index for average calculation
       // if (config->average_samples) {
       //   if (avgSamples < WDS_7IN1_AVG_SAMPLES)  avgSamples++;  // avoid to calculate the average on array elements that have not been updated with a reading
@@ -120,16 +125,19 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
       //   avgSamples = 1;
       // }
 
-      // check new storm status, if enabled (storm_threshold_level < 30)
+      // check new storm status, if enabled
       // TODO: check if windMax or Avg should be used
-      if (config->storm_threshold_level < 0x1F && (float)windMaxMsRaw *0.36 > config->storm_threshold_level *5) {
-        if (stormyTriggerCounter < config->storm_readings_trigger)  stormyTriggerCounter--;
+      if (config->storm_threshold_level && (float)windMaxMsRaw *0.36 > config->storm_threshold_level *5) {
+        if (stormyTriggerCounter > 0)  stormyTriggerCounter--;
         else stormy = true;
       }
       else {
-        // not stormy (anymore) reset state & counter
+        if (stormyTriggerCounter < config->storm_readings_trigger)  stormyTriggerCounter++;
+		    else stormyTriggerCounter = config->storm_readings_trigger;  // in case config changed
+        if (stormyTriggerCounter == config->storm_readings_trigger) {
+        // not stormy (anymore) reset state
         stormy = lastStormy = false;
-        stormyTriggerCounter = config->storm_readings_trigger;
+        }
       }
     }
   }
@@ -140,6 +148,11 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
   // }
   
   unsigned long now = millis();
+
+  if (config->timeout_rx && now - lastMsgTime > ((unsigned long)config->timeout_rx *15000)) {
+    msgTimeout = true;
+    currentTemp = ERROR_TEMP;
+  }
 
   // check for new values. Only send on the bus, if values changed as set by delta or max send invervall is passed
   // never send before min_interval, if enabled
@@ -165,10 +178,10 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
       // only send temperature value for peerings (first 2 bytes of data[14])
       device->sendInfoEvent(channel, 2, data, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
      #endif
-    lastSentTemp = currentTemp;   // store last value only on success
-    lastStormy = stormy;
+      lastSentTemp = currentTemp;   // store last value only on success
+      lastStormy = stormy;
     }
-    lastSentTime = now;  // if send failed, next try will be on send_max_interval or send_min_interval in case a value changed
+    lastSentTime = now;  // if send failed, next try will be on send_max_interval or send_min_interval in case the values are still different
   }
 };
 
@@ -241,7 +254,9 @@ uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
     uvIndex = uv_raw;
     batteryOk = !battery_low;
     int rssi_tmp = HBWSIGNALDuino_calcRSSI(rssi_raw);
-    rssiDb = (rssi_tmp <= 127 || rssi_tmp >= -127) ? rssi_tmp : 0;
+    // check limits, as we only tranfer as 1 Byte value
+    rssiDb = rssi_tmp <= 127 ? rssi_tmp : 127;
+    rssiDb = rssi_tmp >= -127 ? rssi_tmp : -127;
 
  #if defined (HBW_CHANNEL_DEBUG)
   float uv_index = uv_raw * 0.1f;

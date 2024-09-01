@@ -44,7 +44,7 @@
 		<parameter type="integer" index="19.7" size="0.1" param="STORM_STATE"/>
 		<parameter type="integer" index="20.0" size="0.5" param="WIND_DIRECTION"/>
 		<parameter type="integer" index="20.5" size="0.1" param="BATTERY_STATE"/>
-		<!-- <parameter type="integer" index="20.6" size="0.1" param="STORM_STATE"/>-->
+		<parameter type="integer" index="20.6" size="0.1" param="RX_TIMEOUT"/>
 		<parameter type="integer" index="21.0" size="2.0" param="BRIGHTNESS_LUX"/>
 		<parameter type="integer" index="23.0" size="1.0" param="UV_INDEX"/>
 		<parameter type="integer" index="24.0" size="1.0" signed="true" param="RSSI"/>
@@ -160,7 +160,7 @@
 			</parameter>
 			<parameter id="STORM_THRESHOLD_LEVEL">
 				<logical type="integer" unit="km/h" default="85" min="5" max="150">
-					<special_value id="NOT_USED" value="0x1f"/>
+					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="0.5" type="integer" interface="eeprom">
 					<address index="+3.0"/>
@@ -170,7 +170,7 @@
 					<value_map to_device="false" from_device="true" parameter_value="16" device_value="0x1f"/>
 				</conversion>
 			</parameter>
-			<parameter id="STORM_READINGS_TRIGGER">
+			<parameter id="STORM_TRIGGER_COUNT">
 				<logical type="integer" unit="consecutive thresholds" default="7" min="1" max="7"/>
 				<physical size="0.3" type="integer" interface="eeprom">
 					<address index="+3.5"/>
@@ -187,6 +187,15 @@
 				<conversion type="integer_integer_map">
 					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
 				</conversion>
+			</parameter>
+			<parameter id="RX_TIMEOUT">
+				<logical type="integer" unit="seconds" default="90" min="15" max="450">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="0.5" type="integer" interface="eeprom">
+					<address index="+5.0"/>
+				</physical>
+				<conversion type="integer_integer_scale" div="15"/>
 			</parameter>
 			<!-- <parameter id="unused"> -->
 				<!-- <logical type="integer" min="-127" max="127" unit="&#x2103;"/> -->
@@ -325,7 +334,7 @@
 				</physical>
 				<!-- <conversion type="integer_integer_scale" div="5"/> -->
 			</parameter>
-			<parameter id="BATTERY_STATE" operations="read,event">
+			<parameter id="BATTERY" operations="read,event">
 				<logical type="option">
 					<option id="BAD" default="true"/>
 					<option id="OK"/>
@@ -341,7 +350,17 @@
 					<!-- <value_map device_value="0x03" parameter_value="3"/> -->
 				<!-- </conversion> -->
 			</parameter>
-			<parameter id="STORM_STATE" operations="read,event">
+			<parameter id="TIMEOUT" operations="read,event">
+				<logical type="option">
+					<option id="NO" default="true"/>
+					<option id="YES"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="RX_TIMEOUT">
+					<get request="LEVEL_GET" response="WEATHER_EVENT"/>
+					<event frame="WEATHER_EVENT"/>
+				</physical>
+			</parameter>
+			<parameter id="STORM" operations="read,event">
 				<logical type="option">
 					<option id="NO" default="true"/>
 					<option id="YES"/>
