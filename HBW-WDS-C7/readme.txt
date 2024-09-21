@@ -8,6 +8,7 @@ Entwickelt auf/für einen Raspberry Pi Pico. Kompiliert mit dem Arduino Boards vo
 
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw_wds_c7.xml in den Ordner \FHEM\lib\HM485\Devices\xml kopiert werden (Das Device gibt sich als HW-Typ 0x88 aus).
+
 Config der Kanäle kann über das FHEM-Webfrontend vorgenommen werden:
 # HBWSIGNALDuino
 - Bisher keine Konfig
@@ -15,24 +16,26 @@ Config der Kanäle kann über das FHEM-Webfrontend vorgenommen werden:
 # Weather
 * SENSOR_ID
 * STORM_THRESHOLD_LEVEL
-* STORM_READINGS_TRIGGER
+* STORM_TRIGGER_COUNT
 * SEND_DELTA_TEMP
+* RX_TIMEOUT
 * SEND_MIN_INTERVAL
 * SEND_MAX_INTERVAL
 
 
---- WORK IN PROGRESS ---- 
+Device neustart mit set RAW "!!" (hexstring 2121) möglich.
+
 
 Pinbelegung:
 0 - Rx Serial -> USB
 1 - Tx Serial -> USB
 7 - RS485 Enable
-25 PIN_LED (LED_BUILTIN) - SIGNALDuino
-20 - gdo0Pin TX out PIN_SEND              
-21 - gdo2 PIN_RECEIVE           
 8, 9 (UART1) - RS485 bus
 6 LED - HBW
+20 - gdo0Pin TX out PIN_SEND              
+21 - gdo2 PIN_RECEIVE           
 22 - Bedientaster (Reset)
+25 - PIN_LED (LED_BUILTIN) - SIGNALDuino
 I2C EEPROM
 SDA = PIN_WIRE0_SDA;
 SCL = PIN_WIRE0_SCL;
@@ -41,5 +44,3 @@ SS = PIN_SPI0_SS;
 MOSI = PIN_SPI0_MOSI;
 MISO = PIN_SPI0_MISO;
 SCK = PIN_SPI0_SCK;
-
-FHEM:

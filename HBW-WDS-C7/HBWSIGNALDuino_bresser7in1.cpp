@@ -34,7 +34,7 @@ void HBWSIGNALDuino_bresser7in1::afterReadConfig() {
   if (config->send_min_interval == 0xFFFF) config->send_min_interval = 30;
   if (config->send_delta_temp == 0xFF) config->send_delta_temp = 10;  // 1.0 °C
   if (config->storm_threshold_level > 30) config->storm_threshold_level = 16;  // 80 km/h
-  if (config->timeout_rx > 30) config->timeout_rx = 6;  // 90 seconds
+  if (config->timeout_rx > 30) config->timeout_rx = 6;  // 96 seconds
 
  #if defined (HBW_CHANNEL_DEBUG)
   hbwdebug(F("wds_7-1 conf - id: "));hbwdebug(config->id);hbwdebug(F("\n"));
@@ -149,7 +149,7 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
   
   unsigned long now = millis();
 
-  if (config->timeout_rx && now - lastMsgTime > ((unsigned long)config->timeout_rx *15000)) {
+  if (config->timeout_rx && now - lastMsgTime > ((unsigned long)config->timeout_rx *16000)) {
     msgTimeout = true;
     currentTemp = ERROR_TEMP;
   }

@@ -38,7 +38,7 @@ struct hbw_config_signalduino_wds_7in1 {
   uint8_t storm_threshold_level:5;        // factor 5: 5...150 km/h
   uint8_t storm_readings_trigger:3;       // storm_threshold readings in a row to trigger storm status (0...7)
   uint8_t send_delta_temp;                // Temperaturdifferenz, ab der gesendet wird (eher nützlich bei goßem Sendeintervall)
-  uint8_t timeout_rx:5;                // set timeout after x seconds, 15...450 seconds (0 = disabled). (factor 15: sensor TX interval) 
+  uint8_t timeout_rx:5;                // set timeout after x seconds, 16...480 seconds (0 = disabled). (factor 16. ~15 sec sensor TX interval) 
   uint8_t fillup1:3;
   uint8_t dummy2;  // not in use now...
   uint8_t dummy3;

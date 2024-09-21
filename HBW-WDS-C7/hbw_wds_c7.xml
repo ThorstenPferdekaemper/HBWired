@@ -110,15 +110,15 @@
 				</conversion>
 			</parameter>
 			<parameter id="undef3">
-			   <logical type="integer" unit="s" default="10" min="5" max="3600">
-				 <special_value id="NOT_USED" value="0"/>
-			   </logical>
-			   <physical size="2.0" type="integer" interface="eeprom" endian="little">
-				  <address index="+4.0"/>
-			   </physical>
-			   <conversion type="integer_integer_map">
-				 <value_map to_device="false" from_device="true" parameter_value="10" device_value="0xffff"/>
-			   </conversion>
+				<logical type="integer" unit="s" default="10" min="5" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+4.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xffff"/>
+				</conversion>
 			</parameter>
 			<parameter id="SEND_MAX_INTERVAL">
 				<logical type="integer" unit="s" default="150" min="5" max="3600">
@@ -159,7 +159,7 @@
 				</conversion>
 			</parameter>
 			<parameter id="STORM_THRESHOLD_LEVEL">
-				<logical type="integer" unit="km/h" default="85" min="5" max="150">
+				<logical type="integer" unit="km/h" default="80" min="5" max="150">
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="0.5" type="integer" interface="eeprom">
@@ -171,7 +171,7 @@
 				</conversion>
 			</parameter>
 			<parameter id="STORM_TRIGGER_COUNT">
-				<logical type="integer" unit="consecutive thresholds" default="7" min="1" max="7"/>
+				<logical type="integer" unit="x threshold" default="7" min="1" max="7"/>
 				<physical size="0.3" type="integer" interface="eeprom">
 					<address index="+3.5"/>
 				</physical>
@@ -189,13 +189,16 @@
 				</conversion>
 			</parameter>
 			<parameter id="RX_TIMEOUT">
-				<logical type="integer" unit="seconds" default="90" min="15" max="450">
+				<logical type="float" unit="s" default="96.0" min="16.0" max="480.0">
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="0.5" type="integer" interface="eeprom">
 					<address index="+5.0"/>
 				</physical>
-				<conversion type="integer_integer_scale" div="15"/>
+				<conversion type="float_integer_scale" factor="0.0625"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="6" device_value="0x1f"/>
+				</conversion>
 			</parameter>
 			<!-- <parameter id="unused"> -->
 				<!-- <logical type="integer" min="-127" max="127" unit="&#x2103;"/> -->
@@ -208,15 +211,15 @@
 				<!-- </conversion> -->
 			<!-- </parameter> -->
 			<parameter id="SEND_MIN_INTERVAL">
-			   <logical type="integer" unit="s" default="30" min="15" max="3600">
-				 <special_value id="NOT_USED" value="0"/>
-			   </logical>
-			   <physical size="2.0" type="integer" interface="eeprom" endian="little">
-				  <address index="+8.0"/>
-			   </physical>
-			   <conversion type="integer_integer_map">
-				 <value_map to_device="false" from_device="true" parameter_value="30" device_value="0xffff"/>
-			   </conversion>
+				<logical type="integer" unit="s" default="30" min="15" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+8.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="30" device_value="0xffff"/>
+				</conversion>
 			</parameter>
 			<parameter id="SEND_MAX_INTERVAL">
 				<logical type="integer" unit="s" default="300" min="15" max="3600">
@@ -336,7 +339,7 @@
 			</parameter>
 			<parameter id="BATTERY" operations="read,event">
 				<logical type="option">
-					<option id="BAD" default="true"/>
+					<option id="LOW" default="true"/>
 					<option id="OK"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="BATTERY_STATE">
@@ -352,8 +355,8 @@
 			</parameter>
 			<parameter id="TIMEOUT" operations="read,event">
 				<logical type="option">
-					<option id="NO" default="true"/>
-					<option id="YES"/>
+					<option id="NO"/>
+					<option id="YES" default="true"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="RX_TIMEOUT">
 					<get request="LEVEL_GET" response="WEATHER_EVENT"/>

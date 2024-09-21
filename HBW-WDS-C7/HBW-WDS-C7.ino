@@ -21,11 +21,11 @@
 // - initial version/testing
 // v0.1
 // - added timeout handling for HBWSIGNALDuino_bresser7in1
-// - fixed strom status (HBWSIGNALDuino_bresser7in1)
+// - fixed storm status (HBWSIGNALDuino_bresser7in1)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000A
+#define FIRMWARE_VERSION 0x000B
 #define HMW_DEVICETYPE 0x88
 
 #define NUM_CHANNELS 2  // total number of channels
