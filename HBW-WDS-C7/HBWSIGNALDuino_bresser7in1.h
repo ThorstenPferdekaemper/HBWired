@@ -20,7 +20,7 @@
 // #define HBW_CHANNEL_DEBUG
 
 
-static const byte WDS_7IN1_AVG_SAMPLES = 3;  // calculate average of last 3 samples for: temperatue, humidity
+// static const byte WDS_7IN1_AVG_SAMPLES = 3;  // calculate average of last 3 samples for: temperatue, humidity
 
 // array positions for extern struct s_hbw_link:
 enum hbw_link_pos {
@@ -57,8 +57,14 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     virtual void afterReadConfig();
 
   private:
-    uint8_t parseMsg();
-    uint8_t get_temp(uint8_t* data);
+    enum msg_parser_ret_code {
+      MSG_IGNORED = 0,
+      SUCCESS,
+      ID_MISSMATCH,
+      DECODE_FAIL_MIC
+    };
+    
+    msg_parser_ret_code parseMsg();
     hbw_config_signalduino_wds_7in1* config;
     uint16_t eeprom_address_start;  // start address of config in EEPROM
     uint8_t* msg_buffer_ptr;  // SIGNALDuino / cc1101 raw message
@@ -107,13 +113,6 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     };
     
     bool printDebug = false;
-
-    enum msg_parser_ret_code {
-      MSG_IGNORED = 0,
-      SUCCESS,
-      ID_MISSMATCH,
-      DECODE_FAIL_MIC
-    };
 
     // uint8_t const preamble_pattern[5] = {0xaa, 0xaa, 0xaa, 0x2d, 0xd4};
     // char winddirtxt[] = {'N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW','N'};

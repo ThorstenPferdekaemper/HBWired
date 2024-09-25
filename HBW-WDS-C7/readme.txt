@@ -4,7 +4,7 @@ Homematic Wired Homebrew Wetterstation
 Dieses Modul stellt die Messwerte einer Bresser 7 in 1 [oder 5 in 1 - ToDo] Wetterstation als Homematic Wired Gerät zur Verfügung.
 Die Code-Basis ist ein SIGNALDuino: https://github.com/Ralf9/SIGNALDuino/tree/dev-r335_cc1101 mit cc1101 868 MHz Modul.
 Es kann parallel am RS-485 Bus und USB betrieben werden. Die Funktion des SIGNALDuino (advanced) ist nicht eingeschränkt.
-Entwickelt auf/für einen Raspberry Pi Pico. Kompiliert mit dem Arduino Boards von earlephilhower: https://github.com/earlephilhower/arduino-pico
+Entwickelt auf/für einen Raspberry Pi Pico. Kompiliert mit dem Arduino Boards von earlephilhower: https://github.com/earlephilhower/arduino-pico (3.9.5)
 
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw_wds_c7.xml in den Ordner \FHEM\lib\HM485\Devices\xml kopiert werden (Das Device gibt sich als HW-Typ 0x88 aus).
@@ -44,3 +44,9 @@ SS = PIN_SPI0_SS;
 MOSI = PIN_SPI0_MOSI;
 MISO = PIN_SPI0_MISO;
 SCK = PIN_SPI0_SCK;
+
+
+FHEM:
+Eigener Status in FHEMWEB und zusätzliches reading "rain_total" um auch nach Batteriewechsel die Gesamtregenmenge zu erhalten.
+attr Wetterstation stateFormat Timeout timeout | Batt battery
+attr Wetterstation userReadings rain_total monotonic {ReadingsNum($name,"rain_mm",0);;;;;;;;}

@@ -25,7 +25,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000B
+#define FIRMWARE_VERSION 0x000C
 #define HMW_DEVICETYPE 0x88
 
 #define NUM_CHANNELS 2  // total number of channels
@@ -182,20 +182,24 @@ void setup1()
 // Serial.println("");
 // }
 //------------
-  // #if defined (ARDUINO_ARCH_RP2040)
-    // Wire.begin();
-    // if (! EepromPtr->available())
-    // {
-    //   Serial.println("No EEPROM! Halting!");  // stop without EEPROM
-    //   // TODO: disable watchdog to stay in this loop
-    //   while (true) {
-    //     digitalWrite(LED, HIGH);
-    //     delay(200);
-    //     digitalWrite(LED, LOW);
-    //     delay(200);
-    //   }
-    // }
-	// #endif
+ #if defined (ARDUINO_ARCH_RP2040)
+  // Wire.begin();
+  if (! EepromPtr->available())
+  {
+    Serial.println("No EEPROM!!");
+    #if !defined(HBW_DEBUG)
+    while (true) {  // stop without EEPROM
+      #if defined(Support_WDT)
+      RESET_WATCHDOG();
+      #endif
+      digitalWrite(LED, HIGH);
+      delay(200);
+      digitalWrite(LED, LOW);
+      delay(200);
+    }
+    #endif
+  }
+ #endif
 
   // create channels
   channels[0] = new HBWSIGNALDuino_adv(PIN_RECEIVE, PIN_SEND, PIN_LED, &(hbwconfig.signalduinoCfg[0]));

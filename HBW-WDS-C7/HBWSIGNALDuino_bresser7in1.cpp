@@ -47,16 +47,11 @@ void HBWSIGNALDuino_bresser7in1::afterReadConfig() {
 };
 
 
-// void HBWSIGNALDuino_bresser7in1::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {
-// 	if (config->output_unlocked) {	//0=LOCKED, 1=UNLOCKED
-		// foo
-// };
-
 /* required public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
   // map 360 degree wind direction to 0...16 lookup values
   uint8_t windDirState = round((float)(windDir / 22.5));
-  windDirState = windDirState < 17 ? windDirState : 0;
+  windDirState = windDirState <= 16 ? windDirState : 0;
 
   u_state_and_wdir stateAndWdir;
   stateAndWdir.field.windDir = windDirState;
@@ -91,15 +86,6 @@ uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
 
   return 14;
 };
-
-// private method for peering, to get and send temperature value only
-// TODO: use get() but only send first 2 bytes from buffer?
-// uint8_t HBWSIGNALDuino_bresser7in1::get_temp(uint8_t* data) {
-//   // MSB first
-//   *data++ = (currentTemp >> 8);
-//   *data = currentTemp & 0xFF;
-//   return 2;
-// };
 
 
 /* main channel loop, called by device loop */
@@ -149,7 +135,8 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
   
   unsigned long now = millis();
 
-  if (config->timeout_rx && now - lastMsgTime > ((unsigned long)config->timeout_rx *16000)) {
+  // check timeout. Skip after init (currentTemp == DEFAULT_TEMP) or if disabled in config
+  if (currentTemp != DEFAULT_TEMP && config->timeout_rx && now - lastMsgTime > ((unsigned long)config->timeout_rx *16000)) {
     msgTimeout = true;
     currentTemp = ERROR_TEMP;
   }
@@ -186,7 +173,7 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
 };
 
 /* parse raw message, validate and extract actual values */
-uint8_t HBWSIGNALDuino_bresser7in1::parseMsg() {
+HBWSIGNALDuino_bresser7in1::msg_parser_ret_code HBWSIGNALDuino_bresser7in1::parseMsg() {
 
   /* src: https://github.com/merbanan/rtl_433/blob/master/src/devices/bresser_7in1.c */
 
