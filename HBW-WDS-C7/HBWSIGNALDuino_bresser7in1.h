@@ -103,7 +103,7 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
     union u_wind_speed {
       struct s_fields {
         uint16_t windMaxMs :10;
-        uint16_t windAvgMs :10;
+        uint16_t windAvgMs :10;// TODO check if this overlaps...
         uint8_t free :3;
         uint8_t storm :1;
       } field;
