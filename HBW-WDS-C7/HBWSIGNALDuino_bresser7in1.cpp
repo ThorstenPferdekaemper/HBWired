@@ -113,11 +113,11 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
 
       // check new storm status, if enabled
       // TODO: check if windMax or Avg should be used
-      if (config->storm_threshold_level && (float)windMaxMsRaw *0.36 > config->storm_threshold_level *5) {
+      if (config->storm_threshold_level && ((float)windMaxMsRaw *0.36) > (config->storm_threshold_level *5)) {
         if (stormyTriggerCounter > 0)  stormyTriggerCounter--;
         else stormy = true;
       }
-      else {
+      else if (config->storm_threshold_level) {
         if (stormyTriggerCounter < config->storm_readings_trigger)  stormyTriggerCounter++;
 		    else stormyTriggerCounter = config->storm_readings_trigger;  // in case config changed
         if (stormyTriggerCounter == config->storm_readings_trigger) {
@@ -135,7 +135,7 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
   
   unsigned long now = millis();
 
-  // check timeout. Skip after init (currentTemp == DEFAULT_TEMP) or if disabled in config
+  // check message timeout. Skip after init (currentTemp == DEFAULT_TEMP) or if disabled in config
   if (currentTemp != DEFAULT_TEMP && config->timeout_rx && now - lastMsgTime > ((unsigned long)config->timeout_rx *16000)) {
     msgTimeout = true;
     currentTemp = ERROR_TEMP;
@@ -207,7 +207,7 @@ HBWSIGNALDuino_bresser7in1::msg_parser_ret_code HBWSIGNALDuino_bresser7in1::pars
       // if no ID was saved, use the one we got now
       config->id = id;
       EepromPtr->update(eeprom_address_start, (uint8_t)id);
-      EepromPtr->update(eeprom_address_start +1, (uint8_t)(id>>8));  // must match address of condig struct (hbw_config_signalduino_wds_7in1->id)
+      EepromPtr->update(eeprom_address_start +1, (uint8_t)(id>>8));  // must match address of config struct (hbw_config_signalduino_wds_7in1->id)
       }
     if (id != config->id)
       return ID_MISSMATCH;
