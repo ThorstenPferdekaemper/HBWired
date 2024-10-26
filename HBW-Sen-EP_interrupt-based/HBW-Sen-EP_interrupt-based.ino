@@ -226,6 +226,7 @@ void loop()
     LCdisplay.put(':', 1);
    #if defined(USE_INTERRUPTS_FOR_INPUT_PINS)
    //TODO: find smarter way to point to ISR counter variable? e.g. use struct?
+// static const senPins[] = {Sen1, Sen2, ...}; LCdisplay.put(getInterruptCounter(senPins[ch_count]));
     switch (ch_count) {
       case 0:
         LCdisplay.put(getInterruptCounter(Sen1));

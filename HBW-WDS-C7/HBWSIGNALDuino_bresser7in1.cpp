@@ -19,6 +19,7 @@ HBWSIGNALDuino_bresser7in1::HBWSIGNALDuino_bresser7in1(uint8_t* _msg_buffer_ptr,
    lastSentTemp = 0;
    msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // skip first message
    stormy = false;
+   lastStormy = false;
    stormyTriggerCounter = config->storm_readings_trigger;
    lastSentTime = 20000;  // wait 20 seconds after statup
    msgTimeout = true;  // true until we get a message
@@ -41,7 +42,7 @@ void HBWSIGNALDuino_bresser7in1::afterReadConfig() {
   hbwdebug(F("wds_7-1 conf - max_interval: "));hbwdebug(config->send_max_interval);hbwdebug(F("\n"));
   hbwdebug(F("wds_7-1 conf - min_interval: "));hbwdebug(config->send_min_interval);hbwdebug(F("\n"));
   hbwdebug(F("wds_7-1 conf - delta_temp: "));hbwdebug(config->send_delta_temp);hbwdebug(F("\n"));
-  hbwdebug(F("wds_7-1 conf - storm_lvl: "));hbwdebug(config->storm_threshold_level);hbwdebug(F("\n"));
+  hbwdebug(F("wds_7-1 conf - storm_lvl: "));hbwdebug(config->storm_threshold_level*5);hbwdebug(F("\n"));
   hbwdebug(F("wds_7-1 conf - storm_trig: "));hbwdebug(config->storm_readings_trigger);hbwdebug(F("\n"));
  #endif
 };
@@ -113,9 +114,12 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
 
       // check new storm status, if enabled
       // TODO: check if windMax or Avg should be used
-      if (config->storm_threshold_level && ((float)windMaxMsRaw *0.36) > (config->storm_threshold_level *5)) {
+      if (config->storm_threshold_level && ((float)windMaxMsRaw *0.36 > config->storm_threshold_level *5)) {
         if (stormyTriggerCounter > 0)  stormyTriggerCounter--;
         else stormy = true;
+         #if defined (HBW_CHANNEL_DEBUG)
+          hbwdebug(F("stormy, counter: "));hbwdebug(stormyTriggerCounter);hbwdebug(F("\n"));
+         #endif
       }
       else if (config->storm_threshold_level) {
         if (stormyTriggerCounter < config->storm_readings_trigger)  stormyTriggerCounter++;

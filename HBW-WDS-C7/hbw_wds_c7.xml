@@ -40,8 +40,8 @@
 		<parameter type="integer" index="14.0" size="3.0" param="RAIN_MM"/> <!-- upper 3 bits unused? max value not clear! -->
 		<parameter type="integer" index="17.0" size="1.2" param="WIND_SPEED_MAX"/>
 		<parameter type="integer" index="18.0" size="1.2" param="WIND_SPEED_AVG"/>
-		<!-- <parameter type="integer" index="19.4" size="0.3" param="unused"/> -->
-		<parameter type="integer" index="19.7" size="0.1" param="STORM_STATE"/>
+		<!-- <parameter type="integer" index="19.2" size="0.3" param="unused"/> -->
+		<parameter type="integer" index="19.5" size="0.1" param="STORM_STATE"/>
 		<parameter type="integer" index="20.0" size="0.5" param="WIND_DIRECTION"/>
 		<parameter type="integer" index="20.5" size="0.1" param="BATTERY_STATE"/>
 		<parameter type="integer" index="20.6" size="0.1" param="RX_TIMEOUT"/>
@@ -159,13 +159,13 @@
 				</conversion>
 			</parameter>
 			<parameter id="STORM_THRESHOLD_LEVEL">
-				<logical type="integer" unit="km/h" default="80" min="5" max="150">
+				<logical type="float" unit="km/h" default="80" min="5" max="150">
 					<special_value id="NOT_USED" value="0"/>
 				</logical>
 				<physical size="0.5" type="integer" interface="eeprom">
 					<address index="+3.0"/>
 				</physical>
-				<conversion type="integer_integer_scale" factor="0.2"/>
+				<conversion type="float_integer_scale" factor="0.2"/>
 				<conversion type="integer_integer_map">
 					<value_map to_device="false" from_device="true" parameter_value="16" device_value="0x1f"/>
 				</conversion>
