@@ -144,16 +144,29 @@ uint8_t HBWDeltaT::get(uint8_t* data)
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 {
-  if (!forceOutputChange) stateFlags.element.mode = calculateNewState();  // calculate new deltaT value, set channel mode (active/inactive) and nextState
+  if (config->locked)
+  {
+    forceOutputChange = true; // skip calculateNewState()
+    // force output to error_state when channel is locked
+    nextState = config->n_error_state ? OFF : ON;
+    if (currentState != !config->n_error_state)
+    {
+      setOutputWaitTime = 0;  // don't wait
+    }
+  }
+
+  // do not allow new values / state when "inhibit" is enabled
+  // also skip when output state is manually forced (forceOutputChange)
+  if (!forceOutputChange && !getLock())  stateFlags.element.mode = calculateNewState();  // calculate new deltaT value, set channel mode (active/inactive) and nextState
   
   if (setOutput(device, channel)) // will only set output if state is different
   {
- #ifdef DEBUG_OUTPUT
+  #ifdef DEBUG_OUTPUT
   hbwdebug(F("ch: ")); hbwdebug(channel);
   hbwdebug(F(" deltaT: ")); hbwdebug(deltaT);
   hbwdebug(F(" newstate: ")); hbwdebug(nextState);
   hbwdebug(F("\n"));
- #endif
+  #endif
   }
   
   // feedback trigger set?
@@ -169,12 +182,10 @@ void HBWDeltaTx::loop(HBWDevice* device, uint8_t channel)
   // check only if we had a valid temperature, but not faster than min RECEIVE_MAX_INTERVAL (5 seconds)
   if (currentTemperature > ERROR_TEMP && now - (tempLastTime >= 5000))
   {
-    unsigned int receiveMaxInterval = config->receive_max_interval;
-
-    if (receiveMaxInterval <= 3600 && receiveMaxInterval >= 5)
+    if (config->receive_max_interval <= 3600 && config->receive_max_interval >= 5)
     {
       // RECEIVE_MAX_INTERVAL is enabled, wait for configured timeout
-      if (now - tempLastTime >= receiveMaxInterval *1000)
+      if (now - tempLastTime >= (unsigned long)config->receive_max_interval *1000)
       {
         if (errorCounter == 0) {
           currentTemperature = ERROR_TEMP;
@@ -243,8 +254,6 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 * retuns the current logical state, if wait time did not pass */
 bool HBWDeltaT::calculateNewState()
 {
-  if (config->locked)  return false;
-  
   if (millis() - deltaCalcLastTime >= DELTAT_CALCULATION_WAIT_TIME)
   {
     deltaCalcLastTime = millis();
@@ -257,7 +266,7 @@ bool HBWDeltaT::calculateNewState()
       return false;
     }
     if (t1 <= ERROR_TEMP || t2 <= ERROR_TEMP) {  // set output to error state, when sensor got lost (error_temperature is received)
-      nextState = config->error_state ? OFF : ON;
+      nextState = config->n_error_state ? OFF : ON;
       return false;
     }
 

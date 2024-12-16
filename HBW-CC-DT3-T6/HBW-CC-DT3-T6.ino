@@ -29,10 +29,14 @@
 // - Added deltaT channel set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF command. It will force output state for one "output_change_wait_time" cycle
 // - Added timeout handling option for DeltaTx channels (set error state, if no temperature was received after certain time / interval)
 // - Added retry handling for deltaT peered actuator channels (sendKeyEvent) - rety delay and number of retries set in HBWDeltaT.h
+// v0.80
+// - locked DeltaT channels cannot be set anymore
+// - Enabling inhibit on DeltaT channels stops calculating new state completely. DeltaTx channel values are ignored. Output state can
+//   only be changed by set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF commands
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0048
+#define FIRMWARE_VERSION 0x0052
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
@@ -51,6 +55,8 @@
 
 // HB Wired protocol and module
 #include <HBWired.h>
+#include <HBW_eeprom.h>
+EEPROMClass* EepromPtr = &EEPROM;
 #include <HBWOneWireTempSensors.h>
 //#include <HBWLinkInfoEventSensor.h>
 #include "HBWLinkKeyInfoEventSensor.h"  // TODO: remove these files and add option to the lib, allowing to combine different LinkSender
