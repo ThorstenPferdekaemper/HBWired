@@ -138,9 +138,9 @@ SHIFT_REGISTER_CLASS* myShReg_two = new SHIFT_REGISTER_CLASS(shiftRegTwo_Data, s
 void setup()
 {
   // assing LEDs and switches (relay) pins (i.e. shift register bit position)
-  static const uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // not only used for the LED output, but also to keep track of the output state!
-  static const uint8_t RelayBitPos[6] = { 8, 10, 12,          // shift register 2: 3 relays (with 2 coils each) bit=set coil
-                                         16, 18, 20};        // shift register 3: 3 relays (with 2 coils each) bit=set coil
+  static const uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // used for the LED output
+  static const uint8_t RelayBitPos[6] = { 8, 10, 12,          // shift register 2: 3 relays (with 2 coils each) bit=set coil (reset coil bit pos +1)
+                                         16, 18, 20};        // shift register 3: 3 relays (with 2 coils each) bit=set coil (reset coil bit pos +1)
   
   static const uint8_t currentTransformerPins[6] = {CT_PIN1, CT_PIN2, CT_PIN3, CT_PIN4, CT_PIN5, CT_PIN6};
   
