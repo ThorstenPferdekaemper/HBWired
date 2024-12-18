@@ -1,4 +1,4 @@
-// Homematic Wired Hombrew (HBW), with SIGNALDuino
+// Homematic Wired Hombrew (HBW), with SIGNALDuino advanced
 // loetmeister.de - 2024.07.14
 
 #include "HBWSIGNALDuino_adv.h"

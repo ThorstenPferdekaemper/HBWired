@@ -21,6 +21,7 @@
 
 
 // static const byte WDS_7IN1_AVG_SAMPLES = 3;  // calculate average of last 3 samples for: temperatue, humidity
+static const byte WDS_7IN1_DATA_LEN = 15; // size of get() return data array
 
 // array positions for extern struct s_hbw_link:
 enum hbw_link_pos {
@@ -92,24 +93,13 @@ class HBWSIGNALDuino_bresser7in1 : public HBWChannel {
 
     union u_state_and_wdir {
       struct s_fields {
-        uint8_t windDir :5;
+        uint8_t windDir :4;
+        uint8_t free :1;   // unused
         uint8_t battOk :1;
         uint8_t timeout :1;
-        uint8_t free :1;
-      } field;
-      uint8_t byte:8;
-    };
-
-    union u_wind_speed {
-      struct s_fields {
-        uint16_t windMaxMs :10;
-        uint16_t windAvgMs :10;// TODO check if this overlaps...
-        uint8_t free :3;
         uint8_t storm :1;
       } field;
-      uint8_t first_byte:8;
-      uint8_t secnd_byte:8;
-      uint8_t third_byte:8;
+      uint8_t byte:8;
     };
     
     bool printDebug = false;

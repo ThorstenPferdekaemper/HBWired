@@ -4,7 +4,7 @@
 	<type name="RS485 Weather Module" id="HBW-WDS-C7" priority="2">
 		<parameter index="0" size="1" const_value="0x88"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0002" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x000D" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -37,17 +37,17 @@
 	<frame id="WEATHER_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" index="11.0" size="2.0" signed="true" param="TEMPERATURE"/>
 		<parameter type="integer" index="13.0" size="1.0" param="HUMIDITY"/>
-		<parameter type="integer" index="14.0" size="3.0" param="RAIN_MM"/> <!-- upper 3 bits unused? max value not clear! -->
-		<parameter type="integer" index="17.0" size="1.2" param="WIND_SPEED_MAX"/>
-		<parameter type="integer" index="18.0" size="1.2" param="WIND_SPEED_AVG"/>
-		<!-- <parameter type="integer" index="19.2" size="0.3" param="unused"/> -->
-		<parameter type="integer" index="19.5" size="0.1" param="STORM_STATE"/>
-		<parameter type="integer" index="20.0" size="0.5" param="WIND_DIRECTION"/>
-		<parameter type="integer" index="20.5" size="0.1" param="BATTERY_STATE"/>
-		<parameter type="integer" index="20.6" size="0.1" param="RX_TIMEOUT"/>
-		<parameter type="integer" index="21.0" size="2.0" param="BRIGHTNESS_LUX"/>
-		<parameter type="integer" index="23.0" size="1.0" param="UV_INDEX"/>
-		<parameter type="integer" index="24.0" size="1.0" signed="true" param="RSSI"/>
+		<parameter type="integer" index="14.0" size="3.0" param="RAIN_MM"/>
+		<parameter type="integer" index="17.0" size="2.0" param="WIND_SPEED_MAX"/>
+		<parameter type="integer" index="19.0" size="2.0" param="WIND_SPEED_AVG"/>
+		<parameter type="integer" index="21.0" size="0.4" param="WIND_DIRECTION"/>
+		<!-- <parameter type="integer" index="21.4" size="0.1" param="unused_STATE"/> -->
+		<parameter type="integer" index="21.5" size="0.1" param="BATTERY_STATE"/>
+		<parameter type="integer" index="21.6" size="0.1" param="RX_TIMEOUT"/>
+		<parameter type="integer" index="21.7" size="0.1" param="STORM_STATE"/>
+		<parameter type="integer" index="22.0" size="2.0" param="BRIGHTNESS_LUX"/>
+		<parameter type="integer" index="24.0" size="1.0" param="UV_INDEX"/>
+		<parameter type="integer" index="25.0" size="1.0" signed="true" param="RSSI"/>
 	</frame>
 	<frame id="TH_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
 		<parameter type="integer" signed="true" index="11.0" size="2.0" param="TH_TEMPERATURE"/>

@@ -52,17 +52,12 @@ void HBWSIGNALDuino_bresser7in1::afterReadConfig() {
 uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
   // map 360 degree wind direction to 0...16 lookup values
   uint8_t windDirState = round((float)(windDir / 22.5));
-  windDirState = windDirState <= 16 ? windDirState : 0;
 
   u_state_and_wdir stateAndWdir;
-  stateAndWdir.field.windDir = windDirState;
+  stateAndWdir.field.windDir = (windDirState < 16) ? windDirState : 0;  // send only 0..15, as 0 and 16 are same direction
   stateAndWdir.field.battOk = batteryOk;
   stateAndWdir.field.timeout = msgTimeout;
-
-  u_wind_speed windSpeed;
-  windSpeed.field.windAvgMs = windAvgMsRaw & 0x3FF;
-  windSpeed.field.windMaxMs = windMaxMsRaw & 0x3FF;
-  windSpeed.field.storm = stormy;
+  stateAndWdir.field.storm = stormy;
 
   // for multi byte values, MSB first
   // write value and increment pointer for next value
@@ -72,20 +67,17 @@ uint8_t HBWSIGNALDuino_bresser7in1::get(uint8_t* data) {
   *data++ = (rainMmRaw >> 16);
   *data++ = (rainMmRaw >> 8);
   *data++ = rainMmRaw & 0xFF;
-  // *data++ = (windMaxMsRaw >> 8);
-  // *data++ = windMaxMsRaw & 0xFF;
-  // *data++ = (windAvgMsRaw >> 8);
-  // *data++ = windAvgMsRaw & 0xFF;
-  *data++ = windSpeed.first_byte;
-  *data++ = windSpeed.secnd_byte;
-  *data++ = windSpeed.third_byte;
+  *data++ = (windMaxMsRaw >> 8);
+  *data++ = windMaxMsRaw & 0xFF;
+  *data++ = (windAvgMsRaw >> 8);
+  *data++ = windAvgMsRaw & 0xFF;
   *data++ = stateAndWdir.byte;
   *data++ = (lightLuxDeci >> 8);
   *data++ = lightLuxDeci & 0xFF;
   *data++ = uvIndex;
   *data = rssiDb;
 
-  return 14;
+  return WDS_7IN1_DATA_LEN;
 };
 
 
@@ -97,7 +89,7 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
     memcpy(message_buffer, msg_buffer_ptr, sizeof(message_buffer));
     rssi_raw = hbw_link[hbw_link_pos::RSSI];
     msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // remember counter to not process same msg again
-    
+
     if (parseMsg() == SUCCESS) {  // new message for this sensor channel!
       msgTimeout = false;
       lastMsgTime = millis();
@@ -114,20 +106,22 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
 
       // check new storm status, if enabled
       // TODO: check if windMax or Avg should be used
-      if (config->storm_threshold_level && ((float)windMaxMsRaw *0.36 > config->storm_threshold_level *5)) {
-        if (stormyTriggerCounter > 0)  stormyTriggerCounter--;
-        else stormy = true;
-         #if defined (HBW_CHANNEL_DEBUG)
-          hbwdebug(F("stormy, counter: "));hbwdebug(stormyTriggerCounter);hbwdebug(F("\n"));
-         #endif
-      }
-      else if (config->storm_threshold_level) {
-        if (stormyTriggerCounter < config->storm_readings_trigger)  stormyTriggerCounter++;
-		    else stormyTriggerCounter = config->storm_readings_trigger;  // in case config changed
-        if (stormyTriggerCounter == config->storm_readings_trigger) {
-        // not stormy (anymore) reset state
-        stormy = lastStormy = false;
+      if (config->storm_threshold_level) {
+        if ((float)windMaxMsRaw *0.36 >= config->storm_threshold_level *5) {
+          if (stormyTriggerCounter > 0)  stormyTriggerCounter--;
+          else stormy = true;
         }
+        else {
+          if (stormyTriggerCounter < config->storm_readings_trigger)  stormyTriggerCounter++;
+          else stormyTriggerCounter = config->storm_readings_trigger;  // in case config changed
+          if (stormyTriggerCounter == config->storm_readings_trigger) {
+          // not stormy (anymore) reset state
+          stormy = lastStormy = false;
+          }
+        }
+        #if defined (HBW_CHANNEL_DEBUG)
+        hbwdebug(F("stormy counter: "));hbwdebug(stormyTriggerCounter);hbwdebug(F("\n"));
+        #endif
       }
     }
   }
@@ -140,7 +134,7 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
   unsigned long now = millis();
 
   // check message timeout. Skip after init (currentTemp == DEFAULT_TEMP) or if disabled in config
-  if (currentTemp != DEFAULT_TEMP && config->timeout_rx && now - lastMsgTime > ((unsigned long)config->timeout_rx *16000)) {
+  if (currentTemp != DEFAULT_TEMP && config->timeout_rx && now - lastMsgTime > (unsigned long)config->timeout_rx *16000) {
     msgTimeout = true;
     currentTemp = ERROR_TEMP;
   }
@@ -162,7 +156,7 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
       // (other urgent new value?) ||
       (stormy && stormy != lastStormy) )
   {
-    uint8_t data[14];
+    uint8_t data[WDS_7IN1_DATA_LEN];
     get(data);
     if (device->sendInfoMessage(channel, sizeof(data), data) != HBWDevice::BUS_BUSY) {
      #ifdef Support_HBWLink_InfoEvent
@@ -238,7 +232,7 @@ HBWSIGNALDuino_bresser7in1::msg_parser_ret_code HBWSIGNALDuino_bresser7in1::pars
     windDir = wdir;
     windMaxMsRaw = wgst_raw;
     windAvgMsRaw = wavg_raw;
-    rainMmRaw = rain_raw;
+    rainMmRaw = rain_raw;  // max size 166666.5? 7 digits, 21 bits?
     lightLuxDeci = lght_raw /10;  // ingnore lowest digit and transfer as 2 byte value. Allowing max value 655,350
     currentTemp = temp_mc *10; // temperature from milli to centi celsius (HM uses factor 100. e.g. 2000 == 20.00 °C)
     humidityPct = humidity;

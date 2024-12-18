@@ -25,7 +25,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000C
+#define FIRMWARE_VERSION 0x000D
 #define HMW_DEVICETYPE 0x88
 
 #define NUM_CHANNELS 2  // total number of channels
@@ -152,14 +152,14 @@ void setup1()
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
   // set_sys_clock_khz(48000, true); // Set System clock to 48 MHz
-  // TODO not working... Serial USB not working
-  // // set_sys_clock_khz(48000, false);
+  // TODO not working... Serial USB not working - must be done from core0??
+  // set_sys_clock_khz(18000, false);
   // clock_configure(
   //     clk_peri,
   //     0,                                                // No glitchless mux
   //     CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, // System PLL on AUX mux
-  //     48000 * 1000,                                     // Input frequency
-  //     48000 * 1000                                      // Output (must be same as no divider)
+  //     18000 * 1000,                                     // Input frequency
+  //     18000 * 1000                                      // Output (must be same as no divider)
   // );
 
   delay(1500);  // must wait for core0 to start Wire/EEPROM
@@ -182,6 +182,18 @@ void setup1()
 // Serial.println("");
 // }
 //------------
+ #ifdef HBW_DEBUG
+  Serial.print("Configured F_CPU: "); Serial.println(F_CPU);
+  Serial.print("Actual F_CPU:     "); Serial.println(rp2040.f_cpu());
+ #endif
+  // Serial.println("Reconfigure sys_clk to F_CPU");
+  // Serial.flush();
+
+  // set_sys_clock_khz(F_CPU/1000, true);
+
+  // Serial.begin(115200);
+  // Serial.print("Actual F_CPU:     "); Serial.println(rp2040.f_cpu());
+
  #if defined (ARDUINO_ARCH_RP2040)
   // Wire.begin();
   if (! EepromPtr->available())
