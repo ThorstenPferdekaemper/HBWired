@@ -74,19 +74,23 @@
   // if watchdog is used & active, just run into infinite loop to force reset
   #define RESET_HARDWARE() while(1){}
   #define ENABLE_WATCHDOG() wdt_enable(WDTO_1S)
+  #define DISABLE_WATCHDOG() wdt_disable()
   #define RESET_WATCHDOG() wdt_reset()
   // Arduino Reset via Software function declaration, point to address 0 (reset vector)
   #define RESET_SOFTWARE() resetSoftware()
+  #define WATCHDOG_CAUSED_RESET() MCUSR & (1 << WDRF)
 
 #elif defined (ARDUINO_ARCH_RP2040)
   #include <hardware/watchdog.h>
   #define ENABLE_WATCHDOG() watchdog_enable(1000, 0)
+  #define DISABLE_WATCHDOG() watchdog_disable()
   #define RESET_WATCHDOG() watchdog_update()
 //watchdog_reboot(0, 0, 10);  // watchdog fire after 10us and busy waits (SRAM_END will not be ignored,, when first parameter is 0)
   #define RESET_HARDWARE() watchdog_reboot(0, SRAM_END, 10);\
     for (;;) { }
   // always reboot via watchdog
   #define RESET_SOFTWARE() RESET_HARDWARE()
+  #define WATCHDOG_CAUSED_RESET() watchdog_caused_reboot()
 #endif
 
 #endif /* _HBW_hardware_h */
