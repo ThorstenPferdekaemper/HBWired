@@ -6,7 +6,7 @@
  */
 
 #include "HBWOneWireTempSensors.h"
-#include <EEPROM.h>
+#include "HBW_eeprom.h"
 
 
 HBWOneWireTemp::HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, uint32_t* _owLastReadTime, uint8_t* _owCurrentChannel) {
@@ -111,7 +111,12 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
   #endif
     for (uint8_t i = 0 ; i < OW_DEVICE_ADDRESS_SIZE; i++) {
       // EEPROM read, write if different
-      EEPROM.update(startaddress +i, _config[channel]->address[i]);
+     #if defined (EEPROM_no_update_function)
+      if (EepromPtr->read(startaddress +i) != _config[channel]->address[i])
+	     EepromPtr->write(startaddress +i, _config[channel]->address[i]);
+     #else
+      EepromPtr->update(startaddress +i, _config[channel]->address[i]);
+     #endif
     }
     
   } // while (1)

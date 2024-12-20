@@ -23,14 +23,8 @@
 #define NUMBER_OF_INPUT_CHAN 12   // input channel - pushbutton, key, other digital in
 #define NUMBER_OF_SEN_INPUT_CHAN 12  // equal number of sensor channels, using same ports/IOs as INPUT_CHAN
 
-
 #define NUM_LINKS_INPUT 20    // address step 6
 #define LINKADDRESSSTART_INPUT 0x038   // ends @0x0C7
-
-
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 
 // HB Wired protocol and module
@@ -38,38 +32,12 @@
 #include <HBWLinkKey.h>
 #include <HBWKey.h>
 #include <HBWSenSC.h>
+#include <HBW_eeprom.h>
 
 
-// Pins
-  #define IO1 A3
-  #define IO2 10
-  #define IO3 11
-  #define IO4 A0
-  #define IO5 A1
-  #define IO6 A2
-  #define IO7 A4
-  #define IO8 A5
-  #define IO9 9  // dummy pin to fill the array elements
-  #define IO10 7  // dummy pin to fill the array elements
-  #define IO11 6
-  #define IO12 5
+// Pins and hardware config
+#include "HBW-Sen-SC-12-DR_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
-#ifdef USE_HARDWARE_SERIAL
-  #define RS485_TXEN 2  // Transmit-Enable
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-  
-#else
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
-  
-  #include "FreeRam.h"
-  #include <HBWSoftwareSerial.h>
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif
-
-#define LED LED_BUILTIN        // Signal-LED
 
 #define NUMBER_OF_CHAN NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN
 

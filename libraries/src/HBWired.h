@@ -9,8 +9,8 @@
 #define HBWired_h
 
 #include "Arduino.h"
-#include "hardware.h"
-#include "avr/wdt.h"
+#include "HBW_hardware.h"
+
 
 #define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
 
@@ -151,6 +151,23 @@ class HBWDevice {
 	uint32_t getOwnAddress();
 	boolean busIsIdle();
 	
+  protected:
+	uint8_t* config;        // pointer to config object 
+	uint8_t configSize;     // size of config object without peerings
+	virtual void readConfig();         // read config from EEPROM
+    virtual uint32_t getCentralAddress();    // get central address
+	
+	struct s_PendingActions
+	{
+		uint8_t afterReadConfig : 1;
+		uint8_t announced : 1;
+		uint8_t resetSystem : 1;
+		// uint8_t startBooter : 1;
+		// uint8_t startFirmware : 1;
+		uint8_t zeroCommunicationActive : 1;
+	};
+	static s_PendingActions pendingActions;
+  
   private:
 	uint8_t numChannels;    // number of channels
 	HBWChannel** channels;  // channels
@@ -175,9 +192,6 @@ class HBWDevice {
 	// eigene Adresse setzen und damit auch random seed
 	void setOwnAddress(unsigned long address);
 
-	void readConfig();         // read config from EEPROM
-    // get central address
-    uint32_t getCentralAddress();
     void handleBroadcastAnnounce();
     void handleAfterReadConfig();
     void handleResetSystem();
@@ -193,20 +207,14 @@ class HBWDevice {
 	// the uppermost 4 bytes are reserved for the device address and can only be changed if privileged = true
 	void writeEEPROM(uint16_t address, uint8_t value, bool privileged = false );
 
-	uint8_t configSize;     // size of config object without peerings
-	uint8_t* config;        // pointer to config object 
-
   uint8_t hardware_version;
   uint16_t firmware_version;
   
 // Das eigentliche RS485-Interface, kann z.B. HBWSoftwareSerial oder (Hardware)Serial sein
 	Stream* serial;
-// Pin-Nummer fuer "TX-Enable"
-	uint8_t txEnablePin;
-	// Empfangs-Status
-	uint8_t frameStatus;
-// eigene Adresse
-	unsigned long ownAddress;
+	uint8_t txEnablePin;  // Pin-Nummer fuer "TX-Enable"
+	uint8_t frameStatus;  // Empfangs-Status
+	unsigned long ownAddress;  // eigene Adresse
 // Empfangene Daten
 	// Empfangen
 	boolean frameComplete;
@@ -222,7 +230,7 @@ class HBWDevice {
     unsigned long lastReceivedTime;
 //  current minimum idle time
 //  will be initialized in constructor
-    unsigned int minIdleTime;
+    uint16_t minIdleTime;
 	void receive();  // wird zyklisch aufgerufen
 	boolean parseFrame();
 	void sendFrameSingle();
@@ -243,17 +251,6 @@ class HBWDevice {
 	boolean txLEDStatus;
 	boolean rxLEDStatus;
 
-	
-	struct s_PendingActions
-	{
-		uint8_t afterReadConfig : 1;
-		uint8_t announced : 1;
-		uint8_t resetSystem : 1;
-		// uint8_t startBooter : 1;
-		// uint8_t startFirmware : 1;
-		uint8_t zeroCommunicationActive : 1;
-	};
-	static s_PendingActions pendingActions;
 	
    #if defined(BOOTSTART)
 	void (*bootloader_start) = (void *) BOOTSTART;   // TODO: Add bootloader?

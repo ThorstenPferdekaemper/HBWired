@@ -1,5 +1,5 @@
 /*
- * HBWKeyDoorbell.cpp
+ * HBWKeyDoorbell.h
  *
  * Created (www.loetmeister.de): 25.01.2020
  * 
@@ -12,7 +12,6 @@
 
 #include <inttypes.h>
 #include "HBWired.h"
-
 // To play buzzer tones
 #include "pitches.h"
 
@@ -35,10 +34,6 @@ struct hbw_config_key_doorbell {
   uint8_t buzzer:3;          // +3.4 buzzer config (TODO: melody1, melody2, melody3, melody4), disabled=0, 7=default melody
   uint8_t fillup:1;
   uint8_t dummy;
-  // union dial_string {
-  //   char [18] phone_number;
-  //   char dial_button;
-  // };
 };
 
 #define NUM_NOTES 3
@@ -82,6 +77,7 @@ class HBWKeyDoorbell : public HBWChannel {
     };
     uint8_t pinBuzzer;   // pin for the buzzer - if used
     void buzzer(uint8_t _action, bool _forceChange = false);
+	
     static const uint8_t MAX_MELODY_CONFIG = 7;  // need to match with device XML
 };
 

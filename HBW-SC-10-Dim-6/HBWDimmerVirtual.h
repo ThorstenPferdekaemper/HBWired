@@ -18,7 +18,7 @@
 #include "HBWired.h"
 #include <HBWDimmerAdvanced.h>
 
-#define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT
 
 
 // config of each virtual dimmer channel, address step 1

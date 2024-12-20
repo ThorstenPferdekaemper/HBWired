@@ -1,0 +1,46 @@
+#######################################
+# Syntax Coloring Map For EEPROM24
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+EEPROM24	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+available	KEYWORD2
+isConnected	KEYWORD2
+read	KEYWORD2
+update	KEYWORD2
+write	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+EEPROM_24LC00	LITERAL1
+EEPROM_24LC01	LITERAL1
+EEPROM_24LC014	LITERAL1
+EEPROM_24LC02	LITERAL1
+EEPROM_24LC024	LITERAL1
+EEPROM_24LC025	LITERAL1
+EEPROM_24LC04	LITERAL1
+EEPROM_24LC08	LITERAL1
+EEPROM_24LC16	LITERAL1
+EEPROM_24LC32	LITERAL1
+EEPROM_24LC64	LITERAL1
+EEPROM_24LC128	LITERAL1
+EEPROM_24LC256	LITERAL1
+EEPROM_24LC512	LITERAL1
+EEPROM_24LC1025	LITERAL1
+EEPROM_24LC1026	LITERAL1
+
+#######################################
+# Built in variables (LITERAL2)
+#######################################
+
+

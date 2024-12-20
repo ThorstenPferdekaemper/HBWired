@@ -46,7 +46,7 @@ struct hbw_config_DeltaT {
   uint8_t n_enableHysMaxT1:1;  // apply hysteresis on maxT1, 1=off (default) 0=on
   uint8_t n_enableHysMinT2:1;  // apply hysteresis on minT2, 1=off (default) 0=on
   uint8_t n_enableHysOFF:1;  // apply hysteresis on OFF transition, too. 1=off (default) 0=on
-  uint8_t error_state:1;  // set output OFF or ON at error state (defaut OFF)
+  uint8_t n_error_state:1;  // set output OFF or ON at error state (defaut OFF)
   uint8_t :1;     //fillup
 };
 
