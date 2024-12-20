@@ -4,7 +4,7 @@
 	<type name="RS485 Doorbell (4 channel)" id="HBW-Sen-DB-4" priority="2">
 		<parameter index="0" size="1" const_value="0x98"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x001E" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x0028" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -128,7 +128,7 @@
 				</physical>
 			</parameter>
 		</paramset>
-		<paramset type="LINK" id="hmw_dim_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="32" address_start="0x30" address_step="7">
+		<paramset type="LINK" id="hmw_dim_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x40" address_step="7">
 			<parameter id="UI_HINT">
 				<logical type="string" default="" use_default_on_failure="true"/>
 				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
