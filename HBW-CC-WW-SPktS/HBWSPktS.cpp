@@ -23,7 +23,7 @@ HBWSPktS::HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _te
   initDone = false;
 };
 
-inline void setup_timer()  // call from main setup()
+inline void setup_timer()  // call from main setup() //TODO: move hardware specific parts to HBW-CC-WW-SPktS_config_example.h - direct or nested
 {
   cli();//stop interrupts
 

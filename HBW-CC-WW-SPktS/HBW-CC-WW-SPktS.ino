@@ -16,6 +16,7 @@
 // v0.02
 // - added option to pulse on time for delta T output channel (50% duty cycle)
 
+
 #define HARDWARE_VERSION 0x01
 #define FIRMWARE_VERSION 0x0002
 #define HMW_DEVICETYPE 0x99 //device ID (make sure to import hbw-cc-ww-spkts.xml into FHEM)
@@ -31,11 +32,6 @@
 #define LINKADDRESSSTART_DELTATX 0x220  // step 7, actor type
 
 
-// #define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
-
-
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
@@ -43,41 +39,12 @@
 #include <HBWLinkInfoEventActuator.h>
 #include "HBWDeltaT.h"
 #include "HBWSPktS.h"
+#include <HBW_eeprom.h>
 
-// Pins
-#ifdef USE_HARDWARE_SERIAL
-  #define RS485_TXEN 2  // Transmit-Enable
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-  
-  #define ONEWIRE_PIN	A3 // Onewire Bus
 
-  #define HEATER_PIN 3  // Schwingungspaketsteuerung Ausgang (controlled by timer1)
+// Pins and hardware config
+#include "HBW-CC-WW-SPktS_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
-  #define RELAY_1 7
-  #define RELAY_2 6
-
-  #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
-  #define BLOCKED_TWI_SCL A5  // used by I²C - SCL
-
-#else
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
-
-  #define ONEWIRE_PIN	10 // Onewire Bus
-
-  #define HEATER_PIN A4
-
-  #define RELAY_1 A3
-  #define RELAY_2 A5
-
-  #include "FreeRam.h"
-  #include <HBWSoftwareSerial.h>
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif  //USE_HARDWARE_SERIAL
-
-#define LED LED_BUILTIN        // Signal-LED
 
 #define NUMBER_OF_CHAN NUMBER_OF_HEATING_CHAN + NUMBER_OF_TEMP_CHAN + (NUMBER_OF_DELTAT_CHAN *3) + NUMBER_OF_HEAT_DELTAT_CHAN
 
@@ -140,7 +107,7 @@ HBDCCDevice* device = NULL;
 volatile unsigned char SPktS_currentValue;  // Schwingungspaketsteuerung, Anzahl "Ein" Wellen, basierend auf Sollwert
 uint8_t SPktS_outputPin;
 // TODO: put into hpp?
-// TODO: allow more channels? Use arrays SPktS_outputPin[], WellenpaketCnt[], ... and loop in ISR?
+// TODO: allow more channels? Use arrays SPktS_outputPin[], WellenpaketCnt[], SPktS_currentValue[] ? ... and loop in ISR?
 
 ISR(TIMER1_COMPA_vect)
 {
@@ -224,7 +191,7 @@ void setup()
 #endif
 
 
-setup_timer();
+setup_timer();  // finally configure and enable the timer interrupt
 // // Init timer ITimer1
 // ITimer2.init();
 // if (ITimer2.attachInterruptInterval(TIMER_INTERVAL_MS, TimerHandler, HEATER_PIN)) hbwdebug(F("TimerISR: ok"));
