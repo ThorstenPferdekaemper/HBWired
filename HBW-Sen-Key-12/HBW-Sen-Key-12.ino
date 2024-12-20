@@ -21,30 +21,17 @@
 #define NUM_LINKS 36
 #define LINKADDRESSSTART 0x40
 
-#include <HBWSoftwareSerial.h>
-#include <FreeRam.h>
 
 #include <ClickButton.h>
 
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWLinkKey.h>
-
-#define RS485_RXD 4
-#define RS485_TXD 2
-#define RS485_TXEN 3  // Transmit-Enable
-
-HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
+#include <HBW_eeprom.h>
 
 
-// Pins
-#define BUTTON 8  // Button fuer Factory-Reset etc.
-#define LED 13        // Signal-LED
-
-// Das folgende Define kann benutzt werden, wenn ueber die
-// Kanaele "geloopt" werden soll
-// als Define, damit es zentral definiert werden kann, aber keinen (globalen) Speicherplatz braucht
-#define PIN_ARRAY static const uint8_t pins[NUM_CHANNELS] = {A0, A1, A2, A3, A4, A5, 5, 6, 7, 9, 10, 11};
+// Pins and hardware config
+#include "HBW-Sen-Key-12_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
 
 // Config as C++ structure (without direct links)
@@ -148,7 +135,7 @@ void setup()
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
 
   // create channels
-  PIN_ARRAY
+  static const uint8_t pins[NUM_CHANNELS] = {Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8, Key9, Key10, Key11, Key12};
   // Keys
   for(uint8_t i = 0; i < NUM_CHANNELS; i++) {
     keys[i] = new HBSenKey(pins[i], &(hbwconfig.keysCfg[i]));

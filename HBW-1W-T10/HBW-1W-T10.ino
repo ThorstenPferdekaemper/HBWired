@@ -31,38 +31,16 @@
 #define LINKADDRESSSTART_TEMP 0xE6   // step 6
 
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
-
-
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWOneWireTempSensors.h>
 #include <HBWLinkInfoEventSensor.h>
+#include <HBW_eeprom.h>
 
 
-// Pins
-#ifdef USE_HARDWARE_SERIAL
-  #define RS485_TXEN 2  // Transmit-Enable
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-  
-  #define ONEWIRE_PIN	10 // Onewire Bus
-  
-#else
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
+// Pins and hardware config
+#include "HBW-1W-T10_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
-  #define ONEWIRE_PIN	10 // Onewire Bus
-
-  #include "FreeRam.h"
-  #include <HBWSoftwareSerial.h>
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif  //USE_HARDWARE_SERIAL
-
-#define LED LED_BUILTIN        // Signal-LED
 
 #define NUMBER_OF_CHAN NUMBER_OF_TEMP_CHAN
 

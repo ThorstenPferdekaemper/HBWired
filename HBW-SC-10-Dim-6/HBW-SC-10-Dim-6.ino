@@ -50,11 +50,6 @@
 #define LINKADDRESSSTART_INPUT 0x380   // ends @0x3F7
 
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
-
-
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWLinkDimmerAdvanced.h>
@@ -64,60 +59,12 @@
 #include <HBWSenSC.h>
 //#include "HBWKeyVirtual.h"
 #include "HBWDimmerVirtual.h"
-#include "HBWDimmerSetupPWM.h"
+#include <HBW_eeprom.h>
 
-// Pins
-#ifdef USE_HARDWARE_SERIAL
-  #define RS485_TXEN 2  // Transmit-Enable
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-  
-  #define PWM1 9  // PWM out (controlled by timer1)
-  #define PWM2_DAC 5  // PWM out (controlled by timer0)
-  #define PWM3_DAC 10  // PWM out (controlled by timer1)
-  #define PWM4   6 // PWM out (controlled by timer0)
-  #define PWM5 11  // PWM out (controlled by timer2)
-  #define PWM6 3  // PWM out (controlled by timer2)
 
-  #define IO1 A3
-  #define IO2 A2
-  #define IO3 A1
-  #define IO4 A0
-  #define IO5 4
-  #define IO6 7
-  #define IO7 8
-  #define IO8 12
-  #define IO9 A4
-  #define IO10 A5
-#else
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
+// Pins and hardware config
+#include "HBW-SC-10-Dim-6_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
-  #define PWM1 9
-  #define PWM2_DAC 5
-  #define PWM3_DAC 10
-  #define PWM4 6
-  #define PWM5 11
-  #define PWM6 NOT_A_PIN  // dummy pin to fill the array elements
-
-  #define IO1 7
-  #define IO2 A5
-  #define IO3 12
-  #define IO4 A0
-  #define IO5 A1
-  #define IO6 A2
-  #define IO7 A3
-  #define IO8 A4
-  #define IO9 NOT_A_PIN  // dummy pin to fill the array elements
-  #define IO10 NOT_A_PIN  // dummy pin to fill the array elements
-
-  #include "FreeRam.h"
-  #include <HBWSoftwareSerial.h>
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif  //USE_HARDWARE_SERIAL
-
-#define LED LED_BUILTIN        // Signal-LED
 
 #define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_DIM_CHAN
 

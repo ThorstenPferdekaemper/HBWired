@@ -30,54 +30,15 @@
 #define LINKADDRESSSTART 0x40
 
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
-
-
-#include <HBWSoftwareSerial.h>
-#include <FreeRam.h>
-
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWLinkSwitchAdvanced.h>
 #include <HBWSwitchAdvanced.h>
+#include <HBW_eeprom.h>
 
 
-// Pins
-#define LED LED_BUILTIN      // Signal-LED
-
-#ifdef USE_HARDWARE_SERIAL
-  #define RS485_TXEN 2  // Transmit-Enable
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-  
-  #define SWITCH1_PIN A4  // Ausgangpins fuer die Relais
-  #define SWITCH2_PIN A2
-  #define SWITCH3_PIN A0
-  #define SWITCH4_PIN 10
-  #define SWITCH5_PIN A1
-  #define SWITCH6_PIN 9
-  #define SWITCH7_PIN A3
-  #define SWITCH8_PIN 5
-  
-#else
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
-
-  #define SWITCH1_PIN A0  // Ausgangpins fuer die Relais
-  #define SWITCH2_PIN A1
-  #define SWITCH3_PIN A2
-  #define SWITCH4_PIN A3
-  #define SWITCH5_PIN A4
-  #define SWITCH6_PIN A5
-  #define SWITCH7_PIN 10
-  #define SWITCH8_PIN 11
-  
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif
-
+// Pins and hardware config
+#include "HBW-LC-Sw-8_AdvancedPeering_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
 
 struct hbw_config {

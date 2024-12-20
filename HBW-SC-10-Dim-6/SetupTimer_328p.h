@@ -6,8 +6,8 @@
 *
 */
 
-#ifndef HBWDimmerSetupPWM_h
-#define HBWDimmerSetupPWM_h
+#ifndef SetupTimer_328p_h
+#define SetupTimer_328p_h
 
 
 inline void setupPwmTimer1(void) {
