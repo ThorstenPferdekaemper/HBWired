@@ -24,15 +24,14 @@
 // - Added OE (output enable), to avoid shift register outputs flipping at start up
 // v0.41
 // - state flag added
+// v0.5
+// - internal rework of state engine (using updated HBWSwitchAdvanced class)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x002D
+#define FIRMWARE_VERSION 0x0035
 #define HMW_DEVICETYPE 0x93
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 #define NUM_SW_CHANNELS 12  // switch/relay
 #define NUM_ADC_CHANNELS 6   // analog input
@@ -152,4 +151,13 @@ void loop()
 {
   device->loop();
   POWERSAVE();  // go sleep a bit
+
+  //   static uint32_t lastChangeTime = 0;
+  // static bool set;
+  // if (millis() - lastChangeTime > 3000 && !set) {
+  //   lastChangeTime = millis();
+  //   uint8_t foo[9] = {129,10,15,20,12,209,0,3,0};  // jump to target action
+  //   device->set(1, 9, foo);  // peering event for target chan 1
+  //   set = true;
+  // }
 };
