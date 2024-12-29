@@ -104,7 +104,7 @@ HBBlDevice* device = NULL;
 
 void setup()
 {
-  analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
+  SetupHardware();
   Serial.begin(19200, SERIAL_8E1); // RS485 via UART Serial
 
   // assing relay pins
