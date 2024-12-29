@@ -35,10 +35,11 @@ void HBWSwitchAdvanced::afterReadConfig()
   }
   else {
   // Do not reset outputs on config change (EEPROM re-reads), but update its state
-    if (currentState == JT_ON)
+    if (currentState == JT_ON)                          // TODO add || JT_OFFDELAY ?
       digitalWrite(pin, LOW ^ config->n_inverted);
-    else if (currentState == JT_OFF)
+    else if (currentState == JT_OFF)                    // TODO add || JT_ONDELAY ?
       digitalWrite(pin, HIGH ^ config->n_inverted);
+  // TODO: check off dealy state - right now the output will not be updated...
   }
 };
 
@@ -94,6 +95,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
         // break;
       case TOGGLE_TO_COUNTER:
         hbwdebug(F("TOGGLE_TO_C\n"));  // switch OFF at odd numbers, ON at even numbers
+        // HMW-LC-Sw2 behaviour: toggle actions also use delay and on/off time
         // setState(device, (currentKeyNum & 0x01) == 0x01 ? JT_ON : JT_OFF, DELAY_INFINITE);
         nextState = (currentKeyNum & 0x01) == 0x01 ? JT_ON : JT_OFF;
         break;
@@ -105,10 +107,11 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
       case TOGGLE: {
         hbwdebug(F("TOGGLE\n"));
         // setState(device, currentState == JT_ON ? JT_OFF : JT_ON, DELAY_INFINITE);
-        // nextState = (currentState == JT_ON) ? JT_OFF : JT_ON;
-        uint8_t reading[2];
-        get(reading);
-        nextState = (reading[0] == 0) ? JT_ON : JT_OFF;  // check actual output state. 0 is OFF, anything other ON
+        // uint8_t reading[2];
+        // get(reading);
+        // nextState = (reading[0] == 0) ? JT_ON : JT_OFF;  // check actual output state. 0 is OFF, anything other ON
+        // set OFF in onDelay and ON in offDelay state?
+        nextState = (currentState == JT_OFF || currentState == JT_ONDELAY) ? JT_ON : JT_OFF;  // go to ON or OFF
 		}
         break;
       default: break;
@@ -124,12 +127,13 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     hbwdebug(F("value\n"));
     if (*(data) > 200) {   // toggle
       // setState(device, (currentState == JT_ON ? JT_OFF : JT_ON), DELAY_INFINITE);
-      uint8_t reading[2];
-      get(reading);
-      setState(device, (reading[0] == 0 ? JT_ON : JT_OFF), DELAY_INFINITE);;  // check actual output state. 0 is OFF, anything other ON
+      // uint8_t reading[2];
+      // get(reading);
+      // setState(device, (reading[0] == 0 ? JT_ON : JT_OFF), DELAY_INFINITE);;  // check actual output state. 0 is OFF, anything other ON
+      setState(device, ((currentState == JT_OFF || currentState == JT_ONDELAY) ? JT_ON : JT_OFF), DELAY_INFINITE);
     }
     else {
-      setState(device, *(data) == 0 ? JT_OFF : JT_ON, DELAY_INFINITE);
+      setState(device, *(data) == 0 ? JT_OFF : JT_ON, DELAY_INFINITE);  // set on or off
     }
   }
 };
@@ -152,10 +156,10 @@ bool HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t newstate)
   
   if (config->output_unlocked)  //0=LOCKED, 1=UNLOCKED
   {
-    if (newstate == JT_ON) {
+    if (newstate == JT_ON) { // TODO: JT_OFFDELAY would turn output ON, if not yet ON
       digitalWrite(pin, LOW ^ config->n_inverted);
     }
-    else if (newstate == JT_OFF) {
+    else if (newstate == JT_OFF) { // TODO: JT_ONDELAY would turn output OFF, if not yet OFF
       digitalWrite(pin, HIGH ^ config->n_inverted);
     }
     result = true;  // return success for unlocked channels, to accept any new state
