@@ -18,8 +18,8 @@
 #define DELAY_NO 0x00
 #define DELAY_INFINITE 0xffffffff
 
-#define ON_LEVEL_PRIO_HIGH  0
-#define ON_LEVEL_PRIO_LOW   1
+// #define ON_LEVEL_PRIO_HIGH  0
+// #define ON_LEVEL_PRIO_LOW   1
 
 #define BITMASK_ActionType        0b00001111
 #define BITMASK_LongMultiexecute  0b00100000

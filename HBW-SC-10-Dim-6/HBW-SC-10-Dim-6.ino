@@ -28,14 +28,17 @@
 // - fixed state flags, 'minimal' on/off time and added OnLevelPrio for on time
 // v0.6
 // - replaced virtual key by virtual dimmer channels (HBWDimmerVirtual) - needs new XML
-//
+// v0.7
+// - internal rework of state engine (using https://github.com/pa-pa/AskSinPP)
+// - fixed onLevel prio, added RAMP_START_STEP peering parameter handling
 
-// TODO: Implement dim peering params: RAMP_START_STEP. Validate behaviour of OnLevelPrio and on/off time 'minimal' vs offLevel, etc.
+
+// TODO: Validate behaviour of OnLevelPrio and on/off time 'minimal' vs offLevel, etc.
 // TODO: reduce RAM usage! (with the current amount of channels, no additional features possible) - or use larger microcontroller...
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x003F
+#define FIRMWARE_VERSION 0x0048
 #define HMW_DEVICETYPE 0x96 //device ID (make sure to import hbw_io-10_dim-6.xml into FHEM)
 
 #define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
@@ -110,17 +113,10 @@ HBDimIODevice* device = NULL;
 
 void setup()
 {
-  //change from fast-PWM to phase-correct PWM
-  // (This is the timer0 controlled PWM module. Do not change prescaler, it would impact millis() & delay() functions.)
-  //TCCR0A = _BV(COM0A1) | _BV(COM0B1) | _BV(WGM00);
-//  TCCR0A = B00000001; // phase-correct PWM @490Hz
-// TODO: fixme - not working! millis() is running two times slower when not in fast-PWM! - interrupt 'issue'
-  
-  setupPwmTimer1();
-  setupPwmTimer2();
+  SetupHardware();  // special hardware related settings. See config_...h. Function can be empty, when not needed
   
   // create channels
-#if NUMBER_OF_DIM_CHAN == 6
+ #if NUMBER_OF_DIM_CHAN == 6
   static const uint8_t PWMOut[6] = {PWM1, PWM2_DAC, PWM3_DAC, PWM4, PWM5, PWM6};  // assing pins
   
   // dimmer + dimmer key channels
@@ -129,11 +125,11 @@ void setup()
     //channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKeyVirtual(i, &(hbwconfig.keyVirtCfg[i]));
     channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWDimmerVirtual(channels[i], &(hbwconfig.dimVirtCfg[i]));
   };
-#else
+ #else
   #error Dimming channel count and pin missmatch!
-#endif
+ #endif
 
-#if NUMBER_OF_INPUT_CHAN == 10 && NUMBER_OF_SEN_INPUT_CHAN == 10
+ #if NUMBER_OF_INPUT_CHAN == 10 && NUMBER_OF_SEN_INPUT_CHAN == 10
   static const uint8_t digitalInput[10] = {IO1, IO2, IO3, IO4, IO5, IO6, IO7, IO8, IO9, IO10};  // assing pins
 
   // input sensor and key channels
@@ -141,12 +137,12 @@ void setup()
     channels[i + NUMBER_OF_DIM_CHAN] = new HBWSenSC(digitalInput[i], &(hbwconfig.senCfg[i]), true);
     channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKey(digitalInput[i], &(hbwconfig.keyCfg[i]));
   };
-#else
+ #else
   #error Input channel count and pin missmatch!
-#endif
+ #endif
 
 
-#ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
+ #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);
   
   device = new HBDimIODevice(HMW_DEVICETYPE, HARDWARE_VERSION, FIRMWARE_VERSION,
@@ -157,7 +153,7 @@ void setup()
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
   
-#else
+ #else
   Serial.begin(115200);  // Serial->USB for debug
   rs485.begin(19200);   // RS485 via SoftwareSerial, must use 19200 baud!
   
@@ -181,7 +177,7 @@ void setup()
 //  hbwdebug(F("TCCR0B: "));
 //  hbwdebug(TCCR0B);
 //  hbwdebug(F("\n"));
-#endif
+ #endif
 }
 
 
