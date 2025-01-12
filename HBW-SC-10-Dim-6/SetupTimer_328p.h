@@ -10,6 +10,13 @@
 #define SetupTimer_328p_h
 
 
+  //change from fast-PWM to phase-correct PWM
+  // (This is the timer0 controlled PWM module. Do not change prescaler, it would impact millis() & delay() functions.)
+  //TCCR0A = _BV(COM0A1) | _BV(COM0B1) | _BV(WGM00);
+//  TCCR0A = B00000001; // phase-correct PWM @490Hz
+// TODO: fixme - not working! millis() is running two times slower when not in fast-PWM! - interrupt 'issue'
+
+
 inline void setupPwmTimer1(void) {
   // Setup Timer1 for 122.5Hz PWM
   TCCR1A = 0;   // undo the configuration done by...

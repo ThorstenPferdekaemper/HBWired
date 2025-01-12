@@ -49,10 +49,11 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
     hbwdebug(F("\n"));
   #endif
 
-      if (device->sendKeyEvent(channel, keyPressNum, sendLong) != HBWDevice::BUS_BUSY) {
+      if (device->sendKeyEvent(channel, keyPressNum, sendLong) != HBWDevice::BUS_BUSY) {  // && retryCounter
         keyPressNum++;
         lastSentLong = sendLong;
       }
+      // TODO: add counter for retry handling - e.g. give up after 3 tries?
     }
   }
   else {
