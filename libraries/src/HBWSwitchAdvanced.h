@@ -69,6 +69,8 @@ class HBWSwitchAdvanced : public HBWChannel {
       TIME_MODE_ABSOLUTE
     };
 
+    static const uint8_t NUM_PEER_PARAMS = 7;  // see HBWLinkSwitchAdvanced
+
     struct s_peering_list // structure must match the EEPROM layout!
     {
        uint8_t actionType    :4;
@@ -80,7 +82,7 @@ class HBWSwitchAdvanced : public HBWChannel {
        uint8_t onTime;
        uint8_t offDelayTime;
        uint8_t offTime;
-       // jumpTargets
+       // jumpTargets --> stored in s_jt_peering_list
        // uint8_t jtOnDelay  : 3;
        // uint8_t jtOn       : 3;
        // uint8_t jtOffDelay : 3;
@@ -140,14 +142,12 @@ class HBWSwitchAdvanced : public HBWChannel {
     bool oldStateTimerRunningState;
     uint32_t stateChangeWaitTime;
     uint32_t lastStateChangeTime;
-    s_peering_list stateParamListS = {};//{0}  // values from peering (on/off time, etc.) for later state changes
+    s_peering_list stateParamListS = {};  // values from peering (on/off time, etc.) for later state changes
     s_peering_list* stateParamList = &stateParamListS;  // assign pointer
-    // s_peering_list* stateParamList;  // values from peering, storing on/off time, etc.
     uint8_t lastKeyNum;
 
     /* set required variables - to have consistent startup state */
     inline void init() {
-	  // stateParamList = (s_peering_list*) malloc(sizeof(*stateParamList));  // TODO: no need for dynamic allocation...
       stopStateChangeTime();
       oldStateTimerRunningState = false;
       stateChangeWaitTime = 0;
@@ -155,10 +155,6 @@ class HBWSwitchAdvanced : public HBWChannel {
       lastKeyNum = 255;  // key press counter uses only 6 bit, so init value of 255 makes sure first press (count 0) is accepted
       currentState = UNKNOWN_STATE;  // use UNKNOWN_STATE to trigger e.g. port initilization in afterReadConfig()
     };
-
-    // inline bool currentStateIs(uint8_t _value) {
-      // return currentState == _value;
-    // };
 
     inline void stopStateChangeTime() {  // clear timer
       stateTimerRunning = false;
@@ -175,8 +171,8 @@ class HBWSwitchAdvanced : public HBWChannel {
       stateTimerRunning = true;
     };
 
-    uint32_t getRemainingStateChangeTime(uint32_t _now = millis()) { // TODO: was "...) const {"
-      if (stateTimerRunning == false)  return 0;
+    uint32_t getRemainingStateChangeTime(uint32_t _now = millis()) {
+      if (stateTimerRunning == false)  return DELAY_INFINITE;
       return (stateChangeWaitTime - (_now - lastStateChangeTime));  // TODO: check if this can roll over - and if that's an issue?
     };
 
@@ -240,21 +236,21 @@ class HBWSwitchAdvanced : public HBWChannel {
     {
       // uint8_t next = getJumpTarget(currentState, _peerList);
       uint8_t next = getJumpTarget(currentState, _jtPeerList);
-      if( next != JT_NO_JUMP_IGNORE_COMMAND )
+      if (next != JT_NO_JUMP_IGNORE_COMMAND)
       {
         // get delay for the next state
         uint32_t nextDelay = getDelayForState(next, _peerList);
         // on/off time mode / absolute / minimal
-        if( next == currentState && (next == JT_ON || next == JT_OFF) && nextDelay < DELAY_INFINITE)
+        if (next == currentState && (next == JT_ON || next == JT_OFF) && nextDelay < DELAY_INFINITE)
         {
           bool minimal = (next == JT_ON) ? _peerList->isOnTimeMinimal() : _peerList->isOffTimeMinimal();
           // if new time is mode "minimal" - we jump out if the new delay is shorter
-          if( minimal == true ) {
+          if (minimal == true) {
            #ifdef DEBUG_OUTPUT
             hbwdebug(F("jT Min.Delay:")); hbwdebug(nextDelay); hbwdebug(F("\n"));
            #endif
-            uint32_t currentDelay = getRemainingStateChangeTime(); // 0 means DELAY_INFINITE
-            if( currentDelay == 0 || currentDelay > nextDelay ) {
+            uint32_t currentDelay = getRemainingStateChangeTime();
+            if (currentDelay == DELAY_INFINITE || currentDelay > nextDelay) {
              #ifdef DEBUG_OUTPUT
               hbwdebug(F("jT Skip Delay!\n"));
              #endif
@@ -271,13 +267,13 @@ class HBWSwitchAdvanced : public HBWChannel {
     {
       bool stateOk = true;  // default ok, to allow setting new timer for same state
       
-      if (_peerList != NULL) {
-        // save new values from valid peering event
-        memcpy(stateParamList, _peerList, sizeof(*stateParamList));
-        hbwdebug(F("sSt saved\n"));
-      }
       // check deep to prevent infinite recursion
       if( next != JT_NO_JUMP_IGNORE_COMMAND && deep < 4) {
+        if (_peerList != NULL && deep == 0) {
+          // save new values from valid peering event
+          memcpy(stateParamList, _peerList, sizeof(*stateParamList));
+          hbwdebug(F("sSt saved\n"));
+        }
         // cancel possible running timer
         stopStateChangeTime();
         hbwdebug(F("setS next:")); hbwdebughex(next); hbwdebug(F(" state:")); hbwdebughex(currentState);
@@ -307,16 +303,17 @@ class HBWSwitchAdvanced : public HBWChannel {
       }
     };
     
-    bool switchState(HBWDevice* device, uint8_t newstate)
+    bool switchState(HBWDevice* device, uint8_t _newstate)
     {
-      if (setOutput(device, newstate) == true) {
-        setFeedback(device, config->logging && (newstate == JT_ON || newstate == JT_OFF));
-        currentState = newstate;
+      if (setOutput(device, _newstate) == true) {
+        setFeedback(device, config->logging && (_newstate == JT_ON || _newstate == JT_OFF));
+        currentState = _newstate;
         return true;
       }
       else {
         setFeedback(device, config->logging);  // always notify if chan is locked, else only for actual state changes
         hbwdebug(F(" locked!"));
+		//TODO: reset channel to OFF? If locked in another state? Or don't care?
       }
       return false;
     };

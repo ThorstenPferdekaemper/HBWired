@@ -13,7 +13,6 @@
 #include "HBWSwitchAdvanced.h"
 
 // Switches class
-// HBWSwitchAdvanced::HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config) : stateParamList (NULL) {
 HBWSwitchAdvanced::HBWSwitchAdvanced(uint8_t _pin, hbw_config_switch* _config) {
   pin = _pin;
   config = _config;
@@ -35,11 +34,10 @@ void HBWSwitchAdvanced::afterReadConfig()
   }
   else {
   // Do not reset outputs on config change (EEPROM re-reads), but update its state
-    if (currentState == JT_ON)                          // TODO add || JT_OFFDELAY ?
+    if (currentState == JT_ON || currentState == JT_OFFDELAY)
       digitalWrite(pin, LOW ^ config->n_inverted);
-    else if (currentState == JT_OFF)                    // TODO add || JT_ONDELAY ?
+    else if (currentState == JT_OFF || currentState == JT_ONDELAY)
       digitalWrite(pin, HIGH ^ config->n_inverted);
-  // TODO: check off dealy state - right now the output will not be updated...
   }
 };
 
@@ -48,12 +46,12 @@ void HBWSwitchAdvanced::afterReadConfig()
 void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
   hbwdebug(F("set: "));
-  if (length == 9) {  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
-    
+  if (length == NUM_PEER_PARAMS +2)  // got called with additional peering parameters -- test for correct NUM_PEER_PARAMS
+  {
     s_peering_list* peeringList;
     peeringList = (s_peering_list*)data;
-    uint8_t currentKeyNum = data[7]; // TODO: add to struct? jtPeeringList? .. seem to use more prog memory...
-    bool sameLastSender = data[8];
+    uint8_t currentKeyNum = data[NUM_PEER_PARAMS]; // TODO: add to struct? jtPeeringList? .. seem to use more prog memory...
+    bool sameLastSender = data[NUM_PEER_PARAMS +1];
     
     // s_jt_peering_list* jtPeeringList;
     // jtPeeringList = (s_jt_peering_list*)&data[5];
@@ -94,23 +92,19 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
         // jumpToTarget(device, peeringList, jtPeeringList);
         // break;
       case TOGGLE_TO_COUNTER:
-        hbwdebug(F("TOGGLE_TO_C\n"));  // switch OFF at odd numbers, ON at even numbers
+        hbwdebug(F("TOGGLE_TO_C\n"));  // switch ON at odd numbers, OFF at even numbers
         // HMW-LC-Sw2 behaviour: toggle actions also use delay and on/off time
         // setState(device, (currentKeyNum & 0x01) == 0x01 ? JT_ON : JT_OFF, DELAY_INFINITE);
         nextState = (currentKeyNum & 0x01) == 0x01 ? JT_ON : JT_OFF;
         break;
       case TOGGLE_INVERS_TO_COUNTER:
-      hbwdebug(F("TOGGLE_INV_TO_C\n"));  // switch ON at odd numbers, OFF at even numbers
+      hbwdebug(F("TOGGLE_INV_TO_C\n"));  // switch OFF at odd numbers, ON at even numbers
         // setState(device, (currentKeyNum & 0x01) == 0x00 ? JT_ON : JT_OFF, DELAY_INFINITE);
         nextState = (currentKeyNum & 0x01) == 0x00 ? JT_ON : JT_OFF;
         break;
       case TOGGLE: {
         hbwdebug(F("TOGGLE\n"));
-        // setState(device, currentState == JT_ON ? JT_OFF : JT_ON, DELAY_INFINITE);
-        // uint8_t reading[2];
-        // get(reading);
-        // nextState = (reading[0] == 0) ? JT_ON : JT_OFF;  // check actual output state. 0 is OFF, anything other ON
-        // set OFF in onDelay and ON in offDelay state?
+        // toggle to ON when in OFF and ONDELAY state (which would have the output switched OFF)
         nextState = (currentState == JT_OFF || currentState == JT_ONDELAY) ? JT_ON : JT_OFF;  // go to ON or OFF
 		}
         break;
@@ -124,9 +118,10 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   }
   else {
     // set value - no peering event, overwrite any active timer. Peering actions can overwrite INFINITE delay by absolute time_mode only
+    // clear stored peeringList on manual SET()
+    memset(stateParamList, 0, sizeof(*stateParamList));
     hbwdebug(F("value\n"));
     if (*(data) > 200) {   // toggle
-      // setState(device, (currentState == JT_ON ? JT_OFF : JT_ON), DELAY_INFINITE);
       // uint8_t reading[2];
       // get(reading);
       // setState(device, (reading[0] == 0 ? JT_ON : JT_OFF), DELAY_INFINITE);;  // check actual output state. 0 is OFF, anything other ON
@@ -150,16 +145,16 @@ uint8_t HBWSwitchAdvanced::get(uint8_t* data)
 
 
 // separate function to set the actual outputs. Would be usually different in derived class
-bool HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t newstate)
+bool HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t _newstate)
 {
   bool result = false;
   
   if (config->output_unlocked)  //0=LOCKED, 1=UNLOCKED
   {
-    if (newstate == JT_ON) { // TODO: JT_OFFDELAY would turn output ON, if not yet ON
+    if (_newstate == JT_ON || _newstate == JT_OFFDELAY) { // JT_OFFDELAY would turn output ON, if not yet ON
       digitalWrite(pin, LOW ^ config->n_inverted);
     }
-    else if (newstate == JT_OFF) { // TODO: JT_ONDELAY would turn output OFF, if not yet OFF
+    else if (_newstate == JT_OFF || _newstate == JT_ONDELAY) { // JT_ONDELAY would turn output OFF, if not yet OFF
       digitalWrite(pin, HIGH ^ config->n_inverted);
     }
     result = true;  // return success for unlocked channels, to accept any new state
