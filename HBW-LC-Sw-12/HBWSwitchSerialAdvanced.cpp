@@ -26,7 +26,6 @@ HBWSwitchSerialAdvanced::HBWSwitchSerialAdvanced(uint8_t _relayPos, uint8_t _led
   
   // init(); - HBWSwitchAdvanced initializer called it already
   currentState = JT_OFF;  // init() will set state to UNKNOWN_STATE - we don't want that here
-  // clearFeedback();
 };
 
 
@@ -54,28 +53,44 @@ uint8_t HBWSwitchSerialAdvanced::get(uint8_t* data)
 
 
 // set actual outputs
-bool HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t newstate)
+bool HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t _newstate)
 {
-  bool result = false;
-
-  if (config->output_unlocked && relayOperationPending == false)  // not LOCKED and no relay operation pending
+  if (config->output_unlocked)// && relayOperationPending == false)  // not LOCKED and no relay operation pending
   {
-    if (newstate == JT_ON) {hbwdebug(F("!ON!"));
-      // level = (LOW ^ config->n_inverted);
-      shiftRegister->set(ledPos, HIGH); // set LEDs
-      operateRelay(LOW ^ config->n_inverted);
+    if (_newstate == JT_ON || _newstate == JT_OFFDELAY) {  // JT_OFFDELAY would also turn output ON, if not yet ON
+      hbwdebug(F("!ON!"));
+      // if (relayLevel != ON && relayOperationPending == false) {
+      //   shiftRegister->set(ledPos, HIGH); // set LEDs
+      //   operateRelay(LOW ^ config->n_inverted);
+      // }
+      if (relayLevel != ON) {
+        if (relayOperationPending == false) {
+          shiftRegister->set(ledPos, HIGH); // set LEDs
+          operateRelay(LOW ^ config->n_inverted);
+          return true;
+        }
+      }
+      else return true;
     }
-    else if (newstate == JT_OFF) {hbwdebug(F("!OFF!"));
-      // level = (HIGH ^ config->n_inverted);
-      shiftRegister->set(ledPos, LOW); // set LEDs
-      operateRelay(HIGH ^ config->n_inverted);
+    else if (_newstate == JT_OFF || _newstate == JT_ONDELAY) { // JT_ONDELAY would also turn output OFF, if not yet OFF
+      hbwdebug(F("!OFF!"));
+      // if (relayLevel != OFF && relayOperationPending == false) {
+      //   shiftRegister->set(ledPos, LOW); // set LEDs
+      //   operateRelay(HIGH ^ config->n_inverted);
+      // }
+      if (relayLevel != OFF) {
+        if (relayOperationPending == false) {
+          shiftRegister->set(ledPos, LOW); // set LEDs
+          operateRelay(HIGH ^ config->n_inverted);
+          return true;
+        }
+      }
+      else return true;
     }
     // hbwdebug(F("!b!"));hbwdebug(relayOperationPending);hbwdebug(F("!"));
-    result = true;  // return success for unlocked channels, to accept any new state
+    // return success for unlocked channels, to accept any new state
   }
-  // Logging
-  // setFeedback(device, config->logging);
-  return result;
+  return false;
 };
 
 
@@ -114,25 +129,6 @@ void HBWSwitchSerialAdvanced::loop(HBWDevice* device, uint8_t channel)
 // hbwdebug(F("re-C!"));
   }
 
-  HBWSwitchAdvanced::loop(device, channel);  // parent function handles the rest...
-
-  //*** state machine begin ***//
-  // if (((now - lastStateChangeTime > stateChangeWaitTime) && stateTimerRunning))
-  // {
-  //   stopStateChangeTime();  // time was up, so don't come back into here - new valid timer should be set below
-  //  #ifdef DEBUG_OUTPUT
-  //    hbwdebug(F("chan:"));
-  //    hbwdebughex(channel);
-  //  #endif
-  //   // check next jump from current state
-  //   uint8_t nextState = getNextState();
-  //   uint32_t delay = getDelayForState(nextState, stateParamList);
-
-  //   // try to set new state and start new timer, if needed
-  //   setState(device, nextState, delay, stateParamList);
-  // }
-  // //*** state machine end ***//
-
-  // // feedback trigger set?
-  // checkFeedback(device, channel);
+  HBWSwitchAdvanced::loop(device, channel);  // parent function handles the rest... like
+  /* state machine, feedback, etc... see HBWSwitchAdvanced->loop  */
 };
