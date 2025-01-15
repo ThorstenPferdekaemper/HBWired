@@ -70,6 +70,7 @@ class HBWSwitchAdvanced : public HBWChannel {
     };
 
     static const uint8_t NUM_PEER_PARAMS = 7;  // see HBWLinkSwitchAdvanced
+    static const uint8_t PEER_PARAM_JT_START = 5;  // start pos of jumpTargets (see HBWLinkSwitchAdvanced / s_peering_list structure)
 
     struct s_peering_list // structure must match the EEPROM layout!
     {
@@ -293,13 +294,13 @@ class HBWSwitchAdvanced : public HBWChannel {
             // start new timer
             startNewStateChangeTime(delay);
           }
-         // set notify trigger as well, when timer started/stopped, even with no change of the state
-         if (oldStateTimerRunningState != stateTimerRunning) {
-           setFeedback(device, config->logging);
-         }
-       }
-       oldStateTimerRunningState = stateTimerRunning;
-       hbwdebug(F(" sTimer:"));hbwdebug(stateTimerRunning);hbwdebug(F("\n"));
+          // set notify trigger as well, when timer started/stopped, even with no change of the state
+          if (oldStateTimerRunningState != stateTimerRunning) {
+            setFeedback(device, config->logging);
+          }
+        }
+        oldStateTimerRunningState = stateTimerRunning;
+        hbwdebug(F(" sTimer:"));hbwdebug(stateTimerRunning);hbwdebug(F("\n"));
       }
     };
     

@@ -151,13 +151,4 @@ void loop()
 {
   device->loop();
   POWERSAVE();  // go sleep a bit
-
-  //   static uint32_t lastChangeTime = 0;
-  // static bool set;
-  // if (millis() - lastChangeTime > 3000 && !set) {
-  //   lastChangeTime = millis();
-  //   uint8_t foo[9] = {129,10,15,20,12,209,0,3,0};  // jump to target action
-  //   device->set(1, 9, foo);  // peering event for target chan 1
-  //   set = true;
-  // }
 };

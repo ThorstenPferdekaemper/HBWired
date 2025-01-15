@@ -52,11 +52,7 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     peeringList = (s_peering_list*)data;
     uint8_t currentKeyNum = data[NUM_PEER_PARAMS]; // TODO: add to struct? jtPeeringList? .. seem to use more prog memory...
     bool sameLastSender = data[NUM_PEER_PARAMS +1];
-    
-    // s_jt_peering_list* jtPeeringList;
-    // jtPeeringList = (s_jt_peering_list*)&data[5];
 
-    // if ((StateMachine.lastKeyNum == currentKeyNum && sameLastSender) && !peeringList->LongMultiexecute)
     if ((lastKeyNum == currentKeyNum && sameLastSender) && !peeringList->LongMultiexecute)
     // if ((lastKeyNum == jtPeeringList->currentKeyNum && jtPeeringList->sameLastSender) && !peeringList->LongMultiexecute)
       return;  // repeated long press reveived, but LONG_MULTIEXECUTE not enabled
@@ -80,33 +76,27 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     if (peeringList->actionType == JUMP_TO_TARGET) {
       hbwdebug(F("jumpToTarget\n"));
       s_jt_peering_list* jtPeeringList;
-      jtPeeringList = (s_jt_peering_list*)&data[5];
+      jtPeeringList = (s_jt_peering_list*)&data[PEER_PARAM_JT_START];
       jumpToTarget(device, peeringList, jtPeeringList);
     }
     else if (peeringList->actionType >= TOGGLE_TO_COUNTER && peeringList->actionType <= TOGGLE)
     {
       uint8_t nextState;
       switch (peeringList->actionType) {
-      // case JUMP_TO_TARGET:
-        // hbwdebug(F("jumpToTarget\n"));
-        // jumpToTarget(device, peeringList, jtPeeringList);
-        // break;
       case TOGGLE_TO_COUNTER:
         hbwdebug(F("TOGGLE_TO_C\n"));  // switch ON at odd numbers, OFF at even numbers
         // HMW-LC-Sw2 behaviour: toggle actions also use delay and on/off time
-        // setState(device, (currentKeyNum & 0x01) == 0x01 ? JT_ON : JT_OFF, DELAY_INFINITE);
         nextState = (currentKeyNum & 0x01) == 0x01 ? JT_ON : JT_OFF;
         break;
       case TOGGLE_INVERS_TO_COUNTER:
-      hbwdebug(F("TOGGLE_INV_TO_C\n"));  // switch OFF at odd numbers, ON at even numbers
-        // setState(device, (currentKeyNum & 0x01) == 0x00 ? JT_ON : JT_OFF, DELAY_INFINITE);
+        hbwdebug(F("TOGGLE_INV_TO_C\n"));  // switch OFF at odd numbers, ON at even numbers
         nextState = (currentKeyNum & 0x01) == 0x00 ? JT_ON : JT_OFF;
         break;
       case TOGGLE: {
         hbwdebug(F("TOGGLE\n"));
         // toggle to ON when in OFF and ONDELAY state (which would have the output switched OFF)
-        nextState = (currentState == JT_OFF || currentState == JT_ONDELAY) ? JT_ON : JT_OFF;  // go to ON or OFF
-		}
+        nextState = (currentState == JT_OFF || currentState == JT_ONDELAY) ? JT_ON : JT_OFF;
+        }
         break;
       default: break;
       }
@@ -122,9 +112,6 @@ void HBWSwitchAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     memset(stateParamList, 0, sizeof(*stateParamList));
     hbwdebug(F("value\n"));
     if (*(data) > 200) {   // toggle
-      // uint8_t reading[2];
-      // get(reading);
-      // setState(device, (reading[0] == 0 ? JT_ON : JT_OFF), DELAY_INFINITE);;  // check actual output state. 0 is OFF, anything other ON
       setState(device, ((currentState == JT_OFF || currentState == JT_ONDELAY) ? JT_ON : JT_OFF), DELAY_INFINITE);
     }
     else {
@@ -147,8 +134,6 @@ uint8_t HBWSwitchAdvanced::get(uint8_t* data)
 // separate function to set the actual outputs. Would be usually different in derived class
 bool HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t _newstate)
 {
-  bool result = false;
-  
   if (config->output_unlocked)  //0=LOCKED, 1=UNLOCKED
   {
     if (_newstate == JT_ON || _newstate == JT_OFFDELAY) { // JT_OFFDELAY would turn output ON, if not yet ON
@@ -157,11 +142,9 @@ bool HBWSwitchAdvanced::setOutput(HBWDevice* device, uint8_t _newstate)
     else if (_newstate == JT_OFF || _newstate == JT_ONDELAY) { // JT_ONDELAY would turn output OFF, if not yet OFF
       digitalWrite(pin, HIGH ^ config->n_inverted);
     }
-    result = true;  // return success for unlocked channels, to accept any new state
+    return true;  // return success for unlocked channels, to accept any new state
   }
-  // Logging
-  // setFeedback(device, config->logging);
-  return result;
+  return false;
 };
 
 

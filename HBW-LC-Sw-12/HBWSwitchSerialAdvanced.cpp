@@ -55,16 +55,12 @@ uint8_t HBWSwitchSerialAdvanced::get(uint8_t* data)
 // set actual outputs
 bool HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t _newstate)
 {
-  if (config->output_unlocked)// && relayOperationPending == false)  // not LOCKED and no relay operation pending
+  if (config->output_unlocked)  // not LOCKED and no relay operation pending
   {
     if (_newstate == JT_ON || _newstate == JT_OFFDELAY) {  // JT_OFFDELAY would also turn output ON, if not yet ON
-      hbwdebug(F("!ON!"));
-      // if (relayLevel != ON && relayOperationPending == false) {
-      //   shiftRegister->set(ledPos, HIGH); // set LEDs
-      //   operateRelay(LOW ^ config->n_inverted);
-      // }
+      // hbwdebug(F("!ON!"));
       if (relayLevel != ON) {
-        if (relayOperationPending == false) {
+        if (relayOperationPending == false) {  // no relay operation pending
           shiftRegister->set(ledPos, HIGH); // set LEDs
           operateRelay(LOW ^ config->n_inverted);
           return true;
@@ -73,11 +69,7 @@ bool HBWSwitchSerialAdvanced::setOutput(HBWDevice* device, uint8_t _newstate)
       else return true;
     }
     else if (_newstate == JT_OFF || _newstate == JT_ONDELAY) { // JT_ONDELAY would also turn output OFF, if not yet OFF
-      hbwdebug(F("!OFF!"));
-      // if (relayLevel != OFF && relayOperationPending == false) {
-      //   shiftRegister->set(ledPos, LOW); // set LEDs
-      //   operateRelay(HIGH ^ config->n_inverted);
-      // }
+      // hbwdebug(F("!OFF!"));
       if (relayLevel != OFF) {
         if (relayOperationPending == false) {
           shiftRegister->set(ledPos, LOW); // set LEDs
@@ -121,7 +113,8 @@ void HBWSwitchSerialAdvanced::loop(HBWDevice* device, uint8_t channel)
   /* important to remove power from latching relay after some milliseconds!! */
   if ((now - relayOperationTimeStart) > RELAY_PULSE_DUARTION && relayOperationPending)
   {
-  // time to remove power from all coils // TODO: implement as timer interrupt routine? as it's important function... or rely on watchdog reset on major failure?
+  // time to remove power from all coils
+  // TODO: check if a pause should be enforced after an operation cycle (this would need some extra tracking to handle delayed relay operations)
     shiftRegister->setNoUpdate(relayPos +1, LOW);    // reset coil
     shiftRegister->setNoUpdate(relayPos, LOW);       // set coil
     shiftRegister->updateRegisters();
@@ -129,6 +122,6 @@ void HBWSwitchSerialAdvanced::loop(HBWDevice* device, uint8_t channel)
 // hbwdebug(F("re-C!"));
   }
 
-  HBWSwitchAdvanced::loop(device, channel);  // parent function handles the rest... like
+  HBWSwitchAdvanced::loop(device, channel);  // parent class function handles the rest... like
   /* state machine, feedback, etc... see HBWSwitchAdvanced->loop  */
 };

@@ -377,7 +377,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+18"/>
@@ -389,7 +388,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+19"/>
@@ -666,7 +664,6 @@
 			</parameter>
 			<parameter id="LONG_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+36"/>
@@ -678,7 +675,6 @@
 			</parameter>
 			<parameter id="LONG_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+37"/>
@@ -786,7 +782,7 @@
 					<set request="OLD_LEVEL"/>
 				</physical>
 			</parameter>
-			<parameter id="TOGL_WITH_RAMP" operations="write" control="NONE">
+			<parameter id="TOGL_WITH_RAMP" operations="write" control="NONE"> <!-- using TOGGLE_WITH_RAMP as id get's messed up in FHEM... -->
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
 					<set request="TOGGLE_WITH_RAMP"/>
@@ -1298,7 +1294,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+18"/>
@@ -1310,7 +1305,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+19"/>
@@ -1587,7 +1581,6 @@
 			</parameter>
 			<parameter id="LONG_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+36"/>
@@ -1599,7 +1592,6 @@
 			</parameter>
 			<parameter id="LONG_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<!-- <special_value id="NOT_USED" value="378000"/> -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+37"/>
