@@ -701,7 +701,7 @@ void eepromHelperWrite(int _addr, uint8_t _val)
 {
 	// MSG_PRINT(F("W eeprom: "));MSG_PRINTLN(_addr + RECEIVER_EE_START_ADDR);
 	#if defined (EEPROM_no_update_function)
-	  if (EepromPtr->write(_addr + RECEIVER_EE_START_ADDR, _val) != _val)
+	  if (EepromPtr->read(_addr + RECEIVER_EE_START_ADDR, _val) != _val)
 		  EepromPtr->write(_addr + RECEIVER_EE_START_ADDR, _val);
 	#else
 		EepromPtr->update(_addr + RECEIVER_EE_START_ADDR, _val);

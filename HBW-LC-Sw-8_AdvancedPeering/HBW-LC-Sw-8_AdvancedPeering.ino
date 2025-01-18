@@ -19,10 +19,12 @@
 // - erweitertes peering hinzugefügt (HBWLinkSwitchAdvanced.h, HBWSwitchAdvanced.h) - Benötigt passende XML!
 // v1.04
 // - state flag added
+// v1.1
+// - internal rework of state engine (using https://github.com/pa-pa/AskSinPP)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0069
+#define FIRMWARE_VERSION 0x0072
 #define HMW_DEVICETYPE 0x83
 
 #define NUM_CHANNELS 8
@@ -75,7 +77,6 @@ void HBSwDevice::afterReadConfig() {
 
 
 HBSwDevice* device = NULL;
-
 
 
 void setup()

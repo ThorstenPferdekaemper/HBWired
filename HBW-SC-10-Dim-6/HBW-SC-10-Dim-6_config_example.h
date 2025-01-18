@@ -11,6 +11,12 @@ EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
 
 #include "SetupTimer_328p.h"
 
+inline void SetupHardware()
+{
+  setupPwmTimer1();
+  setupPwmTimer2();
+};
+
 // Pins
 #ifdef USE_HARDWARE_SERIAL
   #define RS485_TXEN 2  // Transmit-Enable

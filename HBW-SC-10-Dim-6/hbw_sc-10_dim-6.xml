@@ -44,6 +44,9 @@
 	<frame id="OLD_LEVEL" direction="to_device" type="#x" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" const_value="201"/>
 	</frame>
+	<frame id="TOGGLE_WITH_RAMP" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="254"/>
+	</frame>
 	<frame id="STATE_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
 		<parameter size="1.0" index="11.0" type="integer" param="STATE"/>
 	</frame>
@@ -366,7 +369,7 @@
 				</physical>
 			</parameter>
 		<!-- index="+17.3 unused -->
-			<parameter id="SHORT_RAMP_START_STEP">
+			<parameter id="SHORT_RAMP_START_STEP"><!-- scale *2 on device (15 = 15% = level 30) -->
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+17.4"/>
@@ -374,7 +377,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+18"/>
@@ -386,7 +388,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+19"/>
@@ -417,7 +418,7 @@
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_STEP">
-				<logical type="float" min="0" max="30" default="10" unit="30%"/> <!-- scale *2 on device (30% = level 60) -->
+				<logical type="float" min="0" max="30" default="10" unit="30%"/> <!-- scale *4 on device (15 = 30% = level 60) -->
 				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+22.4"/>
@@ -656,14 +657,13 @@
 			</parameter>
 		<!-- index="+35.3 unused -->
 			<parameter id="LONG_RAMP_START_STEP">
-				<logical type="float" min="0" max="15" default="5" unit="100%"/>
+				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+35.4"/>
 				</physical>
 			</parameter>
-			<parameter id="LONG_RAMPON_TIME"> <!-- TODO: implement. Change to 0.1 min value? -->
+			<parameter id="LONG_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+36"/>
@@ -673,9 +673,8 @@
 					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
 				</conversion>
 			</parameter>
-			<parameter id="LONG_RAMPOFF_TIME"> <!-- TODO: implement. Change to 0.1 min value? -->
+			<parameter id="LONG_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+37"/>
@@ -781,6 +780,12 @@
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
 					<set request="OLD_LEVEL"/>
+				</physical>
+			</parameter>
+			<parameter id="TOGL_WITH_RAMP" operations="write" control="NONE"> <!-- using TOGGLE_WITH_RAMP as id get's messed up in FHEM... -->
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="TOGGLE_WITH_RAMP"/>
 				</physical>
 			</parameter>
 			<parameter id="INSTALL_TEST" operations="write" ui_flags="internal">
@@ -1024,7 +1029,7 @@
 					<option id="LOGIC_INACTIVE"/>
 					<option id="LOGIC_OR" default="true"/>
 					<option id="LOGIC_AND"/>
-					<option id="LOGIC_XOR_(na)"/> <!-- not implemented, yet -->
+					<option id="LOGIC_XOR"/>
 					<option id="LOGIC_NOR"/>
 					<option id="LOGIC_NAND"/>
 					<option id="LOGIC_ORINVERS_(na)"/> <!-- not implemented -->
@@ -1289,7 +1294,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+18"/>
@@ -1301,7 +1305,6 @@
 			</parameter>
 			<parameter id="SHORT_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+19"/>
@@ -1576,9 +1579,8 @@
 					<address index="+35.4"/>
 				</physical>
 			</parameter>
-			<parameter id="LONG_RAMPON_TIME"> <!-- TODO: implement. Change to 0.1 min value? -->
+			<parameter id="LONG_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+36"/>
@@ -1588,9 +1590,8 @@
 					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
 				</conversion>
 			</parameter>
-			<parameter id="LONG_RAMPOFF_TIME"> <!-- TODO: implement. Change to 0.1 min value? -->
+			<parameter id="LONG_RAMPOFF_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
-					<special_value id="NOT_USED" value="378000"/>
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
 					<address index="+37"/>

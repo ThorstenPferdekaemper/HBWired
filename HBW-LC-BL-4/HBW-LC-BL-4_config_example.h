@@ -37,4 +37,10 @@ EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
 
 #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (using internal 1.1 volt reference)
 
+inline void SetupHardware()
+{
+  #if defined (ADC_BUS_VOLTAGE)
+  analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
+  #endif
+};
 
