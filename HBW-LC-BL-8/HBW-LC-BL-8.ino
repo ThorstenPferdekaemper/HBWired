@@ -53,32 +53,12 @@
 #include <HBWBlind.h>
 #include <HBWLinkBlindSimple.h>
 #include <HBWAnalogIn.h>
+#include <HBW_eeprom.h>
 
-// Pins
-#define RS485_TXEN 2  // Transmit-Enable
 
-#define BUTTON A6  // Button fuer Factory-Reset etc.
-#define LED LED_BUILTIN        // Signal-LED
+// Pins and hardware config
+#include "HBW-LC-BL-8_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
-#define BLIND1_ACT 10		// "Ein-/Aus-Relais"
-#define BLIND1_DIR 9		// "Richungs-Relais"
-#define BLIND2_ACT 8
-#define BLIND2_DIR 7
-#define BLIND3_ACT 6
-#define BLIND3_DIR 5
-#define BLIND4_ACT 4
-#define BLIND4_DIR 3
-
-#define BLIND5_ACT A5
-#define BLIND5_DIR A4
-#define BLIND6_ACT A2
-#define BLIND6_DIR A3
-#define BLIND7_ACT A1
-#define BLIND7_DIR A0
-#define BLIND8_ACT 11
-#define BLIND8_DIR 12
-
-#define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (using internal 1.1 volt reference)
 
 /*>>> more config in HBWBlind.h <<<*/
 
@@ -124,7 +104,7 @@ HBBlDevice* device = NULL;
 
 void setup()
 {
-  analogReference(INTERNAL);    // select internal 1.1 volt reference (to measure external bus voltage)
+  SetupHardware();
   Serial.begin(19200, SERIAL_8E1); // RS485 via UART Serial
 
   // assing relay pins

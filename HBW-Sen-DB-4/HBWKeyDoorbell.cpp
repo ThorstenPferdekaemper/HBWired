@@ -18,6 +18,7 @@ HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, u
   activeHigh = _activeHigh;
 };
 
+
 void HBWKeyDoorbell::afterReadConfig()
 {
   if(config->long_press_time == 0xFF) config->long_press_time = 10;  // 1.0 second
@@ -164,3 +165,4 @@ void HBWKeyDoorbell::buzzer(uint8_t _action, bool _forceChange)
     }
   }
 };
+

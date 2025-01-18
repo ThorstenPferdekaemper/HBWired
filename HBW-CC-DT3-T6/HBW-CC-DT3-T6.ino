@@ -29,10 +29,14 @@
 // - Added deltaT channel set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF command. It will force output state for one "output_change_wait_time" cycle
 // - Added timeout handling option for DeltaTx channels (set error state, if no temperature was received after certain time / interval)
 // - Added retry handling for deltaT peered actuator channels (sendKeyEvent) - rety delay and number of retries set in HBWDeltaT.h
+// v0.80
+// - locked DeltaT channels cannot be set anymore
+// - Enabling inhibit on DeltaT channels stops calculating new state completely. DeltaTx channel values are ignored. Output state can
+//   only be changed by set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF commands
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0048
+#define FIRMWARE_VERSION 0x0052
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
@@ -44,13 +48,9 @@
 #define LINKADDRESSSTART_DELTATX 0x220  // step 7
 
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
-
-
 // HB Wired protocol and module
 #include <HBWired.h>
+#include <HBW_eeprom.h>
 #include <HBWOneWireTempSensors.h>
 //#include <HBWLinkInfoEventSensor.h>
 #include "HBWLinkKeyInfoEventSensor.h"  // TODO: remove these files and add option to the lib, allowing to combine different LinkSender
@@ -58,38 +58,8 @@
 #include "HBWDeltaT.h"
 
 
-// Pins
-#ifdef USE_HARDWARE_SERIAL
-  #define RS485_TXEN 2  // Transmit-Enable
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (optional)
-  
-  #define ONEWIRE_PIN	A3 // Onewire Bus
-  #define RELAY_1 5
-  #define RELAY_2 6
-  #define RELAY_3 3
-  
-  #define BLOCKED_TWI_SDA A4  // used by I²C - SDA
-  #define BLOCKED_TWI_SCL A5  // used by I²C - SCL
-  
-#else
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
-  #define ADC_BUS_VOLTAGE A7  // analog input to measure bus voltage (optional)
-
-  #define ONEWIRE_PIN	10 // Onewire Bus
-  #define RELAY_1 5
-  #define RELAY_2 6
-  #define RELAY_3 A2
-
-  #include "FreeRam.h"
-  #include <HBWSoftwareSerial.h>
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif  //USE_HARDWARE_SERIAL
-
-#define LED LED_BUILTIN        // Signal-LED
+// Pins and hardware config
+#include "HBW-CC-DT3-T6_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
 
 #define NUMBER_OF_CHAN NUMBER_OF_TEMP_CHAN + (NUMBER_OF_DELTAT_CHAN *3)

@@ -14,7 +14,7 @@
 #include "HBWired.h"
 
 
-#define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT
 
 
 // config of each virtual key channel, address step 1

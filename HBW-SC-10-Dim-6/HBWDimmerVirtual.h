@@ -16,9 +16,9 @@
 
 #include <inttypes.h>
 #include "HBWired.h"
-#include <HBWDimmerAdvanced.h>
+// #include <HBWDimmerAdvanced.h>
 
-#define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT
 
 
 // config of each virtual dimmer channel, address step 1
@@ -59,12 +59,10 @@ class HBWDimmerVirtual : public HBWChannel {
   private:
     HBWChannel* dimChan;   // mapped dimmer channel (or another virtual dimmer?)
     hbw_config_dim_virt* config;
-    // uint8_t dimMaxLevel; // needed?? only via peering
     //uint8_t onLevel;  // level from peering - need to be stored?
     uint8_t level;  // level (0...100%) set for the channel to use in LOGIC condition
 
-    //void handleLogic(uint8_t logic, uint8_t const * const data, uint8_t* dataNew);
-    uint8_t handleLogic(uint8_t levelPeer, uint8_t _level);
+    uint8_t handleLogic(uint8_t levelPeer);
 };
 
 #endif

@@ -6,8 +6,15 @@
 *
 */
 
-#ifndef HBWDimmerSetupPWM_h
-#define HBWDimmerSetupPWM_h
+#ifndef SetupTimer_328p_h
+#define SetupTimer_328p_h
+
+
+  //change from fast-PWM to phase-correct PWM
+  // (This is the timer0 controlled PWM module. Do not change prescaler, it would impact millis() & delay() functions.)
+  //TCCR0A = _BV(COM0A1) | _BV(COM0B1) | _BV(WGM00);
+//  TCCR0A = B00000001; // phase-correct PWM @490Hz
+// TODO: fixme - not working! millis() is running two times slower when not in fast-PWM! - interrupt 'issue'
 
 
 inline void setupPwmTimer1(void) {

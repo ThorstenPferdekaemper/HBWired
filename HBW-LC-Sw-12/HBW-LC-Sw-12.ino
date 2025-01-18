@@ -24,15 +24,14 @@
 // - Added OE (output enable), to avoid shift register outputs flipping at start up
 // v0.41
 // - state flag added
+// v0.5
+// - internal rework of state engine (using updated HBWSwitchAdvanced class)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x002D
+#define FIRMWARE_VERSION 0x0036
 #define HMW_DEVICETYPE 0x93
 
-//#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
-/* Undefine "HBW_DEBUG" in 'HBWired.h' to remove code not needed. "HBW_DEBUG" also works as master switch,
- * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
 #define NUM_SW_CHANNELS 12  // switch/relay
 #define NUM_ADC_CHANNELS 6   // analog input
@@ -41,57 +40,16 @@
 #define LINKADDRESSSTART 0x40 // stepping 20
 
 
-
 // HB Wired protocol and module
 #include <HBWired.h>
 #include <HBWLinkSwitchAdvanced.h>
 #include "HBWSwitchSerialAdvanced.h"
 #include "HBWAnalogPow.h"
+#include <HBW_eeprom.h>
 
 
-// Pins
-#ifdef USE_HARDWARE_SERIAL
-  #define BUTTON A6  // Button fuer Factory-Reset etc.
-  #define RS485_TXEN 2  // Transmit-Enable
-  #define shiftReg_OutputEnable 8   // OE output enable, connect to all shift register
-  // 6 realys and LED attached to 3 shiftregisters
-  #define shiftRegOne_Data  10       //DS serial data input
-  #define shiftRegOne_Clock 3       //SH_CP shift register clock input
-  #define shiftRegOne_Latch 4       //ST_CP storage register clock input
-  // extension shifregister for another 6 relays and LEDs
-  #define shiftRegTwo_Data  7
-  #define shiftRegTwo_Clock 12
-  #define shiftRegTwo_Latch 9
-  
-#else
-  #define BUTTON 8  // Button fuer Factory-Reset etc.
-  #define RS485_RXD 4
-  #define RS485_TXD 2
-  #define RS485_TXEN 3  // Transmit-Enable
-  #define shiftReg_OutputEnable 12   // OE output enable, connect to all shift register
-  // 6 realys and LED attached to 3 shiftregisters
-  #define shiftRegOne_Data  10       //DS serial data input
-  #define shiftRegOne_Clock 9       //SH_CP shift register clock input
-  #define shiftRegOne_Latch 11       //ST_CP storage register clock input
-  // extension shifregister for another 6 relays and LEDs
-  #define shiftRegTwo_Data  5
-  #define shiftRegTwo_Clock 7
-  #define shiftRegTwo_Latch 6
-  
-  #include <FreeRam.h>
-  #include <HBWSoftwareSerial.h>
-  HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
-#endif
-
-#define LED LED_BUILTIN        // Signal-LED
-
-#define CT_PIN1 A0  // analog input for current transformer, switch channel 1
-#define CT_PIN2 A1  // analog input for current transformer, switch channel 2
-#define CT_PIN3 A2
-#define CT_PIN4 A4
-#define CT_PIN5 A5
-#define CT_PIN6 A3
-
+// Pins and hardware config
+#include "HBW-LC-Sw-12_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
 
 struct hbw_config {
@@ -138,9 +96,9 @@ SHIFT_REGISTER_CLASS* myShReg_two = new SHIFT_REGISTER_CLASS(shiftRegTwo_Data, s
 void setup()
 {
   // assing LEDs and switches (relay) pins (i.e. shift register bit position)
-  static const uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // not only used for the LED output, but also to keep track of the output state!
-  static const uint8_t RelayBitPos[6] = { 8, 10, 12,          // shift register 2: 3 relays (with 2 coils each) bit=set coil
-                                         16, 18, 20};        // shift register 3: 3 relays (with 2 coils each) bit=set coil
+  static const uint8_t LEDBitPos[6] = {0, 1, 2, 3, 4, 5};    // shift register 1: 6 LEDs // used for the LED output
+  static const uint8_t RelayBitPos[6] = { 8, 10, 12,          // shift register 2: 3 relays (with 2 coils each) bit=set coil (reset coil bit pos +1)
+                                         16, 18, 20};        // shift register 3: 3 relays (with 2 coils each) bit=set coil (reset coil bit pos +1)
   
   static const uint8_t currentTransformerPins[6] = {CT_PIN1, CT_PIN2, CT_PIN3, CT_PIN4, CT_PIN5, CT_PIN6};
   

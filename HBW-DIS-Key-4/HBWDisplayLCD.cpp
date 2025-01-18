@@ -8,7 +8,8 @@
  
 #include "HBWDisplayLCD.h"
 #include "HBWDimBacklight.h"
-#include <EEPROM.h>
+// #include <EEPROM.h>
+#include <HBW_eeprom.h>
 
 
 /* global/static */
