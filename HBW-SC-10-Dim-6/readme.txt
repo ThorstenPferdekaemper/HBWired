@@ -1,9 +1,6 @@
 Homematic Wired Homebrew PWM/0-10V Master Dimmer + 10 digital Eingänge
 ======================================================================
 
-// TODO: Implement dim peering params: RAMP_START_STEP
-
-
 Das Modul HBW-SC-10-Dim-6 bietet 6 kombinierte analoge bzw. PMW Ausgänge und 10 digitale Eingänge.
 Basis ist ein Arduino NANO mit RS485-Interface.
 
@@ -11,6 +8,7 @@ Direktes Peering möglich (HBWLinkDimmerAdvanced & HBWLinkKey).
 
 Die 6 analogen Ausgangskanäle geben eine Spannung von "0-10V" (alternativ "1-10V") als Dimmer aus (0-100%). Parallel steht das PWM Signal mit 'open collector' (12V Ausgangsspannung) zur Verfügung. Vier der Sechs Ausgänge geben das PWM Signal mit 122,5 Hz aus, die Restlichen zwei mit 976 Hz. Der PWM, bzw. Spannungsbereich kann auf ein Maximalwert von 40-100% pro Kanal konfiguriert werden.
 Statt "0-10V" können die analogen Ausgangskanäle, individuell per Jumper auf "0-20mA" geändert werden.
+Jedem der 6 Dimmer Kanäle sind 6 VIRTUAL_DIMMER Kanäle (Nr. 27 - 32) fest zugeordnet. Diese können auf einen Level gesetzt werden und ändern, je nach LOGIC_COMBINATION Konfiguration, den ON Level. (z.B. um Nachts die Helligkeit abzusenken)
 
 Die 10 Eingänge sind galvanisch getrennt und können mit einer Gleichspannung von ca. 12-24V betrieben werden. Die Eingänge stehen als Sensor oder Schalterkanal gleichzeitig zur Verfügung, d.h. pro Eingang sind zwei Kanäle vorhanden.
 Die Schalterkanäle können normal als Taster/Schalter inkl. Peering genutzt werden. Mögliche Typen: PUSHBUTTON, SWITCH, MOTIONSENSOR, DOORSENSOR. (Weitere Details in HBWKey.h)
