@@ -18,12 +18,6 @@
 #define NOT_A_PIN 0xFF
 #endif
 
-#if defined (ARDUINO_ARCH_RP2040)
-  // #include <Watchdog.h>
-#else
-  #include "avr/wdt.h"
-#endif
-
 
 /* Start Boot Program section and RAM address start */
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__) || defined (__AVR_ATmega328PB__)
