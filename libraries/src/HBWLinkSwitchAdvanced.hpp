@@ -51,7 +51,7 @@ void HBWLinkSwitchAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
 	  // ok, we have found a match
     if (!longPress) { // differs for short and long
       device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);      // read shortPress actionType
-      if (actionType & B00001111) {   // SHORT_ACTION_TYPE, ACTIVE
+      if (actionType & 0b00001111) {   // SHORT_ACTION_TYPE, ACTIVE
         // when active, read all other values and call channel set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
       //           + 6        //  SHORT_ACTION_TYPE
@@ -66,7 +66,7 @@ void HBWLinkSwitchAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
     // read specific long action eeprom section
     else {
       device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6 + NUM_PEER_PARAMS, 1); // read longPress actionType
-      if (actionType & B00001111) {  // LONG_ACTION_TYPE, ACTIVE
+      if (actionType & 0b00001111) {  // LONG_ACTION_TYPE, ACTIVE
         // when active, read all other values and call channel set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6 + NUM_PEER_PARAMS, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
         device->set(targetChannel, sizeof(data), data);    // channel, data length, data

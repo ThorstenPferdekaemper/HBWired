@@ -93,7 +93,7 @@ void HBSenKey::afterReadConfig(){
 
 void HBSenKey::loop(HBWDevice* device, uint8_t channel) {
 
-  long now = millis();
+  uint32_t now = millis();
   uint8_t data; 
 
   button.Update();
