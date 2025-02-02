@@ -12,11 +12,6 @@
 //
 //*******************************************************************
 // Changes
-// v0.1
-// - initial version
-// v0.2
-// - added OFFDELAY_BLINK, OFFDELAY_STEP peering setting
-// - clean-up
 // v0.3
 // - added input channels: Key & Sensor
 // v0.4
@@ -31,14 +26,17 @@
 // v0.7
 // - internal rework of state engine (using https://github.com/pa-pa/AskSinPP)
 // - fixed onLevel prio, added RAMP_START_STEP peering parameter handling
+// v0.8
+// - HBWDimmerAdvanced/HBWLinkDimmerAdvanced BREAKING CHANGE: aligned peering parameter (jump table at the very end) - same as switchAdv.
+//   Saves RAM, but requires updating (or recreation) all DIMMER & vDim peerings
 
 
 // TODO: Validate behaviour of OnLevelPrio and on/off time 'minimal' vs offLevel, etc.
-// TODO: reduce RAM usage! (with the current amount of channels, no additional features possible) - or use larger microcontroller...
+// TODO: RAM usage is high... with the current amount of channels, no additional features possible - like HBWKeyVirtual (use larger microcontroller...)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0048
+#define FIRMWARE_VERSION 0x0050
 #define HMW_DEVICETYPE 0x96 //device ID (make sure to import hbw_io-10_dim-6.xml into FHEM)
 
 #define NUMBER_OF_INPUT_CHAN 10   // input channel - pushbutton, key, other digital in
@@ -69,7 +67,7 @@
 #include "HBW-SC-10-Dim-6_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
 
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_DIM_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_DIM_CHAN //+ NUMBER_OF_VIRTUAL_KEY_CHAN
 
 
 struct hbw_config {
@@ -80,8 +78,8 @@ struct hbw_config {
   hbw_config_dim dimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x12 (address step 2)
   hbw_config_senSC senCfg[NUMBER_OF_SEN_INPUT_CHAN]; // 0x13 - 0x1C (address step 1)
   hbw_config_key keyCfg[NUMBER_OF_INPUT_CHAN]; // 0x1D - 0x30 (address step 2)
-  //hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_KEY_CHAN]; // 0x31 - 0x37 (address step 1)
   hbw_config_dim_virt dimVirtCfg[NUMBER_OF_VIRTUAL_DIM_CHAN]; // 0x31 - 0x37 (address step 1)
+  // hbw_config_key_virt keyVirtCfg[NUMBER_OF_VIRTUAL_KEY_CHAN]; // 0x38 - 0x3D (address step 1)
 } hbwconfig;
 
 
@@ -119,11 +117,11 @@ void setup()
  #if NUMBER_OF_DIM_CHAN == 6
   static const uint8_t PWMOut[6] = {PWM1, PWM2_DAC, PWM3_DAC, PWM4, PWM5, PWM6};  // assing pins
   
-  // dimmer + dimmer key channels
+  // dimmer + dimmer vKey/vDim channels
   for(uint8_t i = 0; i < NUMBER_OF_DIM_CHAN; i++) {
     channels[i] = new HBWDimmerAdvanced(PWMOut[i], &(hbwconfig.dimCfg[i]));
-    //channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWKeyVirtual(i, &(hbwconfig.keyVirtCfg[i]));
     channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN] = new HBWDimmerVirtual(channels[i], &(hbwconfig.dimVirtCfg[i]));
+    // channels[i + NUMBER_OF_DIM_CHAN + NUMBER_OF_INPUT_CHAN + NUMBER_OF_SEN_INPUT_CHAN + NUMBER_OF_VIRTUAL_DIM_CHAN] = new HBWKeyVirtual(i, &(hbwconfig.keyVirtCfg[i]));
   };
  #else
   #error Dimming channel count and pin missmatch!
