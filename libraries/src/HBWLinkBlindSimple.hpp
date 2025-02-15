@@ -54,11 +54,11 @@ void HBWLinkBlindSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devic
    	  device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);
 	  // differs for short and long
    	  if (longPress) {
-		  actionType = (actionType >> 3) & B00000111;
+		  actionType = (actionType >> 3) & 0b00000111;
 		  device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 8, 1);
 	  }
 	  else {
-		  actionType &= B00000111;
+		  actionType &= 0b00000111;
 		  device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 7, 1);
 	  }
 	  // we can have

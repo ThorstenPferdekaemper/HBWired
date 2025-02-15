@@ -53,6 +53,21 @@
 
 <channels>
 	<channel index="0" type="MAINTENANCE" count="1" class="maintenance" ui_flags="internal">
+		<paramset id="maint_ch_master" type="MASTER"/>
+		<paramset id="maint_ch_values" type="VALUES">
+			<parameter id="UNREACH" ui_flags="service" operations="read,event">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="UNREACH"/>
+			</parameter>
+			<parameter id="STICKY_UNREACH" ui_flags="service" operations="read,write,event">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="STICKY_UNREACH"/>
+			</parameter>
+			<parameter id="CONFIG_PENDING" ui_flags="service" operations="read,event">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="CONFIG_PENDING"/>
+			</parameter>
+		</paramset>
 	</channel>
 	
 	<channel index="1" type="SWITCH" count="12" physical_index_offset="-1">

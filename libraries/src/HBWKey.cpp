@@ -42,7 +42,7 @@ void HBWKey::afterReadConfig(){
 #ifdef ENABLE_SENSOR_STATE
 uint8_t HBWKey::get(uint8_t* data) {
   /* make input state available with DOOR_SENSOR.STATE control. Use Frame INFO_LEVEL or STATE_LEVEL */
-  (*data) =  buttonState ? 200 : 0;
+  (*data) =  readInput() ? 200 : 0;
   return 1;
 };
 #endif
@@ -55,21 +55,21 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   uint32_t now = millis();
   if (now == 0) now = 1;  // do not allow time=0 for the below code // AKA  "der Teufel ist ein Eichhoernchen"
   
-  buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
+  boolean buttonState = readInput();
   
   switch (config->input_type) {
     case DOORSENSOR:
   // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
-      if (buttonState != oldButtonState) {
+      if (buttonState != lastSentLong) {
         if (!keyPressedMillis) {
           keyPressedMillis = now;
         }
-        else if (now - keyPressedMillis >= DOORSENSOR_DEBOUNCE_TIME) {
+        else if (now - keyPressedMillis >= uint32_t(config->long_press_time) * 100) {
           keyPressedMillis = now;
           
           if (device->sendKeyEvent(channel, keyPressNum, !buttonState) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
-            oldButtonState = buttonState;
+            lastSentLong = (buttonState) ? 1 : 0;  // use lastSentLong to store old buttonState
           }
         }
       }
@@ -129,7 +129,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
               lastSentLong = now;
             }
           }
-          else if (now - keyPressedMillis >= long(config->long_press_time) * 100) {
+          else if (now - keyPressedMillis >= uint32_t(config->long_press_time) * 100) {
             // erstes LONG
             keyPressNum++;
             device->sendKeyEvent(channel, keyPressNum, true);  // long press

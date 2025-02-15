@@ -22,8 +22,6 @@
 
 // #define DEBUG_OUTPUT   // extra debug output on serial/USB - turn off for prod use
 
-#define RAMP_MIN_STEP_WIDTH 250//160 // milliseconds (set in 10 ms steps, last digit will be ignored) - default 250ms
-
 
 
 // from HBWLinkDimmerAdvanced:
@@ -33,19 +31,19 @@
 #define D_POS_onTime         2
 #define D_POS_offDelayTime   3
 #define D_POS_offTime        4
-#define D_POS_jumpTargets0   5
-#define D_POS_jumpTargets1   6
-#define D_POS_jumpTargets2   7
-#define D_POS_offLevel       8
-#define D_POS_onMinLevel     9
-#define D_POS_onLevel        10
-#define D_POS_peerConfigParam  11
-#define D_POS_rampOnTime     12
-#define D_POS_rampOffTime    13
-#define D_POS_dimMinLevel    14
-#define D_POS_dimMaxLevel    15
-#define D_POS_peerConfigStep 16
-#define D_POS_peerConfigOffDtime 17
+#define D_POS_offLevel       5
+#define D_POS_onMinLevel     6
+#define D_POS_onLevel        7
+#define D_POS_peerConfigParam  8
+#define D_POS_rampOnTime     9
+#define D_POS_rampOffTime    10
+#define D_POS_dimMinLevel    11
+#define D_POS_dimMaxLevel    12
+#define D_POS_peerConfigStep 13
+#define D_POS_peerConfigOffDtime 14
+#define D_POS_jumpTargets0   15
+#define D_POS_jumpTargets1   16
+#define D_POS_jumpTargets2   17
 #define D_POS_peerKeyPressNum    18
 #define D_POS_peerSameLastSender    19
 
@@ -75,6 +73,7 @@ struct hbw_config_dim {
 class HBWDimmerAdvanced : public HBWChannel {
   public:
     HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config);
+    // HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config, HBWKeyVirtual* _vKey);  // TODO: new variant with virtual key?
     virtual uint8_t get(uint8_t* data);   
     virtual void loop(HBWDevice*, uint8_t channel);   
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
@@ -118,7 +117,8 @@ class HBWDimmerAdvanced : public HBWChannel {
       DOWN
     };
 
-    static const uint8_t NUM_PEER_PARAMS = 18;  // see HBWLinkSwitchAdvanced
+    static const uint8_t NUM_PEER_PARAMS = 18;  // see HBWLinkDimmerAdvanced
+    static const uint8_t PEER_PARAM_JT_START = 15;  // start pos of jumpTargets (see HBWLinkDimmerAdvanced / s_peering_list structure)
     static const uint16_t DELAY_RAMP_DEFAULT = 500;  // 500 ms default ramp time (or 1000?)
 
     struct s_peering_list // structure must match the EEPROM layout!
@@ -132,14 +132,6 @@ class HBWDimmerAdvanced : public HBWChannel {
        uint8_t onTime;
        uint8_t offDelayTime;
        uint8_t offTime;
-       // jumpTargets - 3 byte - TODO: move to the end / to s_jt_peering_list
-       uint8_t jtOnDelay  : 3;
-       uint8_t jtOn       : 3;
-       uint8_t jtOffDelay : 3;
-       uint8_t jtOff      : 3;
-       uint8_t jtRampOn   : 3;
-       uint8_t jtRampOff  : 3;
-       uint8_t fillup      : 6;
        uint8_t offLevel;
        uint8_t onMinLevel;
        uint8_t onLevel;
@@ -156,14 +148,13 @@ class HBWDimmerAdvanced : public HBWChannel {
        uint8_t offDelayStep :4;
        uint8_t offDelayNewTime :4;  // time with reduced level...
        uint8_t offDelayOldTime :4;  // and previous level
-       // // jumpTargets - 3 byte - TODO: move to the end / to s_jt_peering_list
-       // uint8_t jtOnDelay  : 3;
-       // uint8_t jtOn       : 3;
-       // uint8_t jtOffDelay : 3;
-       // uint8_t jtOff      : 3;
-       // uint8_t jtRampOn   : 3;
-       // uint8_t jtRampOff  : 3;
-       // uint8_t fillup      : 6;
+       // // jumpTargets - 3 byte - 'moved' to s_jt_peering_list
+       // uint8_t jtOnDelay  : 4;
+       // uint8_t jtOn       : 4;
+       // uint8_t jtOffDelay : 4;
+       // uint8_t jtOff      : 4;
+       // uint8_t jtRampOn   : 4;
+       // uint8_t jtRampOff  : 4;
        
        inline bool isOffTimeAbsolute() const
        {
@@ -198,13 +189,12 @@ class HBWDimmerAdvanced : public HBWChannel {
     struct s_jt_peering_list // keep separate, no need to keep in mem
     {
        // jumpTargets - 3 byte
-       uint8_t jtOnDelay  : 3;
-       uint8_t jtOn       : 3;
-       uint8_t jtOffDelay : 3;
-       uint8_t jtOff      : 3;
-       uint8_t jtRampOn   : 3;
-       uint8_t jtRampOff  : 3;
-       uint8_t fillup     : 6;
+       uint8_t jtOnDelay  : 4;
+       uint8_t jtOn       : 4;
+       uint8_t jtOffDelay : 4;
+       uint8_t jtOff      : 4;
+       uint8_t jtRampOn   : 4;
+       uint8_t jtRampOff  : 4;
     };
 
     enum States // peering options/values must match the XML values!
@@ -235,7 +225,6 @@ class HBWDimmerAdvanced : public HBWChannel {
   protected:
     hbw_config_dim* config; // logging
     uint8_t dimUpDown(s_peering_list* _peeringList, bool dimUp);
-    // void prepareOnOffRamp(uint8_t rampTime, uint8_t level);
 
     uint8_t currentState;
     bool stateTimerRunning;
@@ -298,8 +287,8 @@ class HBWDimmerAdvanced : public HBWChannel {
       return JT_NO_JUMP_IGNORE_COMMAND;
     };
     
-    // uint8_t getJumpTarget(uint8_t _state, const s_jt_peering_list* _peerList) const
-    uint8_t getJumpTarget(uint8_t _state, const s_peering_list* _peerList) const
+    uint8_t getJumpTarget(uint8_t _state, const s_jt_peering_list* _peerList) const
+    // uint8_t getJumpTarget(uint8_t _state, const s_peering_list* _peerList) const
     {
       switch(_state) {
         case JT_ONDELAY:  return _peerList->jtOnDelay;
@@ -372,11 +361,11 @@ class HBWDimmerAdvanced : public HBWChannel {
     };
 
 
-    void jumpToTarget(HBWDevice* device, const s_peering_list* _peerList)
-    // void jumpToTarget(HBWDevice* device, const s_peering_list* _peerList, const s_jt_peering_list* _jtPeerList)
+    // void jumpToTarget(HBWDevice* device, const s_peering_list* _peerList)
+    void jumpToTarget(HBWDevice* device, const s_peering_list* _peerList, const s_jt_peering_list* _jtPeerList)
     {
-      uint8_t next = getJumpTarget(currentState, _peerList);
-      // uint8_t next = getJumpTarget(currentState, _jtPeerList);
+      // uint8_t next = getJumpTarget(currentState, _peerList);
+      uint8_t next = getJumpTarget(currentState, _jtPeerList);
       if( next != JT_NO_JUMP_IGNORE_COMMAND )
       {
         // get delay for the next state
@@ -584,6 +573,7 @@ class HBWDimmerAdvanced : public HBWChannel {
         }
         if (setOutputNoLogging(destLevel)) {  // handle disabled channel
           currentState = _next;
+          // set_vKey(bool(currentLevel ? true : false));  // TODO: set virtual key status?
         }
         else {
           hbwdebug(F(" !disabled!\n"));
@@ -618,5 +608,6 @@ class HBWDimmerAdvanced : public HBWChannel {
     
 };
 
+  // void set_vKey(bool _state) {if (vKey != NULL) vKey->set(_state);}  // TODO: set virtual key status?
 
 #endif

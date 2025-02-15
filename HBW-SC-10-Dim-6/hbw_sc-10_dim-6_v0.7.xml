@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-SC-10-Dim-6" name="RS485 6-channel master dimming actuator and 10 Digital inputs">
 		<parameter const_value="0x96" size="1" index="0"/><!--HMW_DEVICETYPE-->
 		<parameter const_value="1" size="1" index="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x0050" size="2" cond_op="GE" index="2"/><!--Min. FIRMWARE_VERSION-->
+		<parameter const_value="0x0049" size="2" cond_op="LE" index="2"/><!--Min. FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -244,8 +244,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+21.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_ON">
@@ -258,8 +258,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+21.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.3"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_OFFDELAY">
@@ -272,8 +272,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+22.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.6"/> <!-- 11.6 to 12.0 -->
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_OFF">
@@ -286,8 +286,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+22.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+12.1"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_RAMPON">
@@ -300,8 +300,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+23.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+12.4"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_RAMPOFF">
@@ -314,22 +314,22 @@
 					<option id="OFF" default="true"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+23.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+12.7"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFF_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+11"/>
+					<address index="+14"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_MIN_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.1" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+12"/>
+					<address index="+15"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_LEVEL">
@@ -338,7 +338,7 @@
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+13"/>
+					<address index="+16"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ONDELAY_MODE"> <!-- behaviour during ondelay operation -->
@@ -347,7 +347,7 @@
 					<option id="NO_CHANGE"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+14.0"/>
+					<address index="+17.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_LEVEL_PRIO"> <!-- defines prio of onlevel and ontime -->
@@ -356,7 +356,7 @@
 					<option id="LOW"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+14.1"/>
+					<address index="+17.1"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_BLINK">
@@ -365,21 +365,21 @@
 					<option id="ON" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+14.2"/>
+					<address index="+17.2"/>
 				</physical>
 			</parameter>
-		<!-- index="+14.3 unused -->
+		<!-- index="+17.3 unused -->
 			<parameter id="SHORT_RAMP_START_STEP"><!-- scale *2 on device (15 = 15% = level 30) -->
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+14.4"/>
+					<address index="+17.4"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+15"/>
+					<address index="+18"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -390,7 +390,7 @@
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+16"/>
+					<address index="+19"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -401,39 +401,39 @@
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+17"/>
+					<address index="+20"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_DIM_MAX_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="1.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+18"/>
+					<address index="+21"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_DIM_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+19.0"/>
+					<address index="+22.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_STEP">
 				<logical type="float" min="0" max="30" default="10" unit="30%"/> <!-- scale *4 on device (15 = 30% = level 60) -->
 				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+19.4"/>
+					<address index="+22.4"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_NEWTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+20.0"/>
+					<address index="+23.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_OLDTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+20.4"/>
+					<address index="+23.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_TIME_MODE">
@@ -530,8 +530,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+39.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+29.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_ON">
@@ -544,8 +544,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+39.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+29.3"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_OFFDELAY">
@@ -558,8 +558,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+40.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+29.6"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_OFF">
@@ -572,8 +572,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+40.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+30.1"/>
 				</physical>
 			</parameter>
 			
@@ -587,8 +587,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+41.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+30.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_RAMPOFF">
@@ -601,22 +601,22 @@
 					<option id="OFF" default="true"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+41.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+30.7"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFF_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+29"/>
+					<address index="+32"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_MIN_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.1" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+30"/>
+					<address index="+33"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_LEVEL">
@@ -625,7 +625,7 @@
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+31"/>
+					<address index="+34"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ONDELAY_MODE">
@@ -634,7 +634,7 @@
 					<option id="NO_CHANGE"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+32.0"/>
+					<address index="+35.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_LEVEL_PRIO">
@@ -643,7 +643,7 @@
 					<option id="LOW"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+32.1"/>
+					<address index="+35.1"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_BLINK">
@@ -652,21 +652,21 @@
 					<option id="ON" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+32.2"/>
+					<address index="+35.2"/>
 				</physical>
 			</parameter>
-		<!-- index="+32.3 unused -->
+		<!-- index="+35.3 unused -->
 			<parameter id="LONG_RAMP_START_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+32.4"/>
+					<address index="+35.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+33"/>
+					<address index="+36"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -677,7 +677,7 @@
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+34"/>
+					<address index="+37"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -688,39 +688,39 @@
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+35"/>
+					<address index="+38"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_DIM_MAX_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="1.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+36"/>
+					<address index="+39"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_DIM_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+37.0"/>
+					<address index="+40.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_STEP">
 				<logical type="float" min="0" max="30" default="10" unit="30%"/>
 				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+37.4"/>
+					<address index="+40.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_NEWTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+38.0"/>
+					<address index="+41.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_OLDTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+38.4"/>
+					<address index="+41.4"/>
 				</physical>
 			</parameter>
 		</paramset>
@@ -1161,8 +1161,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+21.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_ON">
@@ -1175,8 +1175,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+21.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.3"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_OFFDELAY">
@@ -1189,8 +1189,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+22.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.6"/> <!-- 11.6 to 12.0 -->
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_OFF">
@@ -1203,8 +1203,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+22.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+12.1"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_RAMPON">
@@ -1217,8 +1217,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+23.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+12.4"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_JT_RAMPOFF">
@@ -1231,22 +1231,22 @@
 					<option id="OFF" default="true"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+23.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+12.7"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFF_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+11"/>
+					<address index="+14"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_MIN_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.1" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+12"/>
+					<address index="+15"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_LEVEL">
@@ -1255,7 +1255,7 @@
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+13"/>
+					<address index="+16"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ONDELAY_MODE"> <!-- behaviour during ondelay operation -->
@@ -1264,7 +1264,7 @@
 					<option id="NO_CHANGE"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+14.0"/>
+					<address index="+17.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_ON_LEVEL_PRIO"> <!-- defines prio of onlevel and ontime -->
@@ -1273,7 +1273,7 @@
 					<option id="LOW"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+14.1"/>
+					<address index="+17.1"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_BLINK">
@@ -1282,21 +1282,21 @@
 					<option id="ON" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+14.2"/>
+					<address index="+17.2"/>
 				</physical>
 			</parameter>
-		<!-- index="+14.3 unused -->
-			<parameter id="SHORT_RAMP_START_STEP"><!-- scale *2 on device (15 = 15% = level 30) -->
+		<!-- index="+17.3 unused -->
+			<parameter id="SHORT_RAMP_START_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+14.4"/>
+					<address index="+17.4"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+15"/>
+					<address index="+18"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -1307,7 +1307,7 @@
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s"> <!-- TODO: Change max value to 372000? (62*6000) -->
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+16"/>
+					<address index="+19"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -1318,39 +1318,39 @@
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+17"/>
+					<address index="+20"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_DIM_MAX_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="1.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+18"/>
+					<address index="+21"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_DIM_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+19.0"/>
+					<address index="+22.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_STEP">
-				<logical type="float" min="0" max="30" default="10" unit="30%"/> <!-- scale *4 on device (15 = 30% = level 60) -->
+				<logical type="float" min="0" max="30" default="10" unit="30%"/> <!-- scale *2 on device (30% = level 60) -->
 				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+19.4"/>
+					<address index="+22.4"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_NEWTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+20.0"/>
+					<address index="+23.0"/>
 				</physical>
 			</parameter>
 			<parameter id="SHORT_OFFDELAY_OLDTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+20.4"/>
+					<address index="+23.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_TIME_MODE">
@@ -1447,8 +1447,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+39.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+29.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_ON">
@@ -1461,8 +1461,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+39.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+29.3"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_OFFDELAY">
@@ -1475,8 +1475,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+40.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+29.6"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_OFF">
@@ -1489,8 +1489,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+40.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+30.1"/>
 				</physical>
 			</parameter>
 			
@@ -1504,8 +1504,8 @@
 					<option id="OFF"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+41.0"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+30.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_JT_RAMPOFF">
@@ -1518,22 +1518,22 @@
 					<option id="OFF" default="true"/>
 					<option id="NO_JUMP_IGNORE_COMMAND"/>
 				</logical>
-				<physical type="integer" size="0.4" interface="eeprom" endian="little" read_size="1">
-					<address index="+41.4"/>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+30.7"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFF_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+29"/>
+					<address index="+32"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_MIN_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="0.1" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+30"/>
+					<address index="+33"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_LEVEL">
@@ -1542,7 +1542,7 @@
 				</logical>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+31"/>
+					<address index="+34"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ONDELAY_MODE">
@@ -1551,7 +1551,7 @@
 					<option id="NO_CHANGE"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+32.0"/>
+					<address index="+35.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ON_LEVEL_PRIO">
@@ -1560,7 +1560,7 @@
 					<option id="LOW"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+32.1"/>
+					<address index="+35.1"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_BLINK">
@@ -1569,21 +1569,21 @@
 					<option id="ON" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+32.2"/>
+					<address index="+35.2"/>
 				</physical>
 			</parameter>
-		<!-- index="+32.3 unused -->
+		<!-- index="+35.3 unused -->
 			<parameter id="LONG_RAMP_START_STEP">
-				<logical type="float" min="0" max="15" default="5" unit="15%"/>
+				<logical type="float" min="0" max="15" default="5" unit="100%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+32.4"/>
+					<address index="+35.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_RAMPON_TIME">
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+33"/>
+					<address index="+36"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -1594,7 +1594,7 @@
 				<logical type="float" min="0.0" max="63000.0" default="1" unit="s">
 				</logical>
 				<physical type="integer" size="1.0" interface="eeprom" endian="little">
-					<address index="+34"/>
+					<address index="+37"/>
 				</physical>
 				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
 				<conversion type="integer_integer_map">
@@ -1605,39 +1605,39 @@
 				<logical type="float" min="0.0" max="1.0" default="0.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+35"/>
+					<address index="+38"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_DIM_MAX_LEVEL">
 				<logical type="float" min="0.0" max="1.0" default="1.0" unit="100%"/>
 				<conversion type="float_integer_scale" factor="200"/>
 				<physical type="integer" size="1.0" interface="eeprom">
-					<address index="+36"/>
+					<address index="+39"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_DIM_STEP">
 				<logical type="float" min="0" max="15" default="5" unit="15%"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+37.0"/>
+					<address index="+40.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_STEP">
 				<logical type="float" min="0" max="30" default="10" unit="30%"/>
 				<conversion type="float_integer_scale" factor="0.5"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+37.4"/>
+					<address index="+40.4"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_NEWTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+38.0"/>
+					<address index="+41.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_OFFDELAY_OLDTIME">
 				<logical type="float" min="1" max="15" default="1" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
-					<address index="+38.4"/>
+					<address index="+41.4"/>
 				</physical>
 			</parameter>
 		</paramset>

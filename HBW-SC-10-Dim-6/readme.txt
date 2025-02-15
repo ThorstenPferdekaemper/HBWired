@@ -16,17 +16,19 @@ Achtung: Die Schalterkanäle sind standardmäßig aktiv und als "PUSHBUTTON" konfig
 Die Sensor Kanäle können abgefragt werden (kein Peering), und liefern dann "sensor_open" oder "sensor_closed" zurück. Eine 'event/notify' broadcast Nachricht kann bei einer Statusänderung versendet werden. Dies ist standardmäßig in der Kanalkonfiguration deaktiviert. Eine Invertierung lässt sich ebenfalls aktivieren.
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw_sc-10_dim-6.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x96 aus).
+(für ältere Versionen (>=0.7x) des HBW-SC-10-Dim-6 steht hbw_sc-10_dim-6_v0.7.xml zur Verfügung)
 
 Mögliche Dimmer-"Endstufen":
-0-10V: LED Dimmer, Finder Typ 15.11 - Slave Dimmer, etc.
+0-10V: LED Dimmer, Finder Typ 15.11 - Slave Dimmer
 0-90% PWM: Eltako LUD12-230V
 
+http://loetmeister.de/Elektronik/homematic/hbw-sc-10-dim-6.htm
 
 Konfigurationsoptionen der verschiedenen Kanaltypen:
 DIMMER
 * LOGGING
 * PWM_RANGE (40 - 100%) - Maximaler PWM Wert am Ausgang
-* OUTPUT_VOLTAGE (0-10V oder 1-10V)
+* OUTPUT_VOLTAGE (0-10V oder 1-10V, bzw. 0-20mA / 2-20mA)
 
 SENSOR
 * INPUT_LOCKED
@@ -39,12 +41,13 @@ KEY
 * INPUT_TYPE (DOORSENSOR, MOTIONSENSOR, SWITCH, PUSHBUTTON [default])
 * LONG_PRESS_TIME
 
-removed:[DIMMER KEY (virtuelle Taster, welche einen Tastendruck senden, wenn der jeweilige Dimmerkanal ein- oder ausgeschaltet wird [0% = Aus])
-* INPUT_LOCKED
-* INVERTED]
-added:
 VIRTUAL_DIMMER
 * LOGIC_COMBINATION
+
+
+TODO:[DIMMER KEY (virtuelle Taster, welche einen Tastendruck senden, wenn der jeweilige Dimmerkanal ein- oder ausgeschaltet wird [0% = Aus])
+* INPUT_LOCKED
+* INVERTED]
 
 
 Standard-Pinbelegung:

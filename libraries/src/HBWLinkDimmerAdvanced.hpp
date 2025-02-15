@@ -51,32 +51,32 @@ void HBWLinkDimmerAdvanced<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* de
 	  // ok, we have found a match
     if (!longPress) { // differs for short and long
       device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);      // read shortPress actionType
-      if (actionType & B00001111) {   // SHORT_ACTION_TYPE, ACTIVE
+      if (actionType & 0b00001111) {   // SHORT_ACTION_TYPE, ACTIVE
         // when active, read all other values and call channel set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
-     //         + 6       //  SHORT_ACTION_TYPE
-     //         + 7       //  SHORT_ONDELAY_TIME
-     //         + 8       //  SHORT_ON_TIME
-     //         + 9       //  SHORT_OFFDELAY_TIME
-     //         + 10      //  SHORT_OFF_TIME
-     //         + 11, 12, 13   //  SHORT_JT_* table
-     //         + 14      // SHORT_OFF_LEVEL
-     //         + 15      // SHORT_ON_MIN_LEVEL
-     //         + 16      // SHORT_ON_LEVEL
-     //         + 17      // SHORT_ONDELAY_MODE, SHORT_ON_LEVEL_PRIO, SHORT_OFFDELAY_BLINK, SHORT_RAMP_START_STEP
-     //         + 18      // SHORT_RAMPON_TIME
-     //         + 19      // SHORT_RAMPOFF_TIME
-     //         + 20      // SHORT_DIM_MIN_LEVEL
-     //         + 21      // SHORT_DIM_MAX_LEVEL
-     //         + 22      // SHORT_DIM_STEP, SHORT_OFFDELAY_STEP
-     //         + 23      // SHORT_OFFDELAY_NEWTIME, SHORT_OFFDELAY_OLDTIME
+     //         + 6       // SHORT_ACTION_TYPE
+     //         + 7       // SHORT_ONDELAY_TIME
+     //         + 8       // SHORT_ON_TIME
+     //         + 9       // SHORT_OFFDELAY_TIME
+     //         + 10      // SHORT_OFF_TIME
+     //         + 11      // SHORT_OFF_LEVEL
+     //         + 12      // SHORT_ON_MIN_LEVEL
+     //         + 13      // SHORT_ON_LEVEL
+     //         + 14      // SHORT_ONDELAY_MODE, SHORT_ON_LEVEL_PRIO, SHORT_OFFDELAY_BLINK, SHORT_RAMP_START_STEP
+     //         + 15      // SHORT_RAMPON_TIME
+     //         + 16      // SHORT_RAMPOFF_TIME
+     //         + 17      // SHORT_DIM_MIN_LEVEL
+     //         + 18      // SHORT_DIM_MAX_LEVEL
+     //         + 19      // SHORT_DIM_STEP, SHORT_OFFDELAY_STEP
+     //         + 20      // SHORT_OFFDELAY_NEWTIME, SHORT_OFFDELAY_OLDTIME
+     //         + 21, 22, 23   //  SHORT_JT_* table
         device->set(targetChannel, sizeof(data), data);    // channel, data length, data
       }
     }
     // read specific long action eeprom section
     else {
       device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6 + NUM_PEER_PARAMS, 1); // read longPress actionType
-      if (actionType & B00001111) {  // LONG_ACTION_TYPE, ACTIVE
+      if (actionType & 0b00001111) {  // LONG_ACTION_TYPE, ACTIVE
         // when active, read all other values and call channel set()
         device->readEEPROM(&data, eepromStart + EEPROM_SIZE * i + 6 + NUM_PEER_PARAMS, NUM_PEER_PARAMS);     // read all parameters (must be consecutive)
      //         + 6+ NUM_PEER_PARAMS      //  LONG_ACTION_TYPE

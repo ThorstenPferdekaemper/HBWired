@@ -26,19 +26,17 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
   if (millis() - keyPressedMillis < POLLING_WAIT_TIME)  return;
 
   uint8_t value;
-  device->get(mappedChan, &value);  // check length? switch or dimmer use only 1 byte
+  device->get(mappedChan, &value);  // check length? switch or dimmer use only 1 byte for the level. 2nd byte are state flags
 
   value = (value == 0) ? false : true;
   sendLong = (value == config->n_inverted) ? false : true;
-
-  //sendLong = value ? false : true;
   
-   if (!config->n_update_on_start && !updateDone) {
-       lastSentLong = !sendLong;  // force to send key event on device start (disabled by defaullt)
-       updateDone = true;
-   }
+  if (!config->n_update_on_start && !updateDone) {
+    lastSentLong = !sendLong;  // force to send key event on device start (disabled by default)
+    updateDone = true;
+  }
   
-  if (lastSentLong != sendLong){
+  if (lastSentLong != sendLong) {
     // send short key event immediately, delay long key event (off delay)
     if (millis() - keyPressedMillis > OFF_DELAY_TIME || !sendLong) {
         
