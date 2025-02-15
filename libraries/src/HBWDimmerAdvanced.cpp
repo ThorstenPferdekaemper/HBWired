@@ -9,7 +9,7 @@
 *
 * http://loetmeister.de/Elektronik/homematic/
 *
-* Last updated: 12.01.2025
+* Last updated: 26.01.2025
 */
 
 #include "HBWDimmerAdvanced.h"
@@ -65,12 +65,6 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
 	// hbwdebug(F("offDelayStep "));hbwdebug(peeringList->offDelayStep*2);hbwdebug(F("\n"));
 	// hbwdebug(F("offTime "));hbwdebug(peeringList->offTime);hbwdebug(F("\n"));
 	// hbwdebug(F("offTimeMin "));hbwdebug(peeringList->isOffTimeMinimal());hbwdebug(F("\n"));
-	// // hbwdebug(F("jtOnDelay "));hbwdebug(peeringList->jtOnDelay);hbwdebug(F("\n"));
-	// // hbwdebug(F("jtRampOn "));hbwdebug(peeringList->jtRampOn);hbwdebug(F("\n"));
-	// // hbwdebug(F("jtOn "));hbwdebug(peeringList->jtOn);hbwdebug(F("\n"));
-	// // hbwdebug(F("jtOffDelay "));hbwdebug(peeringList->jtOffDelay);hbwdebug(F("\n"));
-	// // hbwdebug(F("jtRampOff "));hbwdebug(peeringList->jtRampOff);hbwdebug(F("\n"));
-	// // hbwdebug(F("jtOff "));hbwdebug(peeringList->jtOff);hbwdebug(F("\n"));
 	// hbwdebug(F("offLevel "));hbwdebug(peeringList->offLevel);hbwdebug(F("\n"));
 	// hbwdebug(F("onLevel "));hbwdebug(peeringList->onLevel);hbwdebug(F("\n"));
 	// hbwdebug(F("onLevelPrio "));hbwdebug(peeringList->onLevelPrio);hbwdebug(F("\n"));
@@ -80,9 +74,10 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     if (peeringList->actionType == JUMP_TO_TARGET)
     {
       hbwdebug(F("jumpToTarget\n"));
-      // s_jt_peering_list* jtPeeringList;
-      // jtPeeringList = (s_jt_peering_list*)&data[5];
-      jumpToTarget(device, peeringList);//, jtPeeringList);
+      s_jt_peering_list* jtPeeringList;
+      jtPeeringList = (s_jt_peering_list*)&data[PEER_PARAM_JT_START];
+      // jumpToTarget(device, peeringList);
+      jumpToTarget(device, peeringList, jtPeeringList);
     }
     else if (peeringList->actionType >= TOGGLE_TO_COUNTER && peeringList->actionType <= TOGGLEDIM_INVERS_TO_COUNTER)
     {
@@ -130,8 +125,8 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
   else {  // set value - no peering event, overwrite any timer
     // manual set ON/OFF will be without timer (i.e. DELAY_INFINITE) - which only be changed by absolute time peering
     //TODO check: how to handle onLevelPrio = HIGH
-    // clear stored peeringList on manual SET()
-    memset(stateParamList, 0, sizeof(*stateParamList));
+    
+    memset(stateParamList, 0, sizeof(*stateParamList));  // clear stored peeringList on manual SET()
     
     uint8_t newState;
     if (*(data) > ON_OLD_LEVEL) {   // use toggle for any other value (202 and greater)
@@ -329,11 +324,7 @@ void HBWDimmerAdvanced::loop(HBWDevice* device, uint8_t channel)
     if (currentLevel == destLevel) {
     // hbwdebug(F(" loop next "));
       uint8_t nextState = getNextState();
-      // if (changeWaitTime == DELAY_NO) {// && stateParamList->actionType != 0) {
-        // changeWaitTime = getDelayForState(nextState, stateParamList);
-        uint32_t delay = getDelayForState(nextState, stateParamList);
-      // }
-      // setState(device, nextState, changeWaitTime, stateParamList);
+      uint32_t delay = getDelayForState(nextState, stateParamList);
       setState(device, nextState, delay, stateParamList);
     }
     else { // enable again for next ramp step

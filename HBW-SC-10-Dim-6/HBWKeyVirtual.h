@@ -6,6 +6,7 @@
  *  and long KeyEvent for state equals 0.
  *  HBWKeyVirtual can be peered like any normal key channel (using HBWLinkKey.h)
  */
+ // TODO: link this by dimmer channel, to have a trigger and avoid polling? (e.g. HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config, HBWKeyVirtual* _vKey))
 
 #ifndef HBWKeyVirtual_h
 #define HBWKeyVirtual_h
@@ -44,8 +45,8 @@ class HBWKeyVirtual : public HBWChannel {
     boolean lastSentLong;      // Zuletzt gesender "Tastendruck" long oder short
     boolean updateDone;
 
-    static const uint16_t OFF_DELAY_TIME = 2600;  // ms
-    static const uint16_t POLLING_WAIT_TIME = 330;  // get linked channel state not faster than 330 ms
+    static const uint16_t OFF_DELAY_TIME = 2600;  // ms (should be multiple of POLLING_WAIT_TIME)
+    static const uint16_t POLLING_WAIT_TIME = 325;  // ms, get linked channel state not faster than this
 };
 
 #endif

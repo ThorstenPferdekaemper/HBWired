@@ -43,6 +43,10 @@ void HBWChanBl::afterReadConfig() {
     if (config->blindTimeBottomTop == 0xFFFF) config->blindTimeBottomTop = 500;
     if (config->blindTimeChangeOver == 0xFF) config->blindTimeChangeOver = 5;
     if (config->blindMotorDelay == 0x7F) config->blindMotorDelay = 0;  // factor 0.1 (1 == 10ms)
+  #ifdef DEBUG
+    hbwdebug(F("Config, TimeTB: "));hbwdebug(config->blindTimeTopBottom);hbwdebug(F(" TimeBT: "));hbwdebug(config->blindTimeBottomTop);
+    hbwdebug(F("\n"));
+  #endif
 }
 
 /* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
@@ -163,9 +167,9 @@ uint8_t HBWChanBl::get(uint8_t* data)
   
   if (blindCurrentState > BL_STATE_RELAIS_OFF || blindNextState > BL_STATE_RELAIS_OFF) {  // set "direction" flag (turns "working" to "on")
     if (blindPositionActual < blindPositionRequested)  // direction up
-      stateFlag |= B00010000;
+      stateFlag |= 0b00010000;
     else
-      stateFlag |= B00100000;
+      stateFlag |= 0b00100000;
   }
   
   (*data++) = newData;
