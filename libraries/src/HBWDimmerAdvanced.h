@@ -403,10 +403,10 @@ class HBWDimmerAdvanced : public HBWChannel {
       if (_next != JT_NO_JUMP_IGNORE_COMMAND && deep < 4) {
         
         if (_peerList != NULL && _peerList->actionType != 0) {
-          bool currentOnLevelPrio;
+          bool currentOnLevelPrio = stateParamList->onLevelPrio;  // save value before overwriting stateParamList
           
           if (deep == 0) { // add "repeat" bool flag? if (lastKeyNum == currentKeyNum && sameLastSender) flag = true // save not needed for repeated long press
-            currentOnLevelPrio = stateParamList->onLevelPrio;  // save value before overwriting stateParamList
+            // currentOnLevelPrio = stateParamList->onLevelPrio;  // save value before overwriting stateParamList
             // save new values from valid peering event
             memcpy(stateParamList, _peerList, sizeof(*stateParamList));
             hbwdebug(F("saved\n"));

@@ -1,7 +1,7 @@
 /*
  * HBWKeyVirtual.cpp
  *
- * Updated (www.loetmeister.de): 9.08.2020
+ * Updated (www.loetmeister.de): 06.09.2025
  * 
  */
 
@@ -25,11 +25,12 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
 
   if (millis() - keyPressedMillis < POLLING_WAIT_TIME)  return;
 
-  uint8_t value;
-  device->get(mappedChan, &value);  // check length? switch or dimmer use only 1 byte for the level. 2nd byte are state flags
+  uint8_t value[2];
+  device->get(mappedChan, value);  // check length? switch or dimmer use only 1 byte for the level. 2nd byte are state flags
 
-  value = (value == 0) ? false : true;
-  sendLong = (value == config->n_inverted) ? false : true;
+  value[0] = (value[0] == 0) ? false : true;
+  sendLong = (value[0] == config->n_inverted) ? false : true;
+  // sendLong = ((bool)value[0] == config->n_inverted) ? false : true;
   
   if (!config->n_update_on_start && !updateDone) {
     lastSentLong = !sendLong;  // force to send key event on device start (disabled by default)

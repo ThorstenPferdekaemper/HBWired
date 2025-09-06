@@ -2,11 +2,10 @@
  *  HBWKeyVirtual.h
  *  
  *  HBWKeyVirtual can be used to read actor channels, like switch or dimmer
- *  It will send a short KeyEvent, if the attached channel (mappedChan) state not 0
- *  and long KeyEvent for state equals 0.
+ *  It will send a short KeyEvent, if the attached channel (mappedChan) state is
+ *  not 0 and long KeyEvent for state equals 0.
  *  HBWKeyVirtual can be peered like any normal key channel (using HBWLinkKey.h)
  */
- // TODO: link this by dimmer channel, to have a trigger and avoid polling? (e.g. HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config, HBWKeyVirtual* _vKey))
 
 #ifndef HBWKeyVirtual_h
 #define HBWKeyVirtual_h
