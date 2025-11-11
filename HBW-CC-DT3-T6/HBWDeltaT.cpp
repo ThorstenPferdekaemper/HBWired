@@ -96,7 +96,7 @@ uint8_t HBWDeltaTx::get(uint8_t* data)
   *data++ = (currentTemperature >> 8);
   *data = currentTemperature & 0xFF;
 
-  return sizeof(data);
+  return 2;  // 2 byte
 };
 
 
@@ -137,7 +137,7 @@ uint8_t HBWDeltaT::get(uint8_t* data)
   
   *data = stateFlags.byte;
 
-  return sizeof(data);
+  return 2;  // 1 byte value and 1 byte state
 };
 
 
