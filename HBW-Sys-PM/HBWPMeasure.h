@@ -1,10 +1,13 @@
 /*
  * HBWPMeasure.h
  *
- * Created (www.loetmeister.de): 01.09.2025
+ * Created (www.loetmeister.de): 01.11.2025
  * 
  * Reading of I²C INA236 chip
- * using SBC-DVA.h library
+ * using customized SBC-DVA.h library
+ *
+ * Provide VOLTAGE, CURRENT and POWER readings. Peering with actor allows actions when alarm is set or cleared.
+ * When enabled, short key event is send on alarm state, long key event when cleared. (short = alarm; long = alarm clear)
  */
 
 #ifndef HBWPMeasure_h
@@ -14,14 +17,13 @@
 #include <HBWired.h>
 #include <SBC_DVA.h>
 
-#define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT
 
-#define PM_SAMPLE_COUNT 4  // number of samples for moving everage
 
 // config, address step 16
 struct hbw_config_power_measure {
   uint8_t enabled:1;   // default yes
-  uint8_t n_key_event_alert:1;   // send key event when alarm or error occours (short = alarm; long = alarm clear)
+  uint8_t n_key_event_alert:1;   // send key event when alarm or error occours. Disabled by default
   uint8_t fillup:6;
   uint8_t dummy8;
   // uint8_t samples:4;    // 1...16 (0...15 +1) sample count
@@ -37,6 +39,7 @@ struct hbw_config_power_measure {
 };
 
 static const byte P_MEASURE_DATA_LEN = 7; // size of get() return data array
+static const byte PM_SAMPLE_COUNT = 4; // number of samples for moving everage
 
 // config, address step 1
 // struct hbw_config_power_measure_alarm {
@@ -77,7 +80,8 @@ static const byte P_MEASURE_DATA_LEN = 7; // size of get() return data array
 // Class HBWPMeasure master channel (actual sensor chan)
 class HBWPMeasure : public HBWChannel {
   public:
-    HBWPMeasure(hbw_config_power_measure* _config, SBCDVA* _sensor, TwoWire* _wire); // _alarm_channels = 0
+    HBWPMeasure(hbw_config_power_measure* _config, SBCDVA* _sensor, TwoWire* _wire);
+    // HBWPMeasure(hbw_config_power_measure* _config, SBCDVA* _sensor, TwoWire* _wire, HBWKeyVirtual* _virt_alarm_channels[3]);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual uint8_t get(uint8_t* data);
 	// virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data); //TODO set() alarm level?
@@ -86,7 +90,7 @@ class HBWPMeasure : public HBWChannel {
 
   private:
     hbw_config_power_measure* config;
-    SBCDVA* sensor;  // pointer to call sensor funtions
+    SBCDVA* sensor;  // pointer to call sensor functions
     // int16_t deziCurrent;  // factor 10
     // int16_t deziVoltage;  // factor 10
     // int16_t deziPower;  // factor 10
@@ -95,16 +99,15 @@ class HBWPMeasure : public HBWChannel {
     int32_t centiSumValue[3] = {0, 0, 0};
     uint16_t centiSamples[3][PM_SAMPLE_COUNT] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};  // store values for average calculation
     uint8_t sampleCount, avgIndex;
-    uint8_t keyPressNum;
     bool onInit;
-    // unsigned long loopPreviousMillis;
+    bool sendKeyEvent;
+    uint8_t keyPressNum;
     unsigned long lastSentTime, lastSampleMillis;
-
-    // static const uint32_t FOO_BAR = 150;  // ms
+    
 
     union state_flags {
       struct s_state_flags {
-        uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
+        uint8_t notUsed :4; // lowest 4 bit are not used (see XML ALARM_FLAGS frame definition)
         uint8_t alert_v_over  :1; // bus voltage over limit
         uint8_t alert_power   :1; // power limit exeeded
         uint8_t alert_v_under :1; // bus voltage under limit
@@ -115,7 +118,7 @@ class HBWPMeasure : public HBWChannel {
     state_flags status, lastStatus;
 
     enum val_id {
-      VOLTAGE,
+      VOLTAGE = 0,
       CURRENT,
       POWER
     };
@@ -126,21 +129,29 @@ class HBWPMeasure : public HBWChannel {
       float readingVal = 0;
       switch (_reading) {
         case val_id::CURRENT:
-          // return (int16_t)(sensor->read_current() *10);
           readingVal = sensor->read_current();
           break;
         case val_id::POWER:
-          // return (int16_t)(sensor->read_power() *10);
           readingVal = sensor->read_power();
           break;
         case val_id::VOLTAGE:
-          // return (int16_t)(sensor->read_bus_voltage() *10);
           readingVal = sensor->read_bus_voltage();
           break;
       }
-      // return 0;
-      return readingVal > 0 ? (uint16_t)(readingVal *100) : 0;
+      return ((readingVal > 0) ? (uint16_t)(readingVal *100) : 0);
     };
+    
+    inline void init_sensor(TwoWire* _wire)
+    {
+      _wire->begin();
+      _wire->setClock(100000);
+      // sensor->reset_ina236(0x40);
+      sensor->init_ina236(7, 4, 4, 2, 0);
+      sensor->calibrate_ina236();
+      sensor->mask_enable(3);  // v bus under limit (not used, but this should keep the alert LED off)
+      sensor->write_alert_limit(); // 0.66V?
+    };
+
 };
 
 #endif

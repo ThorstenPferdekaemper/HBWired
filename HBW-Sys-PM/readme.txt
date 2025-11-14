@@ -5,6 +5,7 @@ Das Modul HBW-Sys-PM misst die Busspannung, Strom und Leistung. Es bietet darübe
 Basis ist ein Arduino NANO mit RS485-Interface. Das Messmodul ist ein SBCDVA mit INA236 I²C chip. (0 - 48 V DC & 0 - 8 A; 16-Bit) https://joy-it.net/de/products/SBC-DVA
 
 Direktes Peering der Ausgänge möglich mit "HBWSwitchAdvanced & HBWLinkSwitchAdvanced"
+Der Messkanal (Kanal 1) lässt sich als Taster (key) peeren, der einen kurzen Tastendruck sendet, wenn ein Alarm auftritt. Ein langer Tastendruck signalisiert das keine Alarme/Fehler mehr anstehen.
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw-sys-pm.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x8D aus).
 

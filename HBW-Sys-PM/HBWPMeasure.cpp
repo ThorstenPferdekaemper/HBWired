@@ -1,7 +1,7 @@
 /*
  * HBWPMeasure.cpp
  *
- * Created (www.loetmeister.de): 01.09.2025
+ * Created (www.loetmeister.de): 01.11.2025
  */
 
 #include "HBWPMeasure.h"
@@ -19,32 +19,24 @@ HBWPMeasure::HBWPMeasure(hbw_config_power_measure* _config, SBCDVA* _sensor, Two
 {
   config = _config;
   sensor = _sensor;
-  // deziCurrent = 0;  // TODO: init with "invalid" values?
-  // deziVoltage = 0;
-  // deziPower = 0;
-  lastSentTime = 0; // TODO: delay notify until we have valid readings or min delay passed??
-  onInit = true;
+  lastSentTime = 0;
   status.byte = 0;
   lastStatus.byte = 0;
-  keyPressNum = 0;
+  onInit = true;
   avgIndex = 0;
   sampleCount = 0;
+  keyPressNum = 0;
+  sendKeyEvent = false;
 
-  _wire->begin();
-  _wire->setClock(100000);
-  // sensor->reset_ina236(0x40);
-  sensor->init_ina236(7, 4, 4, 2, 0);
-  sensor->calibrate_ina236();
-  sensor->mask_enable(3);  // v bus under limit (not used, but this should keep the alert LED off)
-  sensor->write_alert_limit(); // 0.66V?
+  init_sensor(_wire);
 };
 
 
 void HBWPMeasure::afterReadConfig()
 {
   if (config->sample_rate == 0xFF) config->sample_rate = 60;  // 30 seconds
-  if (config->send_min_interval == 0xFFFF) config->send_min_interval = 6;  // 60 seconds
-  if (config->send_max_interval == 0xFFFF) config->send_max_interval = 60;  // 600 seconds
+  if (config->send_min_interval == 0xFFFF) config->send_min_interval = 60;  // 60 seconds
+  if (config->send_max_interval == 0xFFFF) config->send_max_interval = 600;  // 600 seconds
   if (config->alarm_v_limit_upper == 0xFFFF) config->alarm_v_limit_upper = 255;  // 25.5 V
   if (config->alarm_v_limit_lower == 0xFFFF) config->alarm_v_limit_lower = 230;  // 23.0 V
   if (config->alarm_p_limit == 0xFFFF) config->alarm_p_limit = 500;  // 50 W
@@ -66,12 +58,6 @@ void HBWPMeasure::afterReadConfig()
 uint8_t HBWPMeasure::get(uint8_t* data)
 {
   // MSB first
-  // *data++ = (deziVoltage >> 8);
-  // *data++ = deziVoltage & 0xFF;
-  // *data++ = (deziCurrent >> 8);
-  // *data++ = deziCurrent & 0xFF;
-  // *data++ = (deziPower >> 8);
-  // *data++ = deziPower & 0xFF;
   *data++ = (centiAvgValue[val_id::VOLTAGE] >> 8);
   *data++ = centiAvgValue[val_id::VOLTAGE] & 0xFF;
   *data++ = (centiAvgValue[val_id::CURRENT] >> 8);
@@ -87,11 +73,20 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
 {
   if (!config->enabled) {
     //TODO reset readings?
-    return;  // skip locked channels
+    status.byte = 0;
+    sendKeyEvent = false;
+    return;  // skip disabled channels
   }
   
+  // allow peering with external actors. Send independently from info message, to send when bus is idle
+  if (!config->n_key_event_alert && sendKeyEvent) {
+    if (device->sendKeyEvent(channel, keyPressNum, !status.byte) != HBWDevice::BUS_BUSY) {
+      keyPressNum++;
+      sendKeyEvent = false;  // TODO: add retry counter? (give up after x failed retries?)
+    }
+  }
+
   unsigned long now = millis();
-  // now = (now == 0) ? 1 : now;
 
   // read sensor based on sample rate. Skip delay on startup
   if (now - lastSampleMillis >= (unsigned long)(config->sample_rate *500) || onInit)
@@ -99,7 +94,7 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
     lastSampleMillis = now;
     onInit = false;
 
-    if (sensor->read_device_ID() == 0) { // FIXME: == 0
+    if (sensor->read_device_ID() == 0) {
       status.state.error = true;
       #ifdef DEBUG_OUTPUT
         hbwdebug(F("Sensor fail!\n"));
@@ -108,13 +103,6 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
     }
     else {
       status.state.error = false;
-
-      // float currentReading = sensor->read_current();
-      // // deziCurrent = (int16_t)(currentReading *10);
-      // float voltageReading = sensor->read_bus_voltage();
-      // // deziVoltage = (int16_t)(voltageReading *10);
-      // float powerReading = sensor->read_power();
-      // // deziPower = (int16_t)(powerReading *10);
 
       /* calculate the (moving) average of the last n results */
       if (sampleCount < PM_SAMPLE_COUNT) sampleCount++;  // avoid to calculate the average on array elements that have not been updated with a reading
@@ -125,8 +113,8 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
         centiSamples[readingValID][avgIndex] = read_sensor_values(readingValID);  // update buffer with current reading
         centiSumValue[readingValID] += centiSamples[readingValID][avgIndex];  // add new value
         
-        if (centiSumValue[readingValID] > 0)
-          centiAvgValue[readingValID] = (int16_t)(centiSumValue[readingValID] / sampleCount);  // calculate average
+        if (centiSumValue[readingValID] > 0)  // value should always be unsigned
+          centiAvgValue[readingValID] = (uint16_t)(centiSumValue[readingValID] / sampleCount);  // calculate average
         else
           centiAvgValue[readingValID] = 0;
       }
@@ -151,36 +139,25 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
     }
   }
   
-  // if (now - loopPreviousMillis < 1000)  return;
-  // loopPreviousMillis = now;
-
   /* check if anything needs to be send on the bus */
   // never send before min_interval, if enabled
   if (config->send_min_interval && now - lastSentTime <= (unsigned long)config->send_min_interval *1000)  return;
 
   // send, if max interval (wait time) has passed, or any new alarms / states came up
   if ((config->send_max_interval && now - lastSentTime >= (unsigned long)config->send_max_interval *1000) ||
-      // (config->send_delta_temp && abs(currentTemp - lastSentTemp) >= (unsigned int)config->send_delta_temp * 10) ||
       // (other urgent new value?) ||
       (status.byte != 0 && status.byte != lastStatus.byte) )
   {
+    // key event only for alert state changes
+    if (status.byte != lastStatus.byte) {
+      sendKeyEvent = true;
+    }
+
     uint8_t data[P_MEASURE_DATA_LEN];
     get(data);
     if (device->sendInfoMessage(channel, sizeof(data), data) != HBWDevice::BUS_BUSY) {
-    //  #ifdef Support_HBWLink_InfoEvent
-    //   // send key event here? Allow peering?
-    //   device->sendInfoEvent(channel, 2, data, !NEED_IDLE_BUS);  // send peerings. Info message has just been send, so we send immediately
-      // allow peering with external actors
-      if (!config->n_key_event_alert) {
-        if (device->sendKeyEvent(channel, keyPressNum, !status.byte) != HBWDevice::BUS_BUSY) { // TODO: check if this works... cannot skip NEED_IDLE_BUS for sendKeyEvent()
-          keyPressNum++;
-        }
-      }
-    //  #endif
-      // lastSentTemp = currentTemp;   // store last value only on success
-      lastStatus.byte = status.byte;
+      lastStatus.byte = status.byte;   // store last value only on success
     }
-    // hbwdebug(F("sbyte: "));  hbwdebug(status.byte);hbwdebug(F("\n"));
     lastSentTime = now;  // if send failed, next try will be on send_max_interval or send_min_interval in case the values are still different
   }
 

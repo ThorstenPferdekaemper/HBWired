@@ -4,7 +4,7 @@
 	<type priority="2" id="HBW-Sys-PM" name="RS485 Homebrew Bus power measure and switch actuator 4-channel">
 		<parameter const_value="0x8D" size="1" index="0"/>
 		<parameter const_value="1" size="1" index="1"/>
-		<parameter const_value="0x0001" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
+		<parameter const_value="0x0006" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -69,6 +69,9 @@
 	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
 		<parameter param="toggle_flag" size="1.0" index="11.0" type="integer"/>
 	</frame>
+	<frame id="ANALOG_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
+	</frame>
 </frames>
 
 <channels>
@@ -98,6 +101,13 @@
 					<address index="+0"/>
 				</physical>
 				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="KEY_EVENT_ALARM">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="SAMPLE_RATE">
 				<logical type="float" default="30.0" min="0.5" max="127.0" unit="s (4 samples)">
@@ -170,28 +180,27 @@
 					<value_map to_device="false" from_device="true" parameter_value="500" device_value="0xffff"/>
 				</conversion>
 			</parameter>
-			
 		</paramset>
 		
-		<!-- <paramset type="LINK" id="hmw_wds_input_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="30" address_start="0xE6" address_step="6"> -->
-			<!-- <parameter id="CHANNEL" operations="none" hidden="true"> -->
-				<!-- <logical type="integer" min="0" max="255" default="255"/> -->
-				<!-- <physical type="integer" size="1.0" interface="eeprom"> -->
-					<!-- <address index="+0"/> -->
-				<!-- </physical> -->
-			<!-- </parameter> -->
-			<!-- <parameter id="ACTUATOR" operations="none" hidden="true"> -->
-				<!-- <logical type="address"/> -->
-				<!-- <physical type="array"> -->
-					<!-- <physical type="integer" size="4.0" interface="eeprom"> -->
-						<!-- <address index="+1"/> -->
-					<!-- </physical> -->
-					<!-- <physical type="integer" size="1.0" interface="eeprom"> -->
-						<!-- <address index="+5"/> -->
-					<!-- </physical> -->
-				<!-- </physical> -->
-			<!-- </parameter> -->
-		<!-- </paramset> -->
+		<paramset type="LINK" id="hmw_pm_key_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="20" address_start="0x2CC" address_step="6">
+			<parameter id="CHANNEL" operations="none" hidden="true">
+				<logical type="integer" min="0" max="255" default="255"/>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+			</parameter>
+			<parameter id="ACTUATOR" operations="none" hidden="true">
+				<logical type="address"/>
+				<physical type="array">
+					<physical type="integer" size="4.0" interface="eeprom">
+						<address index="+1"/>
+					</physical>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+5"/>
+					</physical>
+				</physical>
+			</parameter>
+		</paramset>
 		
 		<paramset type="VALUES" id="hmw_pm_output_values">
 			<parameter id="BUS_VOLTAGE" operations="read,event">
@@ -276,7 +285,7 @@
 			</parameter>		
 		</paramset>
 
-		<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="36" address_step="20" address_start="0x60">
+		<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="24" address_step="20" address_start="0x60">
 			<parameter id="UI_HINT">
 				<logical type="string" default="" use_default_on_failure="true"/>
 				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
@@ -584,8 +593,65 @@
 				<conversion type="toggle" value="STATE" />
 			</parameter>
 		</paramset>
-
-	</channel>	
+	</channel>
+	
+	<channel index="6" physical_index_offset="-1" count="2" type="ANALOG_INPUT">
+		<paramset type="MASTER" id="hmw_analog_ch_master" address_step="6" address_start="0x1F">
+			<parameter id="SEND_DELTA_VALUE">
+				<logical type="float" default="100" min="1" max="254">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="1"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="100" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="600" min="10" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+1.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="600" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_MIN_INTERVAL">
+			   <logical type="integer" unit="s" default="30" min="10" max="2540">
+					<special_value id="NOT_USED" value="0"/>
+			   </logical>
+			   <physical size="1.0" type="integer" interface="eeprom">
+					<address index="+3.0"/>
+			   </physical>
+				<conversion type="float_integer_scale" factor="0.1"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="UPDATE_INTERVAL">
+				<logical type="integer" default="300" min="10" max="2540" unit="s">
+					<special_value id="INPUT_DISABLED" value="0"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+4.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1"/>
+			</parameter>
+		</paramset>
+		<paramset type="VALUES" id="hmw_busvoltage_input_values">
+			<parameter id="VALUE" operations="read,event">
+				<logical type="float" min="0.0" max="1024"/>
+				<physical type="float" interface="command" value_id="ANALOGVALUE">
+					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
+					<event frame="ANALOG_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="1"/>
+			</parameter>
+		</paramset>
+	</channel>
 </channels>
-
 </device>
