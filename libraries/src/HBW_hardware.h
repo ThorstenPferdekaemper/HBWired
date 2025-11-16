@@ -57,6 +57,7 @@
                       sleep_mode();
 #elif defined (ARDUINO_ARCH_RP2040)
   // #define POWERSAVE() sleep modes seem to be unstable / complicated. Lower sys_clock instead...
+  #define POWERSAVE() //sleep modes seem to be unstable / complicated. Lower sys_clock instead...
   
 //#elif defined (__AVR_ATmega644P__)... // TODO: add others
 #endif

@@ -17,11 +17,14 @@
 
 #if defined (ARDUINO_ARCH_RP2040)
   #include <EEPROM24.h>
-  class EEPROM24;    // forward declare class
-  extern EEPROM24* EepromPtr;
+  // class EEPROM24;    // forward declare class
+  // extern EEPROM24* EepromPtr;
   // define this, if the class has no update() function, or you don't want to use it
   // #define EEPROM_no_update_function
-
+  #include <EEPROM.h>
+  extern EEPROMClass* EepromPtr;
+  #define EEPROM_RPI_simulated
+  
   // max EEPROM address for HBW device. Usual EEPROM size is 1024 (as defined in device XML)
   #define E2END 0x3FF
 #else
