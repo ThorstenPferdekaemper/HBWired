@@ -15,7 +15,7 @@
 
 // #include <inttypes.h>
 #include <HBWired.h>
-#include <SBC_DVA.h>
+#include "SBC_DVA.h"  // include customized lib (see SBC-DVA subfolder for more details)
 
 // #define DEBUG_OUTPUT
 
