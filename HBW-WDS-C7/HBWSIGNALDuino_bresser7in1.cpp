@@ -16,13 +16,10 @@ HBWSIGNALDuino_bresser7in1::HBWSIGNALDuino_bresser7in1(uint8_t* _msg_buffer_ptr,
    config = _config;
    eeprom_address_start = _eeprom_address_start;  // TODO: external / static const? ADDRESSSTART_WDS_CONF
    currentTemp = DEFAULT_TEMP;
-   lastSentTemp = 0;
-   msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // skip first message
-   stormy = false;
-   lastStormy = false;
-   stormyTriggerCounter = config->storm_readings_trigger;
-   lastSentTime = 20000;  // wait 20 seconds after statup
-   msgTimeout = true;  // true until we get a message
+   lastSentTemp = DEFAULT_TEMP;
+   msgCounter = hbw_link[hbw_link_pos::MSG_COUNTER];  // sync counter
+   stormy = lastStormy = false;
+   msgTimeout = true;  // true until we get a message. Init value only used for channel get()
   //  avgSampleIdx = 0;
   //  avgSamples = 0;
 };
@@ -35,7 +32,12 @@ void HBWSIGNALDuino_bresser7in1::afterReadConfig() {
   if (config->send_min_interval == 0xFFFF) config->send_min_interval = 30;
   if (config->send_delta_temp == 0xFF) config->send_delta_temp = 10;  // 1.0 °C
   if (config->storm_threshold_level > 30) config->storm_threshold_level = 16;  // 80 km/h
-  if (config->timeout_rx > 30) config->timeout_rx = 6;  // 96 seconds
+  if (config->timeout_rx > 30) config->timeout_rx = 6;  // 96 seconds (based on RX_INTERVAL)
+
+  if (currentTemp == DEFAULT_TEMP) {  // set to DEFAULT_TEMP only after device start
+    lastSentTime = ((uint32_t )config->timeout_rx /2) *RX_INTERVAL *1000;  // wait half of timeout after startup
+    stormyTriggerCounter = config->storm_readings_trigger;
+  }
 
  #if defined (HBW_CHANNEL_DEBUG)
   hbwdebug(F("wds_7-1 conf - id: "));hbwdebug(config->id);hbwdebug(F("\n"));
@@ -134,7 +136,7 @@ void HBWSIGNALDuino_bresser7in1::loop(HBWDevice* device, uint8_t channel) {
   unsigned long now = millis();
 
   // check message timeout. Skip after init (currentTemp == DEFAULT_TEMP) or if disabled in config
-  if (currentTemp != DEFAULT_TEMP && config->timeout_rx && now - lastMsgTime > (unsigned long)config->timeout_rx *16000) {
+  if (currentTemp != DEFAULT_TEMP && config->timeout_rx && now - lastMsgTime > (unsigned long)config->timeout_rx *RX_INTERVAL *1000) {
     msgTimeout = true;
     currentTemp = ERROR_TEMP;
   }
