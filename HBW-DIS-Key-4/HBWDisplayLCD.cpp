@@ -243,7 +243,7 @@ uint8_t HBWDisplayVChNum::get(uint8_t* data)
   *data++ = (currentValue >> 8);
   *data = currentValue & 0xFF;
 
-  return sizeof(data);
+  return 2;
 };
 
 

@@ -12,7 +12,7 @@
 #include "output.h"
 #include <HBW_eeprom.h>
 /* map to new EEPROM space */
-static uint16_t const RECEIVER_EE_START_ADDR = 0x400;  // first start address for SigDuino (0...1023 is used by Homematic module)
+static uint16_t const SDUINO_EE_START_ADDR = 0x400;  // first start address for SigDuino (0...1023 is used by Homematic module)
 
 #if defined(MAPLE_Mini) || defined(ESP32) || defined(ARDUINO_ARCH_RP2040)
 	#include <SPI.h>
@@ -23,8 +23,8 @@ extern uint16_t bankOffset;
 extern String cmdstring;
 extern uint8_t ccBuf[ccMaxBuf + 2];
 
-void eepromHelperWrite(int idx, uint8_t val );
-uint8_t eepromHelperRead(int idx);
+void eepromHelperWrite(unsigned int _addr, uint8_t _val);
+uint8_t eepromHelperRead(unsigned int _addr);
 
 namespace cc1101 {
 	
@@ -92,7 +92,7 @@ namespace cc1101 {
 	#define CC1101_SAFC     0x37  // Perform AFC adjustment of the frequency synthesizer
 	#define CC1101_SFRX     0x3A  // Flush the RX FIFO buffer
 	#define CC1101_SFTX     0x3B  // Flush the TX FIFO buffer.
-	#define CC1101_SNOP      0x3D  // No operation. May be used to get access to the chip status byte.
+	#define CC1101_SNOP     0x3D  // No operation. May be used to get access to the chip status byte.
 
 	#define wait_Miso()       while(isHigh(misoPin) ) //{ static uint8_t miso_count=255;delay(1); if(miso_count==0) return 255; miso_count--; }      // wait until SPI MISO line goes low 
 	#define waitV_Miso()      while(isHigh(misoPin) ) //{ static uint8_t miso_count=255;delay(1); if(miso_count==0) return; miso_count--; }      // wait until SPI MISO line goes low 
@@ -154,7 +154,7 @@ namespace cc1101 {
 		0xC4, // 11 MDMCFG3   22     DataRate
 		0x30, // 12 MDMCFG2   02     Modulation: ASK
 		0x23, // 13 MDMCFG1   22     
-		0xb9, // 14 MDMCFG0   F8     ChannelSpace: 350kHz
+		0xB9, // 14 MDMCFG0   F8     ChannelSpace: 350kHz
 		0x00, // 15 DEVIATN   47     
 		0x07, // 16 MCSM2     07     
 		0x00, // 17 MCSM1     30     Bit 3:2  RXOFF_MODE:  Select what should happen when a packet has been received: 0 = IDLE  3 =  Stay in RX ####
@@ -301,7 +301,7 @@ namespace cc1101 {
 		//waitV_Miso();                                    // wait until MISO goes low
 		sendSPI(CC1101_PATABLE | CC1101_WRITE_BURST);   // send register address
 		for (uint8_t i = 0; i < 8; i++) {
-			sendSPI(eepromHelperRead(bankOffset + EE_CC1101_PA+i));                     // send value
+			sendSPI(eepromHelperRead(bankOffset + EE_CC1101_PA + i));                     // send value
 		}
 			cc1101_Deselect();
 	}
@@ -407,16 +407,16 @@ namespace cc1101 {
   }
 
 
-void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa ramping)
-	for (uint8_t i = 0; i < 8; i++) {
-		if (i == 1) {
-			eepromHelperWrite(bankOffset + EE_CC1101_PA + i, var);
-		} else {
-			eepromHelperWrite(bankOffset + EE_CC1101_PA + i, 0);
+	void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa ramping)
+		for (uint8_t i = 0; i < 8; i++) {
+			if (i == 1) {
+				eepromHelperWrite(bankOffset + EE_CC1101_PA + i, var);
+			} else {
+				eepromHelperWrite(bankOffset + EE_CC1101_PA + i, 0);
+			}
 		}
+		writePatable();
 	}
-	writePatable();
-}
 
 
 	void ccFactoryReset(bool flag) {
@@ -697,20 +697,20 @@ void writeCCpatable(uint8_t var) {           // write 8 byte to patable (kein pa
 
 
 /* map to new EEPROM space */
-void eepromHelperWrite(int _addr, uint8_t _val)
+void eepromHelperWrite(unsigned int _addr, uint8_t _val)
 {
-	// MSG_PRINT(F("W eeprom: "));MSG_PRINTLN(_addr + RECEIVER_EE_START_ADDR);
+	// MSG_PRINT(F("W eeprom: "));MSG_PRINTLN(_addr + SDUINO_EE_START_ADDR);
 	#if defined (EEPROM_no_update_function)
-	  if (EepromPtr->read(_addr + RECEIVER_EE_START_ADDR, _val) != _val)
-		  EepromPtr->write(_addr + RECEIVER_EE_START_ADDR, _val);
+	  if (EepromPtr->read(_addr + SDUINO_EE_START_ADDR, _val) != _val)
+		  EepromPtr->write(_addr + SDUINO_EE_START_ADDR, _val);
 	#else
-		EepromPtr->update(_addr + RECEIVER_EE_START_ADDR, _val);
+		EepromPtr->update(_addr + SDUINO_EE_START_ADDR, _val);
 	#endif
 }
 
-uint8_t eepromHelperRead(int _addr)
+uint8_t eepromHelperRead(unsigned int _addr)
 {
-	return EepromPtr->read(_addr + RECEIVER_EE_START_ADDR);
+	return EepromPtr->read(_addr + SDUINO_EE_START_ADDR);
 }
 
 #endif

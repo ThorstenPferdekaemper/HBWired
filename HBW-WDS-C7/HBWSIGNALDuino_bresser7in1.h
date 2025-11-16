@@ -22,6 +22,7 @@
 
 // static const byte WDS_7IN1_AVG_SAMPLES = 3;  // calculate average of last 3 samples for: temperatue, humidity
 static const byte WDS_7IN1_DATA_LEN = 15; // size of get() return data array
+static const byte RX_INTERVAL = 16; // interval (in s econds) the sensor should send. Factor for timeout. Part of device XML!
 
 // array positions for extern struct s_hbw_link:
 enum hbw_link_pos {

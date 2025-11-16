@@ -73,6 +73,7 @@
 			</parameter>
 		</paramset>
 	</channel>
+	
 	<channel index="1" count="1" physical_index_offset="-1" type="HBWSIGNALDuino">
 		<paramset type="MASTER" id="hbw_hbwsignalduino_ch_master" address_step="16" address_start="0x09">
 		<!-- TODO add config. Below is placeholder/dummy config only! -->

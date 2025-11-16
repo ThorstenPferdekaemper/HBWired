@@ -284,8 +284,6 @@ uint8_t cmdstringPos2int(uint8_t pos);
 void printHex2(const byte hex);
 uint8_t rssiCallback() { return 0; };	// Dummy return if no rssi value can be retrieved from receiver
 
-// void eepromHelperWrite(int idx, uint8_t val );
-// uint8_t eepromHelperRead(int idx);
 
 // HBW integration
 uint8_t g_hbw_link[2] = {0};
@@ -299,10 +297,10 @@ enum hbw_link_pos {
 
 void setup() {
 	delay(200);
+  #if defined (EEPROM_RPI_simulated)
+	EepromPtr->begin(2048);
+  #else
 	Wire.begin();
-  #ifdef DEBUG
-	delay(2000);
-  #endif
 	if (!EepromPtr->available()) {
 		Serial.println("No memory detected. Freezing.");
 		#ifdef WATCHDOG
@@ -312,6 +310,10 @@ void setup() {
 		while (true)
 		  ;
 	}
+  #endif
+  #ifdef DEBUG
+	delay(2000);
+  #endif
 #if defined(ARDUINO_BUSWARE_CUL)
 	clock_prescale_set(clock_div_1);
 #endif
@@ -605,7 +607,10 @@ void loop() {
 		}
 	  }
 	}
- }
+	#if defined(EEPROM_RPI_simulated)
+	if (millis() % 200 == 0) EepromPtr->commit();  // only writes data if there was a change (_dirty is set)
+	#endif
+} // loop()
 
 
 
@@ -1349,12 +1354,17 @@ void cmd_Version()	// V: Version
 #ifdef ONLY_FSK
     MSG_PRINT(F("only xFSK "));
 #endif
-	MSG_PRINT(F("(b"));
-	if (toggleBankEnabled == false) {
-		MSG_PRINT(bank);
-	} else {
-		MSG_PRINT(F("x"));
+	if (RXenabled == true) {
+		MSG_PRINT(F("(B"));
 	}
+	else {
+		MSG_PRINT(F("(b"));
+	}
+	//if (toggleBankEnabled == false) {
+		MSG_PRINT(bank);
+	//} else {
+	//	MSG_PRINT(F("x"));
+	//}
 	MSG_PRINT(F(") "));
 	MSG_PRINTLN(F("- compiled at " __DATE__ " " __TIME__));
 }
@@ -1366,10 +1376,10 @@ void cmd_freeRam()	// R: FreeMemory
 
 void cmd_send()
 {
-	/*if (musterDec.getState() != searching )
+	if (musterDec.getState() != searching )
 	{
 		command_available=true;
-	} else {*/
+	} else {
 		if (cmdstring.charAt(1) != 'N') {
 			send_cmd(); // Part of Send
 		}
@@ -1381,7 +1391,7 @@ void cmd_send()
 				unsuppCmd = true;
 			}
 		}
-	//}
+	}
 }
 
 void cmd_uptime()	// t: Uptime
@@ -1739,7 +1749,7 @@ inline void configCMD()
 }
 
 inline void configSET()
-{ 
+{
 	char buffer[12];
 	int16_t i = cmdstring.indexOf("=",4);
 	uint8_t n = 0;
@@ -1904,7 +1914,7 @@ int freeRam_s () {
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 #endif // CMP_MEMDBG
 
- }
+}
 
 inline unsigned long getUptime()
 {
@@ -1955,12 +1965,12 @@ void setCCmode() {
   }
 }
 
-  void printHex2(const byte hex) {   // Todo: printf oder scanf nutzen
-    if (hex < 16) {
-      MSG_PRINT("0");
-    }
-    MSG_PRINT(hex, HEX);
+void printHex2(const byte hex) {   // Todo: printf oder scanf nutzen
+  if (hex < 16) {
+    MSG_PRINT("0");
   }
+  MSG_PRINT(hex, HEX);
+}
 
 
 
