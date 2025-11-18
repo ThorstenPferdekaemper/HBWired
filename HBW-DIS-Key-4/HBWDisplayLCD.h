@@ -15,12 +15,14 @@
 #include <LiquidCrystal.h>
 
 
-#define DEBUG_OUTPUT   // debug output on serial/USB
+// #define DEBUG_OUTPUT   // debug output on serial/USB
 
 
 
 #define MAX_DISPLAY_LINES 4   // number of lines the device will allow (class: HBWDisplayLine) - equal amount of channels must be created
 #define MAX_DISPLAY_CHARACTER_PER_LINE 24 //28 possible (with current code..) limit to 20?
+#define DISP_WELCOME_STRING "HBW-DISPLAY"  // show at startup - 1st line
+#define DISP_VERSION_STRING "ver 0.3"  // show at startup - 2nd line (if exists)
 
 #define DISPLAY_CUSTOM_LINES_EESTART 0x320  // EEPROM start address to store one custom string per line
                                             // required space: MAX_DISPLAY_LINES * MAX_DISPLAY_CHARACTER_PER_LINE

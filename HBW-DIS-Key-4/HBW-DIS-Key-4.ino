@@ -21,7 +21,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x001E
+#define FIRMWARE_VERSION 0x001F
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 
@@ -109,7 +109,7 @@ void setup()
 
   channels[1] = new HBWDimBacklight(&(hbwconfig.DisDimCfg[0]), LCD_BACKLIGHT_PWM, LDR_PIN);
   
-  // "master" display as last channel, using the pointer to virtual input and display-line channels
+  // create "master" display channel, using the pointer to virtual input and display-line channels
   channels[0] = new HBWDisplay(&lcd, (HBWDisplayVChannel**)displayVChannel, &(hbwconfig.DisCfg[0]), (HBWDisplayVChannel**)displayLines);
   
 
@@ -175,4 +175,3 @@ void loop()
 #if !defined(Support_HBWLink_InfoEvent) && defined(NUMBER_OF_V_TEMP_CHAN)
 #error enable/define Support_HBWLink_InfoEvent in HBWired.h
 #endif
-  
