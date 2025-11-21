@@ -9,6 +9,19 @@ Der Messkanal (Kanal 1) lässt sich als Taster (key) peeren, der einen kurzen Tas
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die hbw-sys-pm.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x8D aus).
 
+Kanalkonfiguration:
+"BUS POWER" (Kanal 1)
+ENABLED - Kanal komplett An- oder Abschalten
+KEY_EVENT_ALARM - Tastendruck bei Alarm/Fehler senden (wird ohne Verzögerung gesendet)
+SAMPLE_RATE - Pause zwischen dem Auslesen der Messwerte. Es wird ein Durchschnitt über die letzten 4 Messwerte gebildet (moving average)
+SEND_MIN_INTERVAL - Mindestwartezeit zum senden der Werte
+SEND_MAX_INTERVAL - Maximale Pause (nach Ablauf dieser Zeit werden alle Werte übermittelt, egal ob sie sich geändert haben)
+ALARM_MAX_VOLTAGE - Setzt STATE "Over Voltage" bei überschreiten dieses Werts
+ALARM_MIN_VOLTAGE - Setzt STATE "Under Voltage" bei unterschreiten dieses Werts
+ALARM_MAX_POWER - Setzt STATE "Over Power" bei überschreiten dieses Werts
+
+
+
 Standard-Pinbelegung:
 (Seriell über USART - #define USE_HARDWARE_SERIAL)
 0  - Rx RS485
@@ -23,7 +36,7 @@ A5 - INA236 I²C (SCL)
 A1 - Relais 1
 4  - Relais 2
 A2 - Input 1
-A3 - Input 2 (oder 1 Onewire Bestückung möglich)
+A3 - Input 2
 
 
 "Debug"-Pinbelegung:

@@ -91,9 +91,6 @@ class HBWPMeasure : public HBWChannel {
   private:
     hbw_config_power_measure* config;
     SBCDVA* sensor;  // pointer to call sensor functions
-    // int16_t deziCurrent;  // factor 10
-    // int16_t deziVoltage;  // factor 10
-    // int16_t deziPower;  // factor 10
     // use factor 100 to keep two decimal places without float type
     uint16_t centiAvgValue[3] = {0, 0, 0};  // store 'VOLTAGE,   CURRENT,     POWER' - see "enum val_id"
     int32_t centiSumValue[3] = {0, 0, 0};
@@ -145,7 +142,6 @@ class HBWPMeasure : public HBWChannel {
     {
       _wire->begin();
       _wire->setClock(100000);
-      // sensor->reset_ina236(0x40);
       sensor->init_ina236(7, 4, 4, 2, 0);
       sensor->calibrate_ina236();
       sensor->mask_enable(3);  // v bus under limit (not used, but this should keep the alert LED off)
