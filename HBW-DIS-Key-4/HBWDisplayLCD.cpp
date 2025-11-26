@@ -71,8 +71,12 @@ void HBWDisplay::afterReadConfig()
     // set up the LCD's number of columns and rows:
     lcd->begin((config->num_characters *4) +4, config->num_lines +1);
     lcd->clear();
-    // Print a message to the LCD.
-    lcd->print(F("HBW-DISPLAY"));
+    // Print startup message to the LCD
+    lcd->print(F(DISP_WELCOME_STRING));
+    if (config->num_lines >= 1) {
+      lcd->setCursor(0, 1);
+      lcd->print(F(DISP_VERSION_STRING));
+    }
     
 //    lcd->write(byte(0));
     initDone = true;
@@ -243,7 +247,7 @@ uint8_t HBWDisplayVChNum::get(uint8_t* data)
   *data++ = (currentValue >> 8);
   *data = currentValue & 0xFF;
 
-  return sizeof(data);
+  return 2;
 };
 
 

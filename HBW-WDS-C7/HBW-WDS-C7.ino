@@ -25,7 +25,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000D
+#define FIRMWARE_VERSION 0x0011
 #define HMW_DEVICETYPE 0x88
 
 #define NUM_CHANNELS 2  // total number of channels
@@ -37,43 +37,16 @@
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove all debug output. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
-
-#include <FreeRam.h>
-
 // HB Wired protocol and module
-#include <HBW_eeprom.h>
 #include <HBWired.h>
 #include "HBWSIGNALDuino_adv.h"
 #include "HBWSIGNALDuino_bresser7in1.h"
 #include <HBWLinkInfoEventSensor.h>
 
 
-/* harware specifics ------------------------ */
-#if defined (ARDUINO_ARCH_RP2040)
-  EEPROM24* EepromPtr = new EEPROM24(Wire, EEPROM_24LC128);  // 16 kBytes EEPROM @ first I2C / Wire0 interface
-#else
-  // below customizations are probably not compatible with other architectures
-  #error Target Plattform not supported! Please contribute.
-#endif
+// Pins and hardware config
+#include "HBW-WDS-C7_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
-// Pins
-// TODO move to own file (pins_default.h pins_custom.h - exclude pins_custom from Git)
-#define LED 6      // Signal-LED
-#define RS485_TXEN 7  // Transmit-Enable
-// UART1==Serial2 for HM bus
-#define BUTTON 22  // Button fuer Factory-Reset etc.
-
-// cc1101 module @ SPI0
-// #define PIN_SEND              20   // gdo0Pin TX out
-// #define PIN_RECEIVE           21   // gdo2
-// see: HBWSIGNALDuino_adv/compile_config.h and HBWSIGNALDuino_adv/cc1101.h
-
-// default pins:
-// USB Rx / Tx 0, 1 (UART0)
-// SPI0[] = {MISO, SS, SCK, MOSI}; // GPIO 16 - 19
-// I2C0[] = {PIN_WIRE0_SDA, PIN_WIRE0_SCL}; // GPIO 4 & 5
-// UART1 GPIO 8 & 9
-// possible to use BOOTSEL button in sketch?
 
 // device config
 // different layout/central_address position for RP2040! Variable start must be multiple of four / cannot access a 16bit type at an odd address?
@@ -93,7 +66,7 @@ static struct hbw_config {
 // create object for the channel
 HBWChannel* channels[NUM_CHANNELS];
 
-// new child class, to set custom methods for plattform (RP2040)
+// new child class, to set custom methods for plattform (RP2040) - override
 class HBWRpiPicoDevice : public HBWDevice {
     public: 
     HBWRpiPicoDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _firmware_version,
@@ -110,7 +83,10 @@ class HBWRpiPicoDevice : public HBWDevice {
     protected:
       void readConfig() override {         // read config from EEPROM	
         // read EEPROM
-        EepromPtr->read(0x01, config, configSize);
+        // EepromPtr->read(0x01, config, configSize);
+        for (unsigned int i = 0; i < configSize; i++) {
+          config[i] = EepromPtr->read(0x01 + i);
+        }
         // turn around central address
         uint8_t addr[4];
         for(uint8_t i = 0; i < 4; i++) {
@@ -138,7 +114,7 @@ class HBWRpiPicoDevice : public HBWDevice {
 HBWDevice* device = NULL;
 
 
-/*--------------------------------------------SIGNALDuino-------------------------------------------------*/
+/*----------------------------------------SIGNALDuino @core0-----------------------------------------------*/
 #include "HBWSIGNALDuino_adv/SIGNALDuino.ino.hpp"
 /* providing setup() and loop() for core0 */
 // external EEPROM started here, too!
@@ -195,7 +171,10 @@ void setup1()
   // Serial.print("Actual F_CPU:     "); Serial.println(rp2040.f_cpu());
 
  #if defined (ARDUINO_ARCH_RP2040)
-  // Wire.begin();
+  #if !defined (EEPROM_RPI_simulated)
+  // setup / check external eeprom
+  Wire.begin();
+  Serial.print("EE size: ");Serial.println(EepromPtr->length());
   if (! EepromPtr->available())
   {
     Serial.println("No EEPROM!!");
@@ -211,6 +190,7 @@ void setup1()
     }
     #endif
   }
+  #endif
  #endif
 
   // create channels

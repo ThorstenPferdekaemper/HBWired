@@ -1,0 +1,657 @@
+<?xml version="1.0"?>
+<device eep_size="1024" version="01">
+<supported_types>
+	<type priority="2" id="HBW-Sys-PM" name="RS485 Homebrew Bus power measure and switch actuator 4-channel">
+		<parameter const_value="0x8D" size="1" index="0"/>
+		<parameter const_value="1" size="1" index="1"/>
+		<parameter const_value="0x0006" size="2" cond_op="GE" index="2"/><!--FIRMWARE_VERSION-->
+	</type>
+</supported_types>
+
+<paramset id="HBW_Sys_PM_dev_master" type="MASTER">
+	<parameter id="LOGGING_TIME">
+		<logical type="float" unit="s" default="5.0" max="25.5" min="0.1"/>
+		<physical size="1.0" type="integer" interface="eeprom">
+			<address index="0x0001"/>
+		</physical>
+		<conversion type="float_integer_scale" offset="0.0" factor="10"/>
+	</parameter>
+	<parameter id="CENTRAL_ADDRESS" hidden="true">
+		<logical type="integer"/>
+		<physical size="4" type="integer" interface="eeprom">
+			<address index="0x0002"/>
+		</physical>
+	</parameter>
+	<parameter id="DIRECT_LINK_DEACTIVATE" hidden="true">
+		<logical type="boolean" default="false"/>
+		<physical size="0.1" type="integer" interface="eeprom">
+			<address index="0x0006"/>
+		</physical>
+	</parameter>
+	<enforce id="DIRECT_LINK_DEACTIVATE" value="true"/>
+</paramset>
+
+<frames>
+	<frame id="LEVEL_SET" type="#x" channel_field="10" direction="to_device">
+		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
+	</frame>
+	<frame id="LEVEL_GET" type="#S" channel_field="10" direction="to_device"/>
+	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
+		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
+		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
+	</frame>
+	<frame id="PM_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" index="11.0" size="2.0" signed="false" param="BUS_VOLTAGE"/>
+		<parameter type="integer" index="13.0" size="2.0" signed="false" param="BUS_CURRENT"/>
+		<parameter type="integer" index="15.0" size="2.0" signed="false" param="BUS_POWER"/>
+		<!-- <parameter type="integer" index="17.0" size="0.4" param="FOO"/> -->
+		<parameter type="integer" index="17.4" size="0.4" param="ALARM_FLAGS"/>
+	</frame>
+	<frame id="KEY_EVENT_SHORT" direction="from_device" event="true" type="#K" channel_field="10">
+		<parameter type="integer" index="12.0" size="0.1" const_value="0"/>
+		<parameter type="integer" index="12.2" size="0.6" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_EVENT_LONG" direction="from_device" event="true" type="#K" channel_field="10">
+		<parameter type="integer" index="12.0" size="0.1" const_value="1"/>
+		<parameter type="integer" index="12.2" size="0.6" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_SIM_SHORT" direction="from_device" type="#K" channel_field="10" receiver_channel_field="11">
+		<parameter type="integer" index="12.0" size="0.1" const_value="0"/>
+		<parameter type="integer" index="12.2" size="0.6" param="SIM_COUNTER"/>
+	</frame>
+	<frame id="KEY_SIM_LONG" direction="from_device" type="#K" channel_field="10" receiver_channel_field="11">
+		<parameter type="integer" index="12.0" size="0.1" const_value="1"/>
+		<parameter type="integer" index="12.2" size="0.6" param="SIM_COUNTER"/>
+	</frame>
+	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
+		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
+	</frame>
+	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
+		<parameter param="toggle_flag" size="1.0" index="11.0" type="integer"/>
+	</frame>
+	<frame id="ANALOG_EVENT" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" index="11.0" size="2.0" param="ANALOGVALUE"/>
+	</frame>
+</frames>
+
+<channels>
+	<channel index="0" type="MAINTENANCE" count="1" class="maintenance" ui_flags="internal">
+		<paramset id="maint_ch_master" type="MASTER"/>
+		<paramset id="maint_ch_values" type="VALUES">
+			<parameter id="UNREACH" ui_flags="service" operations="read,event">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="UNREACH"/>
+			</parameter>
+			<parameter id="STICKY_UNREACH" ui_flags="service" operations="read,write,event">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="STICKY_UNREACH"/>
+			</parameter>
+			<parameter id="CONFIG_PENDING" ui_flags="service" operations="read,event">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="CONFIG_PENDING"/>
+			</parameter>
+		</paramset>
+	</channel>
+	
+	<channel index="1" count="1" physical_index_offset="-1" type="BUS POWER">
+		<paramset type="MASTER" id="hbw_pm_ch_master" address_step="16" address_start="0x07">
+			<parameter id="ENABLED">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="KEY_EVENT_ALARM">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<parameter id="SAMPLE_RATE">
+				<logical type="float" default="30.0" min="0.5" max="127.0" unit="s (4 samples)">
+					<!-- <special_value id="INPUT_DISABLED" value="0"/> -->
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+3.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="2"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="60" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			
+			<parameter id="SEND_MIN_INTERVAL">
+				<logical type="integer" unit="s" default="60" min="15" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+4.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="60" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="600" min="15" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+6.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="600" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="ALARM_MAX_VOLTAGE">
+				<logical type="float" unit="V" default="25.5" min="0.1" max="48.0">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+8.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="2550" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="ALARM_MIN_VOLTAGE">
+				<logical type="float" unit="V" default="23.0" min="0.1" max="48.0">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+10.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="2300" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="ALARM_MAX_POWER">
+				<logical type="float" unit="W" default="50.0" min="0.1" max="384.0">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+12.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="500" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+		</paramset>
+		
+		<paramset type="LINK" id="hmw_pm_key_ch_link" peer_param="ACTUATOR" channel_param="CHANNEL" count="20" address_start="0x2CC" address_step="6">
+			<parameter id="CHANNEL" operations="none" hidden="true">
+				<logical type="integer" min="0" max="255" default="255"/>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+			</parameter>
+			<parameter id="ACTUATOR" operations="none" hidden="true">
+				<logical type="address"/>
+				<physical type="array">
+					<physical type="integer" size="4.0" interface="eeprom">
+						<address index="+1"/>
+					</physical>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+5"/>
+					</physical>
+				</physical>
+			</parameter>
+		</paramset>
+		
+		<paramset type="VALUES" id="hmw_pm_output_values">
+			<parameter id="BUS_VOLTAGE" operations="read,event">
+				<logical type="float" min="-273.15" max="327.67" unit="V"/>
+				<physical type="integer" interface="command" value_id="BUS_VOLTAGE">
+					<get request="LEVEL_GET" response="PM_EVENT"/>
+					<event frame="PM_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+			</parameter>
+			<parameter id="BUS_CURRENT" operations="read,event">
+				<logical type="float" min="-273.15" max="327.67" unit="A"/>
+				<physical type="integer" interface="command" value_id="BUS_CURRENT">
+					<get request="LEVEL_GET" response="PM_EVENT"/>
+					<event frame="PM_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+			</parameter>
+			<parameter id="BUS_POWER" operations="read,event">
+				<logical type="float" min="-273.15" max="327.67" unit="W"/>
+				<physical type="integer" interface="command" value_id="BUS_POWER">
+					<get request="LEVEL_GET" response="PM_EVENT"/>
+					<event frame="PM_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="100"/>
+			</parameter>
+			<parameter id="STATE" operations="read,event">
+				<logical type="option">
+					<option id="Good" default="true"/>
+					<option id="Over Voltage"/>
+					<option id="Over Power"/>
+					<option id="Overload"/>
+					<option id="Under Voltage"/>
+					<option id="Error"/>
+					<option id="Under Voltage and Over Power"/>
+					<option id="Error"/><!-- 7 -->
+					<option id="Sensor Fail"/>
+					<option id="Sensor Fail"/>
+					<option id="Sensor Fail"/>
+					<option id="Sensor Fail"/>
+					<option id="Sensor Fail"/>
+					<option id="Sensor Fail"/>
+					<option id="Sensor Fail"/>
+					<option id="Error"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="ALARM_FLAGS">
+					<get request="LEVEL_GET" response="PM_EVENT"/>
+					<event frame="PM_EVENT"/>
+				</physical>
+			</parameter>
+		</paramset>
+
+	</channel>
+
+	<channel index="2" type="SWITCH" count="4" physical_index_offset="-1">
+		<link_roles>
+			<target name="SWITCH"/>
+		</link_roles>
+		<paramset id="hmw_switch_ch_master" type="MASTER" address_step="2" address_start="0x17">
+			<parameter id="LOGGING">
+				<logical type="option">
+					<option id="OFF"/>
+					<option id="ON" default="true"/>
+				</logical>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+			</parameter>
+			<parameter id="OUTPUT_LOCKED">
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<parameter id="INVERTED">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.2"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>		
+		</paramset>
+
+		<paramset type="LINK" id="hmw_switch_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="24" address_step="20" address_start="0x60">
+			<parameter id="UI_HINT">
+				<logical type="string" default="" use_default_on_failure="true"/>
+				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
+			</parameter>
+			<parameter id="SENSOR" operations="none" hidden="true">
+				<logical type="address"/>
+				<physical type="array">
+					<physical type="integer" size="4.0" interface="eeprom">
+						<address index="+0"/>
+					</physical>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+4"/>
+					</physical>
+				</physical>
+			</parameter>
+			<parameter id="CHANNEL" operations="none" hidden="true">
+				<logical type="integer" min="0" max="255" default="255"/>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+5"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_ON_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+6.7"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_OFF_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+6.6"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_ACTION_TYPE">
+				<logical type="option">
+					<option id="INACTIVE"/>
+					<option id="JUMP_TO_TARGET" default="true"/>
+					<option id="TOGGLE_TO_COUNTER"/>
+					<option id="TOGGLE_INVERS_TO_COUNTER"/>
+					<option id="TOGGLE"/>
+				</logical>
+				<physical type="integer" size="0.4" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_ONDELAY_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+7"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+			<parameter id="SHORT_ON_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+8"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+			<parameter id="SHORT_OFFDELAY_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+9"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+			<parameter id="SHORT_OFF_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+10"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+			<parameter id="SHORT_JT_ONDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON" default="true"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.0"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_JT_ON">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY" default="true"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.3"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_JT_OFFDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF" default="true"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.6"/>
+				</physical>
+			</parameter>
+			<parameter id="SHORT_JT_OFF">
+				<logical type="option">
+					<option id="ONDELAY" default="true"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+11.9"/>
+				</physical>
+			</parameter>
+
+			<parameter id="LONG_ON_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+13.7"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_OFF_TIME_MODE">
+				<logical type="option">
+					<option id="MINIMAL"/>
+					<option id="ABSOLUTE" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+13.6"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_MULTIEXECUTE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="+13.5"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ACTION_TYPE">
+				<logical type="option">
+					<option id="INACTIVE"/>
+					<option id="JUMP_TO_TARGET" default="true"/>
+					<option id="TOGGLE_TO_COUNTER"/>
+					<option id="TOGGLE_INVERS_TO_COUNTER"/>
+					<option id="TOGGLE"/>
+				</logical>
+				<physical type="integer" size="0.4" interface="eeprom">
+					<address index="+13.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ONDELAY_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+14"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+			<parameter id="LONG_ON_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+15"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+			<parameter id="LONG_OFFDELAY_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="0.0" unit="s"/>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+16"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+			<parameter id="LONG_OFF_TIME">
+				<logical type="float" min="0.0" max="63000.0" default="378000" unit="s">
+					<special_value id="NOT_USED" value="378000"/>
+				</logical>
+				<physical type="integer" size="1.0" interface="eeprom" endian="little">
+					<address index="+17"/>
+				</physical>
+				<conversion type="float_configtime" factors="1,60,1000,6000" value_size="0.8"/>
+				<conversion type="integer_integer_map">
+					<value_map device_value="0xc0" parameter_value="0xff" mask="0xc0"/>
+				</conversion>
+			</parameter>
+				<parameter id="LONG_JT_ONDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON" default="true"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_JT_ON">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY" default="true"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.3"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_JT_OFFDELAY">
+				<logical type="option">
+					<option id="ONDELAY"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF" default="true"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.6"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_JT_OFF">
+				<logical type="option">
+					<option id="ONDELAY" default="true"/>
+					<option id="ON"/>
+					<option id="OFFDELAY"/>
+					<option id="OFF"/>
+					<option id="NO_JUMP_IGNORE_COMMAND"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom" endian="little" read_size="2">
+					<address index="+18.9"/>
+				</physical>
+			</parameter>
+		</paramset>
+
+		<paramset id="hmw_switch_ch_values" type="VALUES">
+			<parameter id="STATE" operations="read,write,event" control="SWITCH.STATE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="LEVEL">
+					<set request="LEVEL_SET"/>
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+				</physical>
+				<conversion type="boolean_integer" true="200" false="0" threshold="1"/>
+			</parameter>
+			<parameter id="WORKING" operations="read,event" ui_flags="internal">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+					<event frame="ACK_STATUS"/>
+				</physical>
+				<conversion type="boolean_integer"/>
+			</parameter>
+			<parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="INHIBIT">
+					<set request="SET_LOCK"/>
+				</physical>
+			</parameter>
+			<parameter id="INSTALL_TEST" operations="write" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TOGGLE_FLAG" no_init="true">
+					<set request="TOGGLE_INSTALL_TEST"/>
+				</physical>
+				<conversion type="toggle" value="STATE" />
+			</parameter>
+		</paramset>
+	</channel>
+	
+	<channel index="6" physical_index_offset="-1" count="2" type="ANALOG_INPUT">
+		<paramset type="MASTER" id="hmw_analog_ch_master" address_step="6" address_start="0x1F">
+			<parameter id="SEND_DELTA_VALUE">
+				<logical type="float" default="100" min="1" max="254">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="1"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="100" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_MAX_INTERVAL">
+				<logical type="integer" unit="s" default="600" min="10" max="3600">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="2.0" type="integer" interface="eeprom" endian="little">
+					<address index="+1.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="600" device_value="0xffff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SEND_MIN_INTERVAL">
+			   <logical type="integer" unit="s" default="30" min="10" max="2540">
+					<special_value id="NOT_USED" value="0"/>
+			   </logical>
+			   <physical size="1.0" type="integer" interface="eeprom">
+					<address index="+3.0"/>
+			   </physical>
+				<conversion type="float_integer_scale" factor="0.1"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="UPDATE_INTERVAL">
+				<logical type="integer" default="300" min="10" max="2540" unit="s">
+					<special_value id="INPUT_DISABLED" value="0"/>
+				</logical>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+4.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1"/>
+			</parameter>
+		</paramset>
+		<paramset type="VALUES" id="hmw_busvoltage_input_values">
+			<parameter id="VALUE" operations="read,event">
+				<logical type="float" min="0.0" max="1024"/>
+				<physical type="float" interface="command" value_id="ANALOGVALUE">
+					<get request="LEVEL_GET" response="ANALOG_EVENT"/>
+					<event frame="ANALOG_EVENT"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="1"/>
+			</parameter>
+		</paramset>
+	</channel>
+</channels>
+</device>

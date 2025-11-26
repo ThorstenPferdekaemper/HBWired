@@ -16,15 +16,15 @@
 
 //#define DEBUG_OUTPUT   // extra debug output on serial/USB
 
-#define SAMPLE_INTERVAL 3  // seconds * 3 samples
-#define DEFAULT_UPDATE_INTERVAL 300  // seconds
+static const uint8_t SAMPLE_INTERVAL = 3;  // seconds * 3 samples
+static const uint16_t DEFAULT_UPDATE_INTERVAL = 300;  // seconds
 
 // address step 6
 struct hbw_config_analog_in {
-  uint8_t send_delta_value;        // Differenz des Messwerts, ab dem gesendet wird
+  uint8_t send_delta_value;       // Differenz des Messwerts, ab dem gesendet wird
   uint16_t send_max_interval;     // Maximum-Sendeintervall
-  uint8_t send_min_interval;     // Minimum-Sendeintervall (factor 10, range 10 to 2540 seconds)
-  uint8_t update_interval;  // factor 10, range 10 to 2540 seconds //TODO: 10 seconds stepping is ok?
+  uint8_t send_min_interval;      // Minimum-Sendeintervall (factor 10, range 10 to 2540 seconds)
+  uint8_t update_interval;        // factor 10, range 10 to 2540 seconds
   uint8_t dummy;
 };
 

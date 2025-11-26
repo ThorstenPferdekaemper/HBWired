@@ -3,7 +3,7 @@
  * 
  * analog input channel, max. 16 bit reading
  * 
- * Updated: 17.05.2020
+ * Updated: 13.11.2025
  * www.loetmeister.de
  * 
  */
@@ -19,7 +19,7 @@ HBWAnalogIn::HBWAnalogIn(uint8_t _pin, hbw_config_analog_in* _config) {
   currentValue = 0;
   lastSendValue = 0;
   lastSentTime = 0;
-  analogRead(pin);
+  pinMode(pin, INPUT);
 };
 
 
@@ -53,6 +53,28 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
   
   unsigned long now = millis();
   
+  if (now - lastActionTime > ((unsigned long)nextActionDelay *1000)) // handle ADC reading and average calculation
+  {
+    lastActionTime = now;
+    nextActionDelay = SAMPLE_INTERVAL;
+    #define MAX_SAMPLES 3
+    static uint8_t sampleCount = 0;
+    static uint32_t sum = 0;
+    
+    sum += analogRead(pin);
+    sampleCount++;
+    
+    if (sampleCount >= MAX_SAMPLES) { // every MAX_SAMPLES * SAMPLE_INTERVAL a new reading will be ready (9 seconds by default)
+      sampleCount = 0;
+      currentValue = sum / MAX_SAMPLES;
+      sum = 0;
+      nextActionDelay = (uint16_t)config->update_interval *10;  // "sleep" until next update
+  #ifdef DEBUG_OUTPUT
+    hbwdebug(F("adc-ch:"));  hbwdebug(channel);  hbwdebug(F(" measured:"));  hbwdebug(currentValue);  hbwdebug(F("\n"));
+  #endif
+    }
+  }
+  
   // check if some values have to be send - do not send before min interval
   if (config->send_min_interval && now - lastSentTime <= (uint32_t)config->send_min_interval * 10000)  return;
   if ((config->send_max_interval && now - lastSentTime >= (uint32_t)config->send_max_interval * 1000) ||
@@ -71,32 +93,5 @@ void HBWAnalogIn::loop(HBWDevice* device, uint8_t channel) {
 #endif
   }
   
-  if (now - lastActionTime < ((uint32_t)nextActionDelay *1000)) return; // quit if wait time not yet passed
-    
-  nextActionDelay = SAMPLE_INTERVAL;
-  #define MAX_SAMPLES 3    // update "buffer" array definition, when changing this
-  static uint16_t buffer[MAX_SAMPLES] = {0, 0, 0};
-  static uint8_t nextIndex = 0;
-  
-  buffer[nextIndex++] = analogRead(pin);
-  lastActionTime = now;
-  
-  if (nextIndex >= MAX_SAMPLES) {
-    nextIndex = 0;
-    uint32_t sum = 0;
-    uint8_t i = MAX_SAMPLES;
-    do {
-       sum += buffer[--i];
-    }
-    while (i);
-    
-    currentValue = sum / MAX_SAMPLES;
-    // "sleep" until next update
-    nextActionDelay = config->update_interval *10;
-    
-#ifdef DEBUG_OUTPUT
-  hbwdebug(F("adc-ch:"));  hbwdebug(channel);  hbwdebug(F(" measured:"));  hbwdebug(currentValue);  hbwdebug(F("\n"));
-#endif
-  }
 };
 
