@@ -10,13 +10,6 @@ EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove unneeded code. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
-// #if defined (ARDUINO_ARCH_RP2040)
-// #define LED 6      // Signal-LED
-// #define RS485_TXEN 7  // Transmit-Enable
-// // UART1==Serial2 for HM bus
-// #define BUTTON 22  // Button fuer Factory-Reset etc.
-// #endif
-
 
 //  #define TWI_SDA SDA  // A4  used for I²C
 //  #define TWI_SCL SCL  // A5  used for I²C
@@ -56,7 +49,7 @@ SBCDVA INA236(0x40, &Wire);  // first "Wire" interface is the default
   #define INPUT2_PIN A3  // Input 2
 
   #include <HBWSoftwareSerial.h>
-  #include <FreeRam.h>  
+  #include <FreeRam.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif
 
