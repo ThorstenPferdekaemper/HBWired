@@ -43,7 +43,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0046
+#define FIRMWARE_VERSION 0x0047
 #define HMW_DEVICETYPE 0x82 //BL4 device (make sure to import hbw_lc_bl-4.xml into FHEM)
 
 #define NUMBER_OF_BLINDS 4
