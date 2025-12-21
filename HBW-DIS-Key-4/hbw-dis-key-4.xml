@@ -438,6 +438,13 @@
 					<address index="+0.3"/>
 				</physical>
 			</parameter>
+			<parameter id="REPEAT_LONG_PRESS">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.5"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
 			<parameter id="LONG_PRESS_TIME">
 				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
 				<physical size="1.0" type="integer" interface="eeprom">

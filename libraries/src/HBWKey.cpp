@@ -7,6 +7,9 @@
  * 
  * Updated (www.loetmeister.de): 19.05.2020
  * - Added resend capability on busy bus, for MOTIONSENSOR and DOORSENSOR input_type
+ * 
+ * Updated (www.loetmeister.de): 19.12.2025
+ * - Added config option repeat_long_press for PUSHBUTTON
  */
 
 #include "HBWKey.h"
@@ -60,6 +63,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
   switch (config->input_type) {
     case DOORSENSOR:
   // sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
+  // LONG_PRESS_TIME defines the delay / debounce time
       if (buttonState != lastSentLong) {
         if (!keyPressedMillis) {
           keyPressedMillis = now;
@@ -123,7 +127,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
         if (keyPressedMillis) {
           // muessen wir ein "long" senden?
           if (lastSentLong) {   // schon ein LONG gesendet
-            if (now - lastSentLong >= 300) {  // alle 300ms wiederholen
+            if (now - lastSentLong >= 300 && config->repeat_long_press) {  // alle 300ms wiederholen
               // keyPressNum nicht erhoehen
               device->sendKeyEvent(channel, keyPressNum, true);  // long press
               lastSentLong = now;
