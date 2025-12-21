@@ -78,8 +78,11 @@ void HBWLinkBlindSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devic
 	  // 4 -> LEVEL
 	    case 4: { asm ("nop"); } // target level already stored in "data" - nothing to do...
                 break;
-	  // 5 -> INACTIVE
-	    case 5: continue;
+	  // 5 -> OLD_LEVEL
+	    case 5: data[0] = SET_BLIND_OLD_LEVEL;
+                break;
+	  // 6 -> INACTIVE
+	    case 6: continue;
       };
 	  device->set(targetChannel, sizeof(data), data);    // channel, data length, data
   }

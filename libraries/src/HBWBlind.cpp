@@ -7,7 +7,7 @@
 ** Infos: http://loetmeister.de/Elektronik/homematic/index.htm#modules
 ** Vorlage: https://github.com/loetmeister/HM485-Lib/tree/markus/HBW-LC-Bl4
 **
-** Last updated: 12.12.2023
+** Last updated: 19.12.2025
 */
 
 #include "HBWBlind.h"
@@ -33,6 +33,7 @@ HBWChanBl::HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _co
   blindDirection = DOWN;
   blindSearchingForRefPosition = false;
   blindPositionRequested = BL_POS_UNKNOWN;
+  blindPositionOld = BL_POS_UNKNOWN;
   blindRunCounter = 0;
   lastKeyNum = 255;
 };
@@ -93,6 +94,12 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     blindNextState = BL_STATE_STOP;
     blindForceNextState = true;
   }
+  else if (data[0] == SET_BLIND_OLD_LEVEL) {
+  #ifdef DEBUG
+    hbwdebug(F("Old level\n"));
+  #endif
+    set(device, 1, &blindPositionOld);
+  }
   else { // set level
   
     blindPositionRequested = data[0];
@@ -113,7 +120,7 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       else if (blindPositionRequested == 200) {
         blindPositionActual = 0;
       }
-      else {  // Target position >0 and <100
+      else {  // Target position >0% and <100%
       // for requested position 50% or lower, set target to 0% to move in right direction - set blindPositionActual (unknown anyway) as opposite (always 0 or 100%)
         blindPositionActual = (blindPositionRequested <= 100) ? 200 : 0;
         blindPositionRequestedSave = blindPositionRequested;
@@ -144,6 +151,9 @@ void HBWChanBl::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
       if (blindPositionRequested != blindPositionActual) {
         blindNextState = BL_STATE_WAIT;
         blindForceNextState = true;
+      }
+      else {
+        blindPositionOld = blindPositionActual;
       }
     }
   }
@@ -211,6 +221,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
         blindTimeStart = now;
         blindTimeLastAction = now;
         blindPositionLast = blindPositionActual;
+        blindPositionOld = blindPositionActual;
 
         // Set next state & delay time
         blindCurrentState = BL_STATE_MOVE;
@@ -222,7 +233,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
           blindNextStateDelayTime = ((unsigned long)(blindPositionActual - blindPositionRequested) * config->blindTimeTopBottom)/2;
         }
         blindNextStateDelayTime += config->blindMotorDelay *10;   // Motor lief nicht, eingestellte Anlaufzeit addieren
-		blindRunCounter++;
+        blindRunCounter++;
 
         // add offset time if final positions are requested to ensure that final position is really reached
         if ((blindPositionRequested == 0) || (blindPositionRequested == 200)) {
@@ -254,6 +265,7 @@ void HBWChanBl::loop(HBWDevice* device, uint8_t channel)
             hbwdebug(F("Reference position reached. Position is known.\n"));
           #endif
             blindPositionKnown = true;
+            blindPositionOld = blindPositionActual;  // overwrite old position, which was set in unknown state
           }
         }
 
