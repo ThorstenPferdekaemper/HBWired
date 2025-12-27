@@ -98,7 +98,7 @@ class HBWDeltaT : public HBWChannel {
     uint8_t keyPressNum;
     uint8_t sendKeyEventFailCounter;
 
-    bool calculateNewState();
+    bool calculateNewState(bool);
     bool setOutput(HBWDevice* device, uint8_t channel);
     uint16_t setOutputWaitTime;
 
@@ -114,6 +114,7 @@ class HBWDeltaT : public HBWChannel {
         uint8_t dlimit  :1; // delta within display limit (false = temperature exceeds max delta value)
         uint8_t mode    :1; // true = active (both input values received)
         uint8_t status  :1; // outputs on or off?
+        uint8_t locked  :1; // 1 = locked // TODO: add... state_flags are only 3 bytes right now
       } element;
       uint8_t byte:8;
     } stateFlags;

@@ -157,8 +157,8 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 
   // do not allow new values / state when "inhibit" is enabled
   // also skip when output state is manually forced (forceOutputChange)
-  if (!forceOutputChange && !getLock())  stateFlags.element.mode = calculateNewState();  // calculate new deltaT value, set channel mode (active/inactive) and nextState
-  
+  stateFlags.element.mode = calculateNewState(forceOutputChange || getLock());  // calculate new deltaT value, set channel mode (active/inactive) and nextState
+
   if (setOutput(device, channel)) // will only set output if state is different
   {
   #ifdef DEBUG_OUTPUT
@@ -252,8 +252,10 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 
 /* returns true when both input values received and valid, false if not
 * retuns the current logical state, if wait time did not pass */
-bool HBWDeltaT::calculateNewState()
+bool HBWDeltaT::calculateNewState(bool _skip)
 {
+  if (_skip) return false; // TODO: skip deltaT calucalation, but check for errors & limits (max)?
+
   if (millis() - deltaCalcLastTime >= DELTAT_CALCULATION_WAIT_TIME)
   {
     deltaCalcLastTime = millis();
