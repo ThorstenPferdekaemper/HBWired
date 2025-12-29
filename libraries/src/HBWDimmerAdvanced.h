@@ -406,7 +406,6 @@ class HBWDimmerAdvanced : public HBWChannel {
           bool currentOnLevelPrio = stateParamList->onLevelPrio;  // save value before overwriting stateParamList
           
           if (deep == 0) { // add "repeat" bool flag? if (lastKeyNum == currentKeyNum && sameLastSender) flag = true // save not needed for repeated long press
-            // currentOnLevelPrio = stateParamList->onLevelPrio;  // save value before overwriting stateParamList
             // save new values from valid peering event
             memcpy(stateParamList, _peerList, sizeof(*stateParamList));
             hbwdebug(F("saved\n"));
@@ -416,11 +415,12 @@ class HBWDimmerAdvanced : public HBWChannel {
           if (_next == JT_ON && currentState == JT_ON) {
             hbwdebug(F(" ON updt"));
             if (currentOnLevelPrio == ON_LEVEL_PRIO_HIGH && _peerList->isOnLevelPrioLow()) {
-              // current prio is high and new is low - keep onLevel and onTime running
+              // current prio is high and new is low - keep onLevel
+              // to arrive here, onTime would be absolute or new minimal time is less than the remaining time - so timer should be restarted
               // stateParamList->onLevel = currentLevel; // save level as onLevel TODO: not needed? as we use currentLevel anway?
               destLevel = currentLevel; // keep level
               stateParamList->onLevelPrio = currentOnLevelPrio;  // remains ON_LEVEL_PRIO_HIGH
-              _delay = getRemainingStateChangeTime();  // timer restarts (unless INFINITE), continue where we got interrupted
+    //          _delay = getRemainingStateChangeTime();  // timer restarts (unless INFINITE), continue where we got interrupted
               hbwdebug(F("-Prio "));
             }
             else {
@@ -498,7 +498,6 @@ class HBWDimmerAdvanced : public HBWChannel {
             uint8_t rampStartStep = _peerList->rampStartStep *2;
             
             if (currentState == JT_RAMPON) {
-              // destLevel = _peerList->onLevel;
               destLevel = getOnLevel(_peerList);
               if (currentLevel < _peerList->onMinLevel) {  // start at onMinLevel or ramp start step when greater than onMinLevel
                 currentLevel = (_peerList->onMinLevel < rampStartStep) ? rampStartStep : _peerList->onMinLevel;
