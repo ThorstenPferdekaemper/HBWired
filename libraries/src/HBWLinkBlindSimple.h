@@ -16,6 +16,7 @@
 // need to match (default) frame definition in XML:
 #define SET_BLIND_TOGGLE  255
 #define SET_BLIND_STOP    201
+#define SET_BLIND_OLD_LEVEL    202
 #define SET_BLIND_OPEN    200
 #define SET_BLIND_CLOSE     0
 

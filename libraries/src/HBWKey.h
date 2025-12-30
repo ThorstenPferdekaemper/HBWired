@@ -8,7 +8,7 @@
 //#define DEBUG_OUTPUT
 
 /* possible input types */
-// DOORSENSOR    > sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes
+// DOORSENSOR    > sends a short KeyEvent on HIGH and long KeyEvent on LOW input level changes (use LONG_PRESS_TIME as debounce time)
 // MOTIONSENSOR  > sends a short KeyEvent for raising or falling edge - not both
 // SWITCH        > sends a short KeyEvent, each time the input (e.g. wall switch) changes the polarity
 // PUSHBUTTON    > sends a short KeyEvent on short press and (repeated) long KeyEvent on long press
@@ -21,7 +21,8 @@ struct hbw_config_key {
   uint8_t n_inverted:1;       // 0x07:1    0=inverted, 1=not inverted
   uint8_t pullup:1;           // 0x07:2 // TODO: needed....?
   uint8_t input_type:2;       // 0x07:3-4   3=PUSHBUTTON (default), 2=SWITCH, 1=MOTIONSENSOR, 0=DOORSENSOR
-  uint8_t       :3;           // 0x07:5-7
+  uint8_t repeat_long_press:1;// 0x07:5    default on
+  uint8_t       :2;           // 0x07:6-7
   uint8_t long_press_time;    // 0x08
 };
 

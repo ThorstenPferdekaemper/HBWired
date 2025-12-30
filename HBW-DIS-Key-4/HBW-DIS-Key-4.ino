@@ -21,7 +21,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x001F
+#define FIRMWARE_VERSION 0x0020
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 
