@@ -44,6 +44,9 @@
 	<frame id="STOP" type="#x" channel_field="10" direction="to_device">
 		<parameter const_value="201" size="1.0" index="11.0" type="integer"/>
 	</frame>
+	<frame id="OLD_LEVEL" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="202"/>
+	</frame>
 	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
 		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
 		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
@@ -174,6 +177,7 @@
 					<option id="CLOSE"/>
 					<option id="TOGGLE" default="true"/>
 					<option id="LEVEL_SET"/>
+					<option id="OLD_LEVEL"/>
 					<option id="INACTIVE"/>
 				</logical>
 				<physical type="integer" size="0.3" interface="eeprom">
@@ -194,6 +198,7 @@
 					<option id="CLOSE"/>
 					<option id="TOGGLE"/>
 					<option id="LEVEL_SET"/>
+					<option id="OLD_LEVEL"/>
 					<option id="INACTIVE" default="true"/>
 				</logical>
 				<physical type="integer" size="0.3" interface="eeprom">
@@ -258,6 +263,12 @@
 				<logical type="action"/>
 				<physical type="integer" interface="command" value_id="DUMMY">
 					<set request="STOP"/>
+				</physical>
+			</parameter>
+			<parameter id="OLD_LEVEL" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="OLD_LEVEL"/>
 				</physical>
 			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">

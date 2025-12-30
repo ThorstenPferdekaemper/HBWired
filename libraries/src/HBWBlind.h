@@ -74,6 +74,7 @@ class HBWChanBl : public HBWChannel {
     byte blindPositionRequestedSave;
     byte blindPositionActual;
     byte blindPositionLast;
+    byte blindPositionOld;
     byte blindAngleActual;
     byte blindRunCounter;
     bool blindDirection;

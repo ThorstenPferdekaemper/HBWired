@@ -36,7 +36,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0052
+#define FIRMWARE_VERSION 0x0053
 #define HMW_DEVICETYPE 0x9C //device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
