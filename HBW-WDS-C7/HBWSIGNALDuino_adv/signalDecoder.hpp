@@ -571,7 +571,7 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 						MSG_PRINT(SERIAL_DELIMITER);
 					}
 
-					uint8_t n;
+					uint8_t n = 0;
 
 					if ((mend & 1) == 1) {   // ungerade
 						MSG_PRINT("D");
@@ -960,7 +960,7 @@ void SignalDetectorClass::processMessage(const uint8_t p_valid)
 					  MSG_PRINT("R");  MSG_PRINT(rssiValue, HEX);  MSG_PRINT(SERIAL_DELIMITER);
 					#endif	
 				    }
-					uint8_t n;
+					uint8_t n = 0;
 
 					if ((mend & 1) == 1) {   // ungerade
 						MSG_PRINT("d");
@@ -1643,9 +1643,9 @@ void ManchesterpatternDecoder::getMessageLenStr(String* str)
 
 unsigned char ManchesterpatternDecoder::getMCByte(const uint8_t idx) {
 
-	unsigned char c;
+	unsigned char c = 0;
 	ManchesterBits.getByte(idx,&c);
-	return  c;
+	return c;
 }
 
 

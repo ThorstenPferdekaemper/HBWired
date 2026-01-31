@@ -81,7 +81,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     }
     else if (peeringList->actionType >= TOGGLE_TO_COUNTER && peeringList->actionType <= TOGGLEDIM_INVERS_TO_COUNTER)
     {
-      uint8_t nextState;
+      uint8_t nextState = currentState;
       uint8_t newlevel = currentLevel;
      hbwdebug(F("kNum:"));hbwdebug(currentKeyNum);hbwdebug(F(" "));
       switch (peeringList->actionType) {
@@ -123,10 +123,9 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
     lastKeyNum = currentKeyNum;  // store key press number, to identify repeated key events
   }
   else {  // set value - no peering event, overwrite any timer
-    // manual set ON/OFF will be without timer (i.e. DELAY_INFINITE) - which only be changed by absolute time peering
-    //TODO check: how to handle onLevelPrio = HIGH
+    // manual set ON/OFF will be without timer (i.e. DELAY_INFINITE) - which can only be changed by absolute time peering
     
-    memset(stateParamList, 0, sizeof(*stateParamList));  // clear stored peeringList on manual SET()
+    memset(stateParamList, 0, sizeof(*stateParamList));  // clear stored peering Param List on manual SET()
     
     uint8_t newState;
     if (*(data) > ON_OLD_LEVEL) {   // use toggle for any other value (202 and greater)
@@ -146,7 +145,7 @@ void HBWDimmerAdvanced::set(HBWDevice* device, uint8_t length, uint8_t const * c
       setOutput(device, destLevel);  // nothing happens if old and new level are the same
     }
     stateParamList->onLevelPrio = ON_LEVEL_PRIO_HIGH;
-    // is onLevelPrio HIGH actually needed? It has no effect to OFF state change, but new on values will only be accepted with high prio and absolute time. ok?
+    // is onLevelPrio HIGH actually needed? It has no effect to OFF state change, but new ON values will only be accepted with high prio and absolute time. ok?
   }
 };
 
@@ -239,10 +238,12 @@ bool HBWDimmerAdvanced::setOutputNoLogging(uint8_t _newLevel)
   }
   if (_newLevel > 200)  _newLevel = 200;  // don't exceed limit
   
-  //                              scale to 40%   50%   60%   70%   80%   90%  100% - according to pwm_range setting
-  static const uint16_t newValueMax[7] = {1020, 1275, 1530, 1785, 2040, 2300, 2550};  // avoid float, divide by 10 when calling analogWrite()!
-  uint8_t newValueMin = 0;
+  // scale to % - according to pwm_range setting. Using 3 bits in channel XML config. Options in XML must align here...
+  static const uint16_t newValueMax[7] = {
+    PWM_MAX_40PCT, PWM_MAX_50PCT, PWM_MAX_60PCT, PWM_MAX_70PCT, PWM_MAX_80PCT, PWM_MAX_90PCT, PWM_MAX_100PCT
+  };  // use factor 10 to avoid float, divide by 10 when calling analogWrite()!
 
+  uint8_t newValueMin = 0;
   if (!config->voltage_default) newValueMin = 255; // Factor 10! Set 25.5 min output level (needs 0.5-5V for 1-10V mode)
   
   if (_newLevel > currentLevel)  dimmingDirectionUp = true;

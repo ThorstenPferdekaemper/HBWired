@@ -1,5 +1,5 @@
 /*
- * hardware.h
+ * HBW_hardware.h
  * Macros for different function calls or defines, if not set by the board
  *
  *  Created on: 23.05.2018
@@ -55,7 +55,7 @@
   #include <avr/sleep.h>
   #define POWERSAVE() set_sleep_mode(0); \
                       sleep_mode();
-#elif defined (ARDUINO_ARCH_RP2040)
+#elif defined (ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
   // #define POWERSAVE() sleep modes seem to be unstable / complicated. Lower sys_clock instead...
   #define POWERSAVE() //sleep modes seem to be unstable / complicated. Lower sys_clock instead...
   
