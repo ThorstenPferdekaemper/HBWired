@@ -768,6 +768,10 @@
 					<value_map device_value="0x01" parameter_value="1"/>
 					<value_map device_value="0x02" parameter_value="2"/>
 					<value_map device_value="0x03" parameter_value="3"/>
+					<value_map device_value="0x04" parameter_value="0"/>
+					<value_map device_value="0x05" parameter_value="1"/>
+					<value_map device_value="0x06" parameter_value="2"/>
+					<value_map device_value="0x07" parameter_value="3"/>
 				</conversion>
 			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
