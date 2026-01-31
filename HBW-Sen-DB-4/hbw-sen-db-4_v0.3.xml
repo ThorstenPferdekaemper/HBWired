@@ -4,7 +4,7 @@
 	<type name="RS485 Doorbell (4 channel)" id="HBW-Sen-DB-4" priority="2">
 		<parameter index="0" size="1" const_value="0x98"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x000A" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x0027" size="2" cond_op="LE" index="2"/><!--min FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 

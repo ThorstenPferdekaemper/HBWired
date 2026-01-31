@@ -18,7 +18,7 @@
 // #define DEBUG_OUTPUT
 
 
-// config, address step 5
+// config, address step 6
 struct hbw_config_key_doorbell {
   uint8_t n_input_locked:1;   // +0.0    0=LOCKED, 1=UNLOCKED
   uint8_t n_inverted:1;       // +0.1    0=inverted, 1=not inverted
@@ -33,7 +33,7 @@ struct hbw_config_key_doorbell {
   uint8_t suppress_time:4;   // +3.0   blocking time for repeated key presses (0-14 sec)
   uint8_t buzzer:3;          // +3.4 buzzer config (TODO: melody1, melody2, melody3, melody4), disabled=0, 7=default melody
   uint8_t fillup:1;
-  uint8_t dummy;
+  uint16_t dummy;
 };
 
 #define NUM_NOTES 3
