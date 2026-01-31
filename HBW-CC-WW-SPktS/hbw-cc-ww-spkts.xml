@@ -185,6 +185,12 @@
 				<logical type="option">
 					<option id="NO" default="true"/>
 					<option id="YES"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
@@ -202,6 +208,12 @@
 				<logical type="option">
 					<option id="OK" default="true"/>
 					<option id="EXCEEDED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
+					<option id="UNDEFINED"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>

@@ -5,6 +5,7 @@
 		<parameter index="0" size="1" const_value="0x98"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
 		<parameter const_value="0x0028" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x0031" size="2" cond_op="LE" index="2"/><!--max FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -222,7 +223,7 @@
 		<link_roles>
 			<source name="SWITCH"/>
 		</link_roles>
-		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x09" address_step="5">
+		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x09" address_step="6">
 		    <parameter id="INPUT_LOCKED">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">

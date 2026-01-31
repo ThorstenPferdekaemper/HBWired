@@ -56,6 +56,15 @@
 #define STATEFLAG_DIM_UP 1
 #define STATEFLAG_DIM_DOWN 2
 
+static const uint16_t PWM_MAX_VALUE = 255;  // max PWM value supported by the hardware
+static const uint16_t PWM_MAX_40PCT = (PWM_MAX_VALUE *40) /10;
+static const uint16_t PWM_MAX_50PCT = (PWM_MAX_VALUE *50) /10;
+static const uint16_t PWM_MAX_60PCT = (PWM_MAX_VALUE *60) /10;
+static const uint16_t PWM_MAX_70PCT = (PWM_MAX_VALUE *70) /10;
+static const uint16_t PWM_MAX_80PCT = (PWM_MAX_VALUE *80) /10;
+static const uint16_t PWM_MAX_90PCT = (PWM_MAX_VALUE *90) /10;
+static const uint16_t PWM_MAX_100PCT = PWM_MAX_VALUE *10;
+
 
 // TODO: wahrscheinlich ist es besser, bei EEPROM-re-read
 //       callbacks fuer die einzelnen Kanaele aufzurufen 
@@ -136,7 +145,7 @@ class HBWDimmerAdvanced : public HBWChannel {
        uint8_t onMinLevel;
        uint8_t onLevel;
        uint8_t onDelayMode :1;  // ONDELAY_MODE: force off during ON_DELAY or keep current level (TODO: ok to set off as offLevel?)
-       uint8_t onLevelPrio :1;  // keep current ON level and onTime with prio high (low prio cannot change these values, only high can) - TODO: confirm?
+       uint8_t onLevelPrio :1;  // keep current ON level with prio high (low ON prio cannot change these values, only high can) - TODO: confirm?
        uint8_t offDelayBlink :1;
        uint8_t fillup_p :1;
        uint8_t rampStartStep :4;
