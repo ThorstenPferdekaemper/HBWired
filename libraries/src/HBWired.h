@@ -196,10 +196,8 @@ class HBWDevice {
     void handleAfterReadConfig();
     void handleResetSystem();
 	
-	// the broadcast methods return...
-	// 0 -> everything ok
-	// 1 -> nothing sent because bus busy
-	uint8_t broadcastAnnounce(uint8_t);  // channel
+	// the broadcast methods returns sendFrameStatus
+	uint8_t broadcastAnnounce(uint8_t = 0);  // channel 0 is the default
 
 	uint8_t deviceType;        
 
@@ -244,7 +242,8 @@ class HBWDevice {
 	void processEventSetLock(uint8_t channel, boolean inhibit);
 	void processEmessage(uint8_t const * const frameData);
 	
-    void factoryReset();
+	uint8_t zStartCounter;  // count zero communication messages
+	void factoryReset();
 	void handleConfigButton();	// handle config button and config LED
 	static uint8_t configButtonStatus;
 	void handleStatusLEDs();	// handle Tx and Rx LEDs

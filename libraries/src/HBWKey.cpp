@@ -69,12 +69,11 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
           keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= uint32_t(config->long_press_time) * 100) {
-          keyPressedMillis = now;
-          
           if (device->sendKeyEvent(channel, keyPressNum, !buttonState) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             lastSentLong = (buttonState) ? 1 : 0;  // use lastSentLong to store old buttonState
           }
+          keyPressedMillis = now;
         }
       }
       else {
@@ -148,6 +147,7 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
       }
       break;
   
+  // TODO: add MotionSensorReTrigger?
     case MOTIONSENSOR:
   // sends a short KeyEvent for raising or falling edge - not both
       if (buttonState) {
@@ -156,11 +156,13 @@ void HBWKey::loop(HBWDevice* device, uint8_t channel) {
          keyPressedMillis = now;
         }
         else if (now - keyPressedMillis >= SWITCH_DEBOUNCE_TIME && !lastSentLong) {
-          keyPressedMillis = now;
           
           if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY) {
             keyPressNum++;
             lastSentLong = now;
+          }
+          else {
+            keyPressedMillis = now;
           }
         }
       }

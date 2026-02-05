@@ -24,7 +24,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x001E
+#define FIRMWARE_VERSION 0x001F
 #define HMW_DEVICETYPE 0x84    //device ID (make sure to import hbw-sen-ep.xml into FHEM)
 
 #define NUMBER_OF_SEN_CHAN 8   // input channels
