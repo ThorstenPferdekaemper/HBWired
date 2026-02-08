@@ -5,6 +5,7 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // LCD Display mit 4 Tastern
+// - Restart module by "!!" (hexstring 2121) RAW command
 // 
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //

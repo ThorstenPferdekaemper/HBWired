@@ -78,8 +78,7 @@ void HBWLinkInfoKeyEventActuator<numLinks, eepromStart>::receiveKeyEvent(HBWDevi
    	  device->readEEPROM(&actionType, eepromStart + EEPROM_SIZE * i + 6, 1);
 	  // differs for short and long
 	  if (longPress) actionType >>= 2;
-	  actionType &= B00000011;
-	  //uint8_t data;
+	  actionType &= 0b00000011;
 	  // we can have
 	  switch(actionType) {
 	  // 0 -> ON
@@ -94,7 +93,7 @@ void HBWLinkInfoKeyEventActuator<numLinks, eepromStart>::receiveKeyEvent(HBWDevi
 	    case 3: data[0] = 255;
                 // break;
       };
-	  device->set(targetChannel, sizeof(data),data);    // channel, data length, data
+	  device->set(targetChannel, sizeof(data), data);    // channel, data length, data
   }
 }
 #endif
