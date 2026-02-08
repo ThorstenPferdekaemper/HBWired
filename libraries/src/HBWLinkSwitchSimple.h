@@ -20,6 +20,9 @@ class HBWLinkSwitchSimple : public HBWLinkReceiver {
 	  void receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                            uint8_t targetChannel, uint8_t keyPressNum, boolean longPress);
   private:
+      uint32_t lastSenderAddress;
+      uint8_t lastSenderChannel;
+
       static const uint8_t EEPROM_SIZE = 7;   // "address_step" in XML
 };
 
