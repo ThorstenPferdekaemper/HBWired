@@ -59,7 +59,7 @@
 #include <HBWKey.h>
 #include <HBWSenSC.h>
 //#include "HBWKeyVirtual.h"
-#include "HBWDimmerVirtual.h"
+#include <HBWDimmerVirtual.h>
 #include <HBW_eeprom.h>
 
 

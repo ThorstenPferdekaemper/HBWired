@@ -31,6 +31,7 @@ void HBWDimmerVirtual::set(HBWDevice* device, uint8_t length, uint8_t const * co
     // dataNew[D_POS_onLevel] = handleLogic(dataNew[D_POS_onLevel]);//, level);
     // dimChan->set(device, length, dataNew);
 
+    // calculate new onLevel and overwrite specific byte with new value
     uint8_t new_onLevel = handleLogic(data[D_POS_onLevel]);
     memcpy((uint8_t*)&(data[D_POS_onLevel]), &new_onLevel, 1);  // overwrite onLevel byte in data[] array
     hbwdebug(F(" new"));hbwdebug(data[D_POS_onLevel]);hbwdebug(F("\n"));
