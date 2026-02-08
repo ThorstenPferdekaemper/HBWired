@@ -4,7 +4,7 @@
 	<type name="RS485 Doorbell (4 channel)" id="HBW-Sen-DB-4-dialer" priority="2">
 		<parameter index="0" size="1" const_value="0x98"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="2"/><!--HARDWARE_VERSION v2 .... ignored by FEHM -->
-		<parameter index="2" size="2" const_value="0x0032" cond_op="GE"/><!--min FIRMWARE_VERSION v0.50-->
+		<parameter index="2" size="2" const_value="0x0033" cond_op="GE"/><!--min FIRMWARE_VERSION v0.50-->
 	</type>
 </supported_types>
 
@@ -150,26 +150,72 @@
 					<address index="+5"/>
 				</physical>
 			</parameter>
+			<!-- <parameter id="SHORT_ACTION_TYPE"> -->
+				<!-- <logical type="option"> -->
+					<!-- <option id="ON"/> -->
+					<!-- <option id="OFF"/> -->
+					<!-- <option id="INACTIVE"/> -->
+					<!-- <option id="TOGGLE" default="true"/> -->
+				<!-- </logical> -->
+				<!-- <physical type="integer" size="0.2" interface="eeprom"> -->
+					<!-- <address index="+6.0"/> -->
+				<!-- </physical> -->
+			<!-- </parameter> -->
+			<!-- <parameter id="LONG_ACTION_TYPE"> -->
+				<!-- <logical type="option"> -->
+					<!-- <option id="ON"/> -->
+					<!-- <option id="OFF"/> -->
+					<!-- <option id="INACTIVE"/> -->
+					<!-- <option id="TOGGLE" default="true"/> -->
+				<!-- </logical> -->
+				<!-- <physical type="integer" size="0.2" interface="eeprom"> -->
+					<!-- <address index="+6.2"/> -->
+				<!-- </physical> -->
+			<!-- </parameter> -->
 			<parameter id="SHORT_ACTION_TYPE">
 				<logical type="option">
-					<option id="ON"/>
-					<option id="OFF"/>
+					<option id="0% - OFF"/>
+					<option id="8%"/>
+					<option id="16%"/>
+					<option id="24%"/>
+					<option id="32%"/>
+					<option id="40%"/>
+					<option id="48%"/>
+					<option id="56%"/>
+					<option id="64%"/>
+					<option id="72%"/>
+					<option id="80%"/>
+					<option id="88%"/>
+					<option id="100% - ON" default="true"/>
+					<option id="OLD_LEVEL"/>
 					<option id="INACTIVE"/>
-					<option id="TOGGLE" default="true"/>
+					<option id="TOGGLE"/>
 				</logical>
-				<physical type="integer" size="0.2" interface="eeprom">
+				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+6.0"/>
 				</physical>
 			</parameter>
 			<parameter id="LONG_ACTION_TYPE">
 				<logical type="option">
-					<option id="ON"/>
-					<option id="OFF"/>
-					<option id="INACTIVE"/>
-					<option id="TOGGLE" default="true"/>
+					<option id="0% - OFF"/>
+					<option id="8%"/>
+					<option id="16%"/>
+					<option id="24%"/>
+					<option id="32%"/>
+					<option id="40%"/>
+					<option id="48%"/>
+					<option id="56%"/>
+					<option id="64%"/>
+					<option id="72%"/>
+					<option id="80%"/>
+					<option id="88%"/>
+					<option id="100% - ON"/>
+					<option id="OLD_LEVEL"/>
+					<option id="INACTIVE" default="true"/>
+					<option id="TOGGLE"/>
 				</logical>
-				<physical type="integer" size="0.2" interface="eeprom">
-					<address index="+6.2"/>
+				<physical type="integer" size="0.4" interface="eeprom">
+					<address index="+6.4"/>
 				</physical>
 			</parameter>
 		</paramset>
@@ -451,12 +497,29 @@
 			
 		</paramset>
 		
-		<paramset type="VALUES" id="hbw_dial_ch_values"> <!-- needed dummy entry -->
-			<parameter id="INSTALL_TEST" operations="event" ui_flags="internal">
-				<logical type="action"/>
-				<physical type="integer" interface="command" value_id="TEST_COUNTER">
-					<event frame="KEY_EVENT_SHORT"/>
-					<event frame="KEY_EVENT_LONG"/>
+		<paramset type="VALUES" id="hbw_dial_ch_values"> <!-- returns phone line state -->
+			<parameter id="STATE" operations="read,write,event" control="SWITCH.STATE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="LEVEL">
+					<set request="LEVEL_SET"/>
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+				</physical>
+				<conversion type="boolean_integer" true="200" false="0" threshold="1"/>
+			</parameter>
+			<parameter id="WORKING" operations="read,event" ui_flags="internal"> <!-- not implemented -->
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+					<event frame="ACK_STATUS"/>
+				</physical>
+				<conversion type="boolean_integer"/>
+			</parameter>
+			<parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="INHIBIT">
+					<set request="SET_LOCK"/>
 				</physical>
 			</parameter>
 		</paramset>

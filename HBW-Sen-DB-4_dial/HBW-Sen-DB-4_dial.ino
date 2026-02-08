@@ -23,7 +23,7 @@
 
 
 #define HARDWARE_VERSION 0x02
-#define FIRMWARE_VERSION 0x0032
+#define FIRMWARE_VERSION 0x0033
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 // + 1 türsummer?
@@ -43,7 +43,8 @@
 #include "HBWPhoneDial.h"
 #include "HBWKeyDoorbell.h"
 #include <HBWDimBacklight.h>
-#include <HBWLinkSwitchSimple.h>
+// #include <HBWLinkSwitchSimple.h>
+#include "src/HBWLinkDimSimple.h"
 
 
 // Pins and hardware config
@@ -111,7 +112,8 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
                              new HBWLinkKey<NUM_LINKS_KEY, LINKADDRESSSTART_KEY>(),
-                             new HBWLinkSwitchSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
+                            //  new HBWLinkSwitchSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
+                             new HBWLinkDimSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
                              );
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
@@ -125,7 +127,7 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
                              new HBWLinkKey<NUM_LINKS_KEY, LINKADDRESSSTART_KEY>(),
-                             new HBWLinkSwitchSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
+                             new HBWLinkDimSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
                              );
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default

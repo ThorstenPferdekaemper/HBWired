@@ -6,24 +6,6 @@
 
 #include "HBWPhoneDial.h"
 
-// unsigned char PhoneButtons[] = {
-// //byte pos: R1|R2|R3|R4|C4|C3|C2|C1
-//   0b00010010, // 0
-//   0b10000001, // 1
-//   0b10000010, // 2
-//   0b10000100, // 3
-//   0b01000001, // 4
-//   0b01000010, // 5
-//   0b01000100, // 6
-//   0b00100001, // 7
-//   0b00100010, // 8
-//   0b00100100, // 9
-//   0b00010001, // *
-//   0b00010100, // #
-//   0b00011000, // on/off hook
-//   0b01001000, // vol-
-//   0b00101000  // vol+
-// };
 
 // Class HBWPhoneDial
 HBWPhoneDial::HBWPhoneDial(hbw_config_phone_dial* _config, SHIFT_REGISTER_CLASS* _shiftRegister, uint8_t _chan_offset, uint8_t _lineStatePin)
@@ -32,12 +14,8 @@ HBWPhoneDial::HBWPhoneDial(hbw_config_phone_dial* _config, SHIFT_REGISTER_CLASS*
   shiftRegister = _shiftRegister;
   lineStatePin = _lineStatePin;
   channelOffset = _chan_offset;
-  // isDialing = false; // TODO change to single viable, dialStatus
-  // callActive = false;
   lineState = line_status::unknown;
   phoneState = phone_status::onHook;  // assume idle... lineState will be checked anyway
-  // phonePreviousMillis = 0;
-  // phoneActionDelay = 0;
 
   pinMode(lineStatePin, INPUT_PULLUP);
 };
@@ -58,13 +36,19 @@ void HBWPhoneDial::afterReadConfig()
 };
 
 
+uint8_t HBWPhoneDial::get(uint8_t* data)
+{
+	if (lineState != line_status::idle)  // ... testing. Show hook state as channel on/off. TODO: use state flags for phoneState?
+		(*data) = 200;
+	else
+		(*data) = 0;
+  
+	return 1;
+};
+
+
 void HBWPhoneDial::loop(HBWDevice* device, uint8_t channel)
 {
-  // if (config->max_call_time == 0xFF)  return;  // skip locked channels // TODO: enable code
-  
-  // uint32_t now = millis();
-  // if (now == 0) now = 1;  // do not allow time=0 for the below code // AKA  "der Teufel ist ein Eichhoernchen"
-  
   phoneLoop(); // handle phone actions
 
   lineState = checkLineState();  // check the status of the phone line
@@ -217,8 +201,6 @@ uint8_t HBWPhoneDial::checkLineState()
     case line_status::callEstablished: {
       // wait for lineStatePin to become active again (LOW)
       if (phoneState == phone_status::hangupWait && lineIsActive()) {
-        // phoneActionDelay = 200;  // need short pause before pressing hook key after termination was detected!
-        // phonePreviousMillis = millis();
         setNewPhoneTimer(200);  // need short pause before pressing hook key after termination was detected!
         return line_status::terminated;
       }
@@ -230,7 +212,7 @@ uint8_t HBWPhoneDial::checkLineState()
       }
       break;
     case line_status::lineError:
-    case line_status::unknown: {
+    case line_status::unknown: {  // TODO: should trigger a reset when this state remains for too long?
           if (!lineIsActive()) return line_status::idle;
       }
       break;

@@ -86,7 +86,8 @@ class HBWPhoneDial : public HBWChannel {
   public:
     HBWPhoneDial(hbw_config_phone_dial* _config, SHIFT_REGISTER_CLASS* _shiftRegister, uint8_t _chan_offset = 0, uint8_t _lineStatePin = NOT_A_PIN);
     virtual void loop(HBWDevice*, uint8_t channel);
-	// TODO set() // hangup / reset line, volume up/down commands? Allow dialing via set()? set number and store in EEPROM / phone??
+	// TODO set() // hangup / reset line, volume up/down commands? Or allow set number and store in EEPROM / phone??
+    virtual uint8_t get(uint8_t* data);
     bool DialNumber(uint8_t _index_num);
     virtual void afterReadConfig();
     
