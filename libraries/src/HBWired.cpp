@@ -934,13 +934,13 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    configPin = NOT_A_PIN;  //inactive by default
    configButtonStatus = 0;
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
+   zStartCounter = 0;
    #ifdef Support_ModuleReset
    pendingActions.resetSystem = false;
    #endif
    #ifdef Support_WDT
    ENABLE_WATCHDOG();
    #endif
-   zStartCounter = 0;
 }
   
 //TODO rename to begin()?
@@ -1206,5 +1206,5 @@ void hbwdebughex(uint8_t b) {
    hbwdebugstream->print(b & 15, HEX);
 };
 #else
-void hbwdebughex(uint8_t b) { };
+void hbwdebughex(uint8_t) { };
 #endif
