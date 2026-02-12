@@ -3,8 +3,9 @@
  *
  * Created (www.loetmeister.de): 25.01.2020
  * 
- * build for doorbell pushbuttons
+ * special key type for doorbell pushbuttons
  * allows to block for a specific time, if someone keeps ringing
+ * optional button feedback with buzzer/speaker
  */
 
 #ifndef HBWKeyDoorbell_h
@@ -12,10 +13,18 @@
 
 #include <inttypes.h>
 #include "HBWired.h"
-// To play buzzer tones
-#include "pitches.h"
 
 // #define DEBUG_OUTPUT
+
+// see "HBWPhoneDial.h" / HBW-Sen-DB-4_dial.ino / with experimential channel to trigger phone calls
+class HBWPhoneDial_Base : public HBWChannel {
+  public:
+    virtual bool DialNumber(uint8_t);
+};
+
+
+// To play buzzer tones
+#include "pitches.h"
 
 
 // config, address step 6
@@ -50,6 +59,7 @@ PROGMEM const int melody[][2][2][NUM_NOTES] = {
 class HBWKeyDoorbell : public HBWChannel {
   public:
     HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, uint8_t _pinBuzzer = NOT_A_PIN, bool _activeHigh = false);
+    HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, HBWPhoneDial_Base* _phone_dial_chan, uint8_t _pinBuzzer = NOT_A_PIN, bool _activeHigh = false);
     virtual void loop(HBWDevice*, uint8_t channel);
     virtual void afterReadConfig();
     
@@ -63,6 +73,7 @@ class HBWKeyDoorbell : public HBWChannel {
     uint8_t repeatCounter;
     uint32_t lastKeyPressedMillis;  // last press of any key
     bool activeHigh;    // activeHigh=true -> input active high, else active low
+    HBWPhoneDial_Base* phoneDialChan;
 
     static const uint32_t KEY_DEBOUNCE_TIME = 85;  // ms
 
@@ -71,13 +82,14 @@ class HBWKeyDoorbell : public HBWChannel {
       SUCCESS,
       PLAY
     };
+
     enum {
       NOTE = 0,  // must match with melody array index for the 'note/note length' field (0/1)
       NOTE_LEN
     };
+
     uint8_t pinBuzzer;   // pin for the buzzer - if used
     void buzzer(uint8_t _action, bool _forceChange = false);
-	
     static const uint8_t MAX_MELODY_CONFIG = 7;  // need to match with device XML
 };
 

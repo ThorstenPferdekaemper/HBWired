@@ -22,7 +22,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0028
+#define FIRMWARE_VERSION 0x0029
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 //TODO? + 1 türsummer?

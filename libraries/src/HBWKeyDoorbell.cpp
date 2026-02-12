@@ -6,26 +6,29 @@
 
 #include "HBWKeyDoorbell.h"
 
+bool HBWPhoneDial_Base::DialNumber(uint8_t) { return 0; };  // dummy function. To be owerwritten by phoneDialChan (HBWPhoneDial)
+
 // Class HBWKeyDoorbell
+// standard channel type
 HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, uint8_t _pinBuzzer, bool _activeHigh)
 {
-  keyPressedMillis = 0;
-  keyPressNum = 0;
-  repeatCounter = 0;
   pin = _pin;
   config = _config;
   pinBuzzer = _pinBuzzer;
   activeHigh = _activeHigh;
+  keyPressedMillis = 0;
+  keyPressNum = 0;
+  repeatCounter = 0;
 };
 
-HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, HBWPhoneDial* _phone_dial_chan, uint8_t _pinBuzzer, bool _activeHigh)
+// special channel type - to refer HBWPhoneDial channel
+HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, HBWPhoneDial_Base* _phone_dial_chan, uint8_t _pinBuzzer, bool _activeHigh)
 {
   keyPressedMillis = 0;
   keyPressNum = 0;
   repeatCounter = 0;
   pin = _pin;
   config = _config;
-  // HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, uint8_t _pinBuzzer, bool _activeHigh);
   phoneDialChan = _phone_dial_chan;
   pinBuzzer = _pinBuzzer;
   activeHigh = _activeHigh;
