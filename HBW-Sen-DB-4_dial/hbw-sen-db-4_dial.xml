@@ -77,6 +77,15 @@
 	<frame id="SET_OPT_OFF" direction="to_device" type="#x" channel_field="10">
 		<parameter type="integer" index="11.0" size="1.0" const_value="202"/>
 	</frame>
+	<frame id="PHONE_RESET" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="250"/>
+	</frame>
+	<frame id="PHONE_HANGUP" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="254"/>
+	</frame>
+	<frame id="PHONE_HOOK" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="255"/>
+	</frame>
 </frames>
 
 <channels>
@@ -388,15 +397,15 @@
 	
 	<channel index="6" count="1" physical_index_offset="-1" type="PHONE_DIALER">	<!-- controls the phone -->
 		<paramset type="MASTER" id="hbw_dial_ch_master" address_step="12" address_start="0x21">
-			<!-- <parameter id="UNUSED"> -->
-				<!-- <logical type="option"> -->
-					<!-- <option id="OFF"/> -->
-					<!-- <option id="ON" default="true"/> -->
-				<!-- </logical> -->
-				<!-- <physical type="integer" size="0.1" interface="eeprom"> -->
-					<!-- <address index="0.0"/> -->
-				<!-- </physical> -->
-			<!-- </parameter> -->
+			<parameter id="PHONE_CONTROL">
+				<logical type="option">
+					<option id="DISABLED"/>
+					<option id="ENABLED" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="0.0"/>
+				</physical>
+			</parameter>
 
 			<parameter id="DB1_MAPPING">
 				<logical type="option">
@@ -507,7 +516,13 @@
 				</physical>
 				<conversion type="boolean_integer" true="200" false="0" threshold="1"/>
 			</parameter>
-			<parameter id="WORKING" operations="read,event" ui_flags="internal"> <!-- not implemented -->
+			<parameter id="QUICK_DIAL" operations="write">
+				<logical type="float" default="1" min="1" max="8"/>
+				<physical type="integer" interface="command" value_id="VALUE">
+					<set request="LEVEL_SET"/>
+				</physical>
+			</parameter>
+			<parameter id="WORKING" operations="read,event" ui_flags="internal">
 				<logical type="boolean" default="false"/>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
@@ -516,12 +531,49 @@
 				</physical>
 				<conversion type="boolean_integer"/>
 			</parameter>
-			<parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true">
-				<logical type="boolean" default="false"/>
-				<physical type="integer" interface="command" value_id="INHIBIT">
-					<set request="SET_LOCK"/>
+			<parameter id="PHONE_STATE" operations="read,event" ui_flags="internal">
+				<logical type="option">
+					<option id="onHook" default="true"/>
+					<option id="dialing"/>
+					<option id="hangupWait"/>
+					<option id="reset"/>
+					<option id="unknown"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="LEVEL_VALVE"/>
+					<event frame="ACK_STATUS"/>
+				</physical>
+				<conversion type="option_integer">
+					<value_map device_value="0x05" parameter_value="4"/>
+					<value_map device_value="0x06" parameter_value="4"/>
+					<value_map device_value="0x07" parameter_value="4"/>
+				</conversion>
+			</parameter>
+			<parameter id="PHONE_RESET" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="PHONE_RESET"/>
 				</physical>
 			</parameter>
+			<parameter id="PHONE_HANGUP" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="PHONE_HANGUP"/>
+				</physical>
+			</parameter>
+			<parameter id="PHONE_HOOK" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="PHONE_HOOK"/>
+				</physical>
+			</parameter>
+			<!-- <parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true"> -->
+				<!-- <logical type="boolean" default="false"/> -->
+				<!-- <physical type="integer" interface="command" value_id="INHIBIT"> -->
+					<!-- <set request="SET_LOCK"/> -->
+				<!-- </physical> -->
+			<!-- </parameter> -->
 		</paramset>
 
 	</channel>

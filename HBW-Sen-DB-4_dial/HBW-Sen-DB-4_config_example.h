@@ -5,7 +5,7 @@
 
 EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
 
-#define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
+// #define USE_HARDWARE_SERIAL   // use hardware serial (USART) for final device - this disables debug output
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove unneeded code. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
@@ -21,7 +21,7 @@ EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
   #define BUTTON_3 4
   #define BUTTON_4 A1
 
-  #define BUZZER NOT_A_PIN //11 // buzzer for key press feedback (timer2)
+  #define BUZZER 11 // buzzer for key press feedback (timer2)
   #define BACKLIGHT_PWM 9  // timer1 (pin 9 & 10)
   #define LDR_PIN NOT_A_PIN //A0
   

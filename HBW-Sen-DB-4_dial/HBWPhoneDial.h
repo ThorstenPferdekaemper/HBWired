@@ -12,6 +12,7 @@
 
 #include <inttypes.h>
 #include "HBWired.h"
+#include <HBWKeyDoorbell.h>
 #include "src/ShiftRegister74HC595.h" // shift register library
 //Notice the 0.1"f capacitor on the latchPin ?
 
@@ -29,7 +30,7 @@ struct s_db_dial_chan {
 // TODO: ?  save phone_numbers in own EE space? same as LCD module?
 // or save numbers in phone? (quick dial)
 struct hbw_config_phone_dial {
-  uint8_t dial_key:1;   // use predefined dial key (e.g. #)  // TODO: implement somehow
+  uint8_t enabled:1;   // "master" channel enable option
   uint8_t volume:2;   // default volume? (-2 ... default +2?)  // TODO: implement somehow
   uint8_t fillup:5;   // 
   uint16_t dummy;
@@ -46,7 +47,7 @@ struct hbw_config_phone_dial {
 };
 
 
-// dial numbers/buttons via serial shift register
+// dial numbers/buttons via serial shift register (attached to button matrix - rows/columns)
 // PhoneButton[0...9] -> 0...9, PhoneButton[10] -> '*', PhoneButton[12] -> off/on hook
 PROGMEM const unsigned char PhoneButton[] = {
 //byte pos: R1|R2|R3|R4|C4|C3|C2|C1
@@ -67,6 +68,7 @@ PROGMEM const unsigned char PhoneButton[] = {
   0b00101000  // vol+
 };
 
+//TODO: use above PhoneButton[] instead to allow full control of the phone
 // quick dial buttons and others via serial shift register
 PROGMEM const unsigned char PhoneHotkeys[] = {
   0b00000000, // 0 - unused
@@ -82,16 +84,17 @@ PROGMEM const unsigned char PhoneHotkeys[] = {
 
 
 // Class HBWPhoneDial
-class HBWPhoneDial : public HBWChannel {
+class HBWPhoneDial : public HBWPhoneDial_Base {
   public:
     HBWPhoneDial(hbw_config_phone_dial* _config, SHIFT_REGISTER_CLASS* _shiftRegister, uint8_t _chan_offset = 0, uint8_t _lineStatePin = NOT_A_PIN);
     virtual void loop(HBWDevice*, uint8_t channel);
 	// TODO set() // hangup / reset line, volume up/down commands? Or allow set number and store in EEPROM / phone??
+    virtual void set(HBWDevice* device, uint8_t length, uint8_t const * const data);
     virtual uint8_t get(uint8_t* data);
-    bool DialNumber(uint8_t _index_num);
     virtual void afterReadConfig();
     
-
+    bool DialNumber(uint8_t _index_num);
+    
   private:
     hbw_config_phone_dial* config;
     SHIFT_REGISTER_CLASS* shiftRegister;  // allow function calls to the shift register
@@ -106,6 +109,7 @@ class HBWPhoneDial : public HBWChannel {
     uint8_t phoneState;
     unsigned long phonePreviousMillis;
     unsigned long phoneActionDelay;
+    bool disabled;
 
     static const uint16_t DIAL_PRESS_TIME = 100;  // ms
     static const uint16_t DIAL_PRESS_PAUSE_TIME = 400;  // ms
@@ -113,13 +117,14 @@ class HBWPhoneDial : public HBWChannel {
     static const uint16_t OFF_HOOK_PAUSE_TIME = 1200;  // ms
     // static const uint16_t ON_HOOK_PAUSE_TIME = 2000;  // ms - wait after call was ended (give SIP device time to close the call)
     // static const uint16_t HANGUP_AFTER = 26;  // seconds
-    // static const uint16_t RESET_DURATION = 4000;  // ms (power cycle the connected phone) TODO
+    static const uint16_t RESET_DURATION = 4000;  // ms (power cycle the connected phone)
     static const uint16_t LINE_CHANGE_DEBOUNCE = 66;
 
     enum phone_status {
       onHook = 0,
       dialing,
-      hangupWait
+      hangupWait,
+      reset
     };
 
     enum line_status {

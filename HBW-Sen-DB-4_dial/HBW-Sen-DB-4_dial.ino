@@ -5,33 +5,26 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // Türklingelsensor mit 4 Tastern und Beleuchtung des Klingeltableau
+// + Lautsprecher/Mikro eines Telefons, welches Kurzwahl über HBWPhoneDial.h ausführt
 // 
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
 //*******************************************************************
 // Changes
-// v0.10
-// - initial version
-// v0.20
-// - fix for repeatCounter reset handling
-// v0.3
-// - added buzzer for button feedback (uses tone() builtin function) - needs new XML due to additional config
-// v0.4
-// - added peering for backlight chan - needs new XML due to updated config!
 // v0.5
 // - new variant with phone dial module
-
+// - added set and get for phone dial channel
 
 #define HARDWARE_VERSION 0x02
-#define FIRMWARE_VERSION 0x0033
+#define FIRMWARE_VERSION 0x0035
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
-// + 1 türsummer?
+
 #define NUMBER_OF_DIM_CHAN 1   // dimmer output (for backlight) - with auto_brightness
-#define NUMBER_OF_KEY_CHAN 4   // knobs at your door
+#define NUMBER_OF_KEY_CHAN 4   // knobs / buttons at your door
 #define PHONE_DIAL 1  // phone connected (if used 1 or 0 if not used)
-#define NUM_LINKS_KEY 20
-#define NUM_LINKS_DIM 20
+#define NUM_LINKS_KEY 20  // any sensor peering!
+#define NUM_LINKS_DIM 20  // any actor peering!
 #define LINKADDRESSSTART_DIM 0x40  // any actor peering!
 #define LINKADDRESSSTART_KEY 0x13C  // any sensor peering!
 
@@ -41,7 +34,7 @@
 #include <HBWired.h>
 #include <HBWLinkKey.h>
 #include "HBWPhoneDial.h"
-#include "HBWKeyDoorbell.h"
+#include <HBWKeyDoorbell.h>
 #include <HBWDimBacklight.h>
 // #include <HBWLinkSwitchSimple.h>
 #include "src/HBWLinkDimSimple.h"
@@ -69,7 +62,7 @@ HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the devic
 HBWDevice* device = NULL;
 
 #if (PHONE_DIAL == 1)
-// SHIFT_REGISTER_CLASS defined in "PhoneDial.h"
+// SHIFT_REGISTER_CLASS defined in "HBWPhoneDial.h"
 // init and reset shift register (OE will be cleared later)
 SHIFT_REGISTER_CLASS* myShiftReg = new SHIFT_REGISTER_CLASS(shiftReg_Data, shiftReg_Clock, shiftReg_Latch);
 #endif

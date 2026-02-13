@@ -18,40 +18,75 @@ HBWPhoneDial::HBWPhoneDial(hbw_config_phone_dial* _config, SHIFT_REGISTER_CLASS*
   phoneState = phone_status::onHook;  // assume idle... lineState will be checked anyway
 
   pinMode(lineStatePin, INPUT_PULLUP);
+  disabled = false;
 };
+
 
 void HBWPhoneDial::afterReadConfig()
 {
   // if (config->suppress_time == 0xF) config->suppress_time = 3;  // 3 seconds
+  // if (!config->enabled) disabled = true;
 
-// #ifdef DEBUG_OUTPUT
-  // hbwdebug(F("cfg DBPin:"));
-  // hbwdebug(pin);
-  // hbwdebug(F(" repeat_long_p:"));
-  // hbwdebug(config->repeat_long_press);
+#ifdef DEBUG_OUTPUT_PD
+  hbwdebug(F("cfg DB_Dial LinePin:"));
+  hbwdebug(lineStatePin);
+  hbwdebug(F(" chOffset:"));
+  hbwdebug(channelOffset);
   // hbwdebug(F(" pullup:"));
   // hbwdebug(config->pullup);
-  // hbwdebug(F("\n"));
-// #endif
+  hbwdebug(F("\n"));
+#endif
 };
 
 
 uint8_t HBWPhoneDial::get(uint8_t* data)
 {
-	if (lineState != line_status::idle)  // ... testing. Show hook state as channel on/off. TODO: use state flags for phoneState?
-		(*data) = 200;
-	else
-		(*data) = 0;
-  
-	return 1;
+  *data++ = lineState;  // Show hook state as channel on/off
+  *data = (phoneState <<4); // use state flags for phoneState (3 bits starting at 4th bit, i.e. values 0-7; see XML)
+
+	return 2;
+};
+
+
+void HBWPhoneDial::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
+{
+  if (*data == 0) {
+    disabled = true;  // temporarly disable. Does not terminate an ongoing call, but blocks any new ones
+  }
+  else if (*data <= 8) {
+    DialNumber(*data);  // trigger configured action (key 1-8 -> ch:0-7) - unless disabled
+    // TODO: consider channel offeset?
+  }
+  else if (*data == 200) {
+    disabled = false;  // enable again (no effect when also disabled by config)
+  }
+  else if (*data == 250) {  // RESET
+    phoneState = phone_status::reset;
+    setNewPhoneTimer();  // clear timer
+  }
+  else if (*data == 254 && phoneState != phone_status::onHook) {  // HANGUP
+    phoneState = phone_status::hangupWait;  // "presses" hook key (works in temp disabled state)
+    setNewPhoneTimer();  // clear timer
+  }
+  else if (*data == 255) {  // HOOK TOGGLE
+    phoneState = phone_status::hangupWait;  // toggles hook key (works in temp disabled state)
+    setNewPhoneTimer();  // clear timer
+  }
 };
 
 
 void HBWPhoneDial::loop(HBWDevice* device, uint8_t channel)
 {
+  if (!config->enabled) {
+    disabled = true;  // this disables also DialNumber();
+    lineState = line_status::idle;
+    phoneState = phone_status::onHook;  // we don't care about the actual phone state
+    return;
+  }
+
   phoneLoop(); // handle phone actions
 
-  lineState = checkLineState();  // check the status of the phone line
+  if (!disabled)  lineState = checkLineState();  // check the status of the phone line
 
 #ifdef DEBUG_OUTPUT_PD
   static unsigned char lineStateOld = line_status::unknown;
@@ -69,7 +104,7 @@ bool HBWPhoneDial::DialNumber(uint8_t _index_num)
   if (chan_calc > (uint8_t)sizeof(config->db_mapping)) { hbwdebug(F(" mismatch!\n")); return false; }  // out of range
   if (config->db_mapping[chan_calc].max_call_duration == 0x1F) { hbwdebug(F(" disabled!\n")); return false; }  // disabled
 
-  if (phoneState != phone_status::onHook || lineState != line_status::idle) {
+  if (phoneState != phone_status::onHook || lineState != line_status::idle || disabled) {
     hbwdebug(F(" - busy. DialDelay: ")); hbwdebug(phoneActionDelay);
     hbwdebug(F(" remaining: ")); hbwdebug(phoneActionDelay - (millis() - phonePreviousMillis));
     hbwdebug(F("\n"));
@@ -78,7 +113,6 @@ bool HBWPhoneDial::DialNumber(uint8_t _index_num)
   phoneState = phone_status::dialing;
   dbChannel = chan_calc; // store the channel number by which we got triggered
   setNewPhoneTimer();  // clear timer
-  // lineState = line_status::idle;  // TODO: proper reset?
   hbwdebug(F(" - ok\n"));
   return true;
 };
@@ -103,6 +137,10 @@ void HBWPhoneDial::phoneLoop()
       // max call time reached or call terminated
       const char num_hook[] = {"7"};  // temp, fixed hook key index number
       phoneState = dial(num_hook);
+    }
+    else if (phoneState == phone_status::reset) {
+      const char num_reset[] = {"8"};  // temp, fixed reset key index number
+      phoneState = dial(num_reset);
     }
   }
 };
@@ -134,7 +172,6 @@ uint8_t HBWPhoneDial::dial(const char* _numStr)//, bool quickDial)
         _dialKeyPressAndPauseDelay = 0;
 
         if (phoneState == phone_status::dialing) {
-          // setNewPhoneTimer(HANGUP_AFTER * 1000);  // TODO: config option max call curation
           setNewPhoneTimer((unsigned long)(config->db_mapping[dbChannel].max_call_duration +1) * 10000);
           hbwdebug(F("dial done\n"));
           return phone_status::hangupWait;
@@ -145,6 +182,10 @@ uint8_t HBWPhoneDial::dial(const char* _numStr)//, bool quickDial)
           hbwdebug(F("onHook\n"));
           return phone_status::onHook;
         }
+        else if (phoneState == phone_status::reset) {
+          hbwdebug(F("reset done!\n"));
+          return phone_status::onHook;
+        }
       }
     }
     else {
@@ -152,6 +193,7 @@ uint8_t HBWPhoneDial::dial(const char* _numStr)//, bool quickDial)
       _buttonPressed = true;
       _dialKeyPressAndPauseDelay = DIAL_PRESS_TIME;
       _n = _numStr[_i] - '0';
+      if (_n == 8) _dialKeyPressAndPauseDelay = RESET_DURATION;  // temp, fixed reset key index number
       if (_n < sizeof(PhoneHotkeys)) {
       // if (_n < sizeof(PhoneButton)) {
         // shiftRegister->setAll_P(&PhoneButton[n]);
@@ -170,6 +212,9 @@ uint8_t HBWPhoneDial::dial(const char* _numStr)//, bool quickDial)
 /* check the input pin of the phone line indicator - update 'lineState' based on this indicator and the current call status (phoneState) */
 uint8_t HBWPhoneDial::checkLineState()
 {
+  if (lineStatePin == NOT_A_PIN) {
+    return line_status::idle;  // return idle when not used, to still allow calls
+  }
   // pin debounce:
   static bool line;
   line = lineIsActive();
@@ -211,8 +256,14 @@ uint8_t HBWPhoneDial::checkLineState()
         if (phoneState == phone_status::onHook && !lineIsActive())  return line_status::idle;
       }
       break;
-    case line_status::lineError:
-    case line_status::unknown: {  // TODO: should trigger a reset when this state remains for too long?
+    case line_status::lineError: {
+      phoneState = phone_status::reset;      // TODO: add some delay? (avoid reset for short hickup?)
+      setNewPhoneTimer();  // clear timer
+      // setNewPhoneTimer(ON_HOOK_PAUSE_TIME);
+      return line_status::unknown;  // if line is still active after reset, we remain in unknown state until line becomms clear
+      }
+      break;
+    case line_status::unknown: {
           if (!lineIsActive()) return line_status::idle;
       }
       break;
