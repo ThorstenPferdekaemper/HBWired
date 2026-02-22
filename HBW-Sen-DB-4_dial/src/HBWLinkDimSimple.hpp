@@ -7,7 +7,6 @@
 **
 */
 
-// TODO: add keyPressNum & sameLastSender ?
 
 template<uint8_t numLinks, uint16_t eepromStart>
 HBWLinkDimSimple<numLinks, eepromStart>::HBWLinkDimSimple() {

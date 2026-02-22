@@ -3,7 +3,7 @@ Homematic Wired Homebrew Doorbell (4 channel)
 
 Das Modul HBW-Sen-DB-4 ermöglicht den Anschluss von 4 Klingeltasten an den Homematic Bus. Im Gegensatz zu standard-Tastern (HBWKey) lassen sich hier eine bestimmte Anzahl von Tastendrücken innerhalb einer bestimmten Zeit unterdrücken. (Kanalkonfiguration: SUPPRESS_NUM, SUPPRESS_TIME)
 Zusätzlich ist ein Ausgang für die Beleuchtung des Klingeltableau vorhanden (Dimmbar) und ein Buzzer (Lautsprecher/Piezo), welcher eine akustische Rückmeldung geben kann - Klingeln unterdrückt / nicht unterdrückt.
-Die Klingeltastenkanäle unterstützen Direktverknüpfungen (Peering).
+Die Klingeltastenkanäle und die Hintergrundbeleuchtung unterstützen Direktverknüpfungen (Peering).
 
 Basis ist ein Arduino NANO mit RS485-Interface.
 
@@ -11,7 +11,7 @@ Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw-sen-db-4.xml 
 
 
 Kanäle:
-1x dimmer (Klingeltableau Hintergrundbeleuchtung, mit Auto-off & automatischer Helligkeit)
+1x Dimmer (Klingeltableau Hintergrundbeleuchtung, mit Auto-off & automatischer Helligkeit)
 4x Tastereingang
 
 
@@ -48,3 +48,4 @@ A3 - BUTTON_4
 A7 - LDR (Photo R (ADC Pin!))
 11 - Buzzer
 
+Siehe HBW-Sen-DB-4_config_example.h für weitere Details.

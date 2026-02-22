@@ -3,18 +3,18 @@ Homematic Wired Homebrew Doorbell (4 channel) + Dialer
 
 Das Modul HBW-Sen-DB-4 ermöglicht den Anschluss von 4 Klingeltasten an den Homematic Bus. Im Gegensatz zu standard-Tastern (HBWKey) lassen sich hier eine bestimmte Anzahl von Tastendrücken innerhalb einer bestimmten Zeit unterdrücken. (Kanalkonfiguration: SUPPRESS_NUM, SUPPRESS_TIME)
 Zusätzlich ist ein Ausgang für die Beleuchtung des Klingeltableau vorhanden (Dimmbar) und ein Buzzer (Lautsprecher/Piezo), welcher eine akustische Rückmeldung geben kann - Klingeln unterdrückt / nicht unterdrückt.
-Die Klingeltastenkanäle unterstützen Direktverknüpfungen (Peering).
+Die Klingeltastenkanäle und die Hintergrundbeleuchtung unterstützen Direktverknüpfungen (Peering).
+Im gegensatz zu "HBW-Sen-DB-4" gibt es bei diesem Modul ein weiteren Kanal, welcher ein Telefon über ein Shiftregister steuert. Aktuell werden nur die Schnellwahltasten angesteuert und nach Beendigung des Gesprächs aufgelegt, bzw. nach einer bestimmten Zeit. Wird die komplette Telefontastenmatrix angebunden sollte es möglich sein beliebige Telefonnummern direkt über das Modul wählen zu lassen.
 
 Basis ist ein Arduino NANO mit RS485-Interface.
 
-Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw-sen-db-4.xml in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x98 aus).
+Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw-sen-db-4_dial.xml in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x98 aus).
 
 
 Kanäle:
-1x dimmer (Klingeltableau Hintergrundbeleuchtung, mit Auto-off & automatischer Helligkeit)
+1x Dimmer (Klingeltableau Hintergrundbeleuchtung, mit Auto-off & automatischer Helligkeit)
 4x Tastereingang
-1x Phone dialer - TBD
-
+1x Phone dialer - (HBWPhoneDial.h)
 
 Neustart des Moduls mit "!!" (raw message 2121) möglich.
 
@@ -33,6 +33,11 @@ A1 - BUTTON_4
 9  - BACKLIGHT (PWM Pin!)
 A0 - LDR (Photo R (ADC Pin!))
 11 - Buzzer
+3  - shiftRegister Data        //DS serial data input
+6  - shiftRegister Clock       //SH_CP shift register clock input
+5  - shiftRegister Latch       //ST_CP storage register clock input
+12 - shiftRegister OutputEnable   // OE output enable
+10 - LINE_INDICATOR_PIN (Optokoppler in Telefonleitung - active low)
 
 
 "Debug"-Pinbelegung:
@@ -48,4 +53,10 @@ A3 - BUTTON_4
 9  - BACKLIGHT (PWM Pin!)
 A7 - LDR (Photo R (ADC Pin!))
 11 - Buzzer
+5  - shiftRegister Data        //DS serial data input
+6  - shiftRegister Clock       //SH_CP shift register clock input
+7  - shiftRegister Latch       //ST_CP storage register clock input
+12 - shiftRegister OutputEnable   // OE output enable
+10 - LINE_INDICATOR_PIN (Optokoppler in Telefonleitung - active low)
 
+Siehe HBW-Sen-DB-4_config_example.h für weitere Details.

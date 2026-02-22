@@ -55,7 +55,7 @@ void HBWPhoneDial::set(HBWDevice* device, uint8_t length, uint8_t const * const 
   }
   else if (*data <= 8) {
     DialNumber(*data);  // trigger configured action (key 1-8 -> ch:0-7) - unless disabled
-    // TODO: consider channel offeset?
+    // TODO: consider channel offset?
   }
   else if (*data == 200) {
     disabled = false;  // enable again (no effect when also disabled by config)

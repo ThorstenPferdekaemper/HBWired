@@ -3,6 +3,7 @@
 **
 ** Super simple dimmer peering. Using same address_step (7) as HBWLinkSwitchSimple
 ** - to allow to use them in the same device
+* TODO: check if it should follow HBWLinkBlindSimple - with address_step 9; allowing on_level 0-100%
 **
 ** Einfache direkte Verknuepfung (Peering), zu Schaltausgaengen
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
