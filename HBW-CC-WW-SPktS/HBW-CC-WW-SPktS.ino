@@ -18,7 +18,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0002
+#define FIRMWARE_VERSION 0x0003
 #define HMW_DEVICETYPE 0x99 //device ID (make sure to import hbw-cc-ww-spkts.xml into FHEM)
 
 #define NUMBER_OF_HEATING_CHAN 1   // Schwingungspaketsteuerungsausgangskanal
@@ -203,3 +203,9 @@ void loop()
   device->loop();
   POWERSAVE();  // go sleep a bit
 };
+
+
+// check if HBWLinkInfoEvent support is enabled, when links are set
+#if !defined(Support_HBWLink_InfoEvent) && defined(NUM_LINKS_DELTATX)
+#error enable/define Support_HBWLink_InfoMessage in HBWired.h
+#endif

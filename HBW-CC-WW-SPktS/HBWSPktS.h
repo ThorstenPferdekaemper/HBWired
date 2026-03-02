@@ -19,7 +19,7 @@
 // global vars
 // volatile unsigned char SPktS_currentValue;
 // uint8_t SPktS_outputPin;
-inline void setup_timer();
+// inline void setup_timer();
 
 static const byte WELLENPAKETSCHRITTE = 25; // 500ms / 20ms (20ms = 1/50Hz) - Anzahl Schritte bei enspr. Paketlänge und Periodendauer
 

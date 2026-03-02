@@ -178,7 +178,10 @@
 					<value_map device_value="0x02" parameter_value="0"/>
 					<value_map device_value="0x03" parameter_value="0"/>
 					<value_map device_value="0x04" parameter_value="1"/>
-					<!-- <value_map device_value="0x08" parameter_value="0" mask="0x08"/> -->
+					<value_map device_value="0x05" parameter_value="1"/>
+					<value_map device_value="0x06" parameter_value="1"/>
+					<value_map device_value="0x07" parameter_value="1"/>
+					<!-- <value_map device_value="0x08" parameter_value="0" mask="0x04"/> -->
 				</conversion>
 			</parameter>
 			<parameter id="TIMEOUT" operations="read,event" ui_flags="internal">
@@ -200,8 +203,9 @@
 				<conversion type="option_integer">
 					<value_map device_value="0x00" parameter_value="0" mask="0x01"/>
 					<value_map device_value="0x01" parameter_value="1" mask="0x01"/>
-					<!-- <value_map device_value="0x02" parameter_value="0"/> -->
-					<!-- <value_map device_value="0x03" parameter_value="1"/> -->
+					<value_map device_value="0x02" parameter_value="0"/>
+					<value_map device_value="0x03" parameter_value="1"/>
+					<value_map device_value="0x07" parameter_value="1"/>
 				</conversion>
 			</parameter>
 			<parameter id="MAX_TEMP" operations="read,event" ui_flags="internal">
@@ -222,7 +226,11 @@
 				</physical>
 				<conversion type="option_integer">
 					<value_map device_value="0x00" parameter_value="0" mask="0x02"/>
+					<value_map device_value="0x01" parameter_value="0"/>
 					<value_map device_value="0x02" parameter_value="1" mask="0x02"/>
+					<value_map device_value="0x03" parameter_value="1"/>
+					<value_map device_value="0x04" parameter_value="0"/>
+					<value_map device_value="0x05" parameter_value="0"/>
 				</conversion>
 			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
