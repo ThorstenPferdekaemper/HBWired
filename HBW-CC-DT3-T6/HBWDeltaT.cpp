@@ -4,10 +4,10 @@
  * Created on: 05.05.2019
  * loetmeister.de
  * 
+ * updated: 03.04.2026
  */
  
 #include "HBWDeltaT.h"
-
 
 
 HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2, hbw_config_DeltaT* _config) :
@@ -18,14 +18,15 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
 {
   deltaT = 0xFF;
   setOutputLastTime = 0;
-  setOutputWaitTime = DELTAT_CALCULATION_WAIT_TIME *4;  // start delay
+  setOutputWaitTime = DELTAT_CALCULATION_WAIT_TIME *6;  // start delay
   deltaCalcLastTime = 0;
   clearFeedback();
   stateFlags.byte = 0;
   keyPressNum = 0;
   initDone = false;
-  forceOutputChange = false;
+  forceOutputChange = false;  // needs to be false for setOutputWaitTime to work
   sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
+  outputCycleStart = true;
 };
 
 
@@ -44,7 +45,7 @@ void HBWDeltaT::afterReadConfig()
   {
   // All off on init, but consider inverted setting
     digitalWrite(pin, config->n_inverted ? LOW : HIGH);   // 0=inverted, 1=not inverted
-    pinMode(pin,OUTPUT);
+    pinMode(pin, OUTPUT);
     currentState = OFF;
     nextState = currentState;
   }
@@ -62,7 +63,8 @@ void HBWDeltaT::afterReadConfig()
   hbwdebug(F(" deltaHys: ")); hbwdebug(config->deltaHys);
   hbwdebug(F(" Hys@maxT1? ")); hbwdebug(!config->n_enableHysMaxT1); hbwdebug(F(" @minT2? ")); hbwdebug(!config->n_enableHysMinT2);
   hbwdebug(F(" deltaT: ")); hbwdebug(config->deltaT); hbwdebug(F(" Hys@OFF? ")); hbwdebug(!config->n_enableHysOFF);
-  hbwdebug(F(" change_wait: ")); hbwdebug(config->output_change_wait_time);
+  hbwdebug(F(" change_wait: ")); hbwdebug(config->output_change_wait_time+1 *10);
+  hbwdebug(F("s change_pulse: ")); hbwdebug(config->output_change_pulse);
   hbwdebug(F("\n"));
  #endif
 };
@@ -73,6 +75,7 @@ void HBWDeltaTx::setInfo(HBWDevice* device, uint8_t length, uint8_t const * cons
 {
   set(device, length, data);
 };
+
 
 /* standard public function - set a channel, directly or via peering event. Data array contains new value or all peering details */
 void HBWDeltaTx::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
@@ -89,6 +92,7 @@ void HBWDeltaTx::set(HBWDevice* device, uint8_t length, uint8_t const * const da
   }
 };
 
+
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWDeltaTx::get(uint8_t* data)
 {
@@ -103,20 +107,22 @@ uint8_t HBWDeltaTx::get(uint8_t* data)
 void HBWDeltaT::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
 {
   // Forcefully set output. If 'mode' is active, the output state will fallback to calculated state after "output_change_wait_time"
-  // to keep output in ON / OFF state, repeat set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF faster than "output_change_wait_time"
+  // to keep output in ON / OFF state, repeat set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF faster than "output_change_wait_time" or set "inhibit on"
   // 203 - force OFF
   // 205 - force ON
   if (*data == 203 || *data == 205)
   {
     nextState = (*data == 203) ? OFF : ON;
-    forceOutputChange = true;
-    setOutputWaitTime = 0;  // override output_change_wait_time
+    forceOutputChange = true;  // update immediately
+    outputCycleStart = true;  // reset pulse cycle
+    hbwdebug(F("Set forced\n"));
   }
   // allow to set output manually, only when 'mode' is idle/inactive (i.e. no T1 or T2 temperature received)
   // output will change not faster than "output_change_wait_time"
-  else if (*data >= 200 && !stateFlags.element.mode)
+  else if ((*data <= 200) && !stateFlags.element.mode)
   {
     nextState = (*data == 0) ? OFF : ON;
+    hbwdebug(F("Set in manual\n"));
   }
 };
 
@@ -125,8 +131,7 @@ void HBWDeltaT::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 uint8_t HBWDeltaT::get(uint8_t* data)
 {
   /* return delta temperature and state flags */
-  if (deltaT >= 0 && deltaT < 255)  // deltaT is int16_t, we only send uint8_t
-  {
+  if (deltaT >= 0 && deltaT < 255) {  // deltaT is int16_t, we only send uint8_t
     *data++ = deltaT;
     stateFlags.element.dlimit = true; // within the display limit
   }
@@ -146,18 +151,20 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 {
   if (config->locked)
   {
-    forceOutputChange = true; // skip calculateNewState()
+    // forceOutputChange = true; // skip calculateNewState()
     // force output to error_state when channel is locked
     nextState = config->n_error_state ? OFF : ON;
-    if (currentState != !config->n_error_state)
+    // if ((!currentState ^ config->n_inverted) != !config->n_error_state)
+    if ((!currentState ^ config->n_inverted) != nextState)
     {
-      setOutputWaitTime = 0;  // don't wait
+      forceOutputChange = true; // update immediately and skip calculateNewState()
+      outputCycleStart = true;  // reset pule cycle
     }
   }
 
-  // do not allow new values / state when "inhibit" is enabled
-  // also skip when output state is manually forced (forceOutputChange)
-  stateFlags.element.mode = calculateNewState(forceOutputChange || getLock());  // calculate new deltaT value, set channel mode (active/inactive) and nextState
+  // calculate new deltaT value, set channel mode (active/inactive) and nextState
+  // don't caculate state when "inhibit" is enabled, also skip when state change is forced (forceOutputChange)
+  stateFlags.element.mode = calculateNewState(forceOutputChange || getLock() || config->locked);
 
   if (setOutput(device, channel)) // will only set output if state is different
   {
@@ -207,12 +214,37 @@ void HBWDeltaTx::loop(HBWDevice* device, uint8_t channel)
 /* set the output port, if different to current state */
 bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 {
-  if ((millis() - setOutputLastTime >= setOutputWaitTime))
+  if ((millis() - setOutputLastTime >= setOutputWaitTime) || forceOutputChange)
   {
+    forceOutputChange = false;
     setOutputLastTime = millis();
     bool returnValue = false;
 
-    digitalWrite(pin, (!nextState ^ config->n_inverted));     // always set local output
+    if (currentState != nextState)
+      { outputCycleStart = true; }  // always start with new cycle
+    float outputChangePuls = (config->output_change_pulse <= 4) ? (float)((config->output_change_pulse +1) *0.2) : 1;  // use value 1 when disabled
+
+    hbwdebug(F("ch: "));hbwdebug(channel);hbwdebug(F(" "));
+
+    if (outputCycleStart)
+    {
+      outputCycleStart = false;
+      digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output
+      hbwdebug(F("output start: "));hbwdebug((!nextState ^ config->n_inverted));
+      setOutputWaitTime = (unsigned long)((((unsigned int)config->output_change_wait_time +1) *10) *outputChangePuls) *1000;
+    }
+    else {
+      outputCycleStart = true;
+      setOutputWaitTime = (unsigned long)(
+        (((unsigned int)config->output_change_wait_time +1) *10) - ((((unsigned int)config->output_change_wait_time +1) *10) *outputChangePuls) ) *1000;
+      
+      if (setOutputWaitTime >= 1000 && currentState == ON)  // skip if below 1 second and cycle only when in full on state
+      {
+        digitalWrite(pin, (currentState ^ config->n_inverted));     // invert local output state
+        hbwdebug(F("output cycle: "));hbwdebug((currentState ^ config->n_inverted));
+      }
+    }
+    hbwdebug(F(" setOutputWaitTime: "));hbwdebug(setOutputWaitTime);hbwdebug(F(", puls "));hbwdebug(outputChangePuls);hbwdebug(F("\n"));
 
     if (currentState != nextState || !initDone)
     {
@@ -222,26 +254,34 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
         keyPressNum++;
         currentState = nextState;
         setFeedback(device, config->logging);  // set trigger to send info/notify message
+        sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
+        // setOutputWaitTime = 0;
         returnValue = true;
+        hbwdebug(F("KeyEvent!\n"));
       }
       else {
         if (sendKeyEventFailCounter > 0) {
           sendKeyEventFailCounter--;
-          setOutputWaitTime = SEND_KEY_EVENT_RETRY_DELAY;
+          hbwdebug(F("KeyEvent FAIL!\n"));
+          setOutputWaitTime = SEND_KEY_EVENT_RETRY_DELAY;  // TODO: needs own timer
+          // forceOutputChange = true;  // TODO: needs own timer... this is quite fast and would reset setOutputLastTime
           return false;  // retry for SEND_KEY_EVENT_MAX_RETRY times
         }
         else {
           currentState = nextState;  // give up
           setFeedback(device, config->logging);  // set trigger to send info/notify message
+          sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
           returnValue = true;
+          hbwdebug(F("gave up!!\n"));
         }
       }
+      initDone = true;  // only once after device (re)start
     }
 
-    forceOutputChange = false;
-    initDone = true;  // only once after device (re)start
-    setOutputWaitTime = (uint16_t)(config->output_change_wait_time +1) *5000;
-    sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
+    // forceOutputChange = false;
+    // initDone = true;  // only once after device (re)start
+    // setOutputWaitTime = (uint16_t)(config->output_change_wait_time +1) *10000;
+    // sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
     stateFlags.element.status = currentState;
     
     return returnValue;
@@ -254,7 +294,7 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 * retuns the current logical state, if wait time did not pass */
 bool HBWDeltaT::calculateNewState(bool _skip)
 {
-  if (_skip) return false; // TODO: skip deltaT calucalation, but check for errors & limits (max)?
+  if (_skip) return false; // TODO: skip deltaT calculation, but check for errors & limits (max)?
 
   if (millis() - deltaCalcLastTime >= DELTAT_CALCULATION_WAIT_TIME)
   {
@@ -284,7 +324,8 @@ bool HBWDeltaT::calculateNewState(bool _skip)
     // check delta temperature
     if ((int16_t)(deltaT > config->deltaT))
     {
-      if ((int16_t)(deltaT - config->deltaHys) >= config->deltaT) {
+      if ((int16_t)(deltaT - config->deltaHys) >= config->deltaT)
+      {
         nextState = ON;
         if (currentState == OFF) {
           // delay ON transition for deltaHys value, if enabled

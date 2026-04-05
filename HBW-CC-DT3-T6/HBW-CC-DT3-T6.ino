@@ -33,11 +33,13 @@
 // - locked DeltaT channels cannot be set anymore
 // - Enabling inhibit on DeltaT channels stops calculating new state completely. DeltaTx channel values are ignored. Output state can
 //   only be changed by set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF commands
+// v0.90
+// - added output_change_pulse and extended output_change_wait_time - BREAKING change (new XML!)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0054
-#define HMW_DEVICETYPE 0x9C //device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
+#define FIRMWARE_VERSION 0x005A
+#define HMW_DEVICETYPE 0x9C  // device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
@@ -71,7 +73,7 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x5A (address step 14)
-  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6F (address step 7)
+  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6F (address step 7) +1#eeStartAddr DeltaT:0x5B, DeltaT1:0x73, DeltaT2:0x7C
   hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x70 - 0x78 (address step 3)
   hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x79 - 0x81 (address step 3)
 } hbwconfig;
@@ -175,6 +177,17 @@ void setup()
 
   hbwdebug(F("B: 2A "));
   hbwdebug(freeRam());
+  hbwdebug(F("\n"));
+
+  // calculate EEPORM start addresses. to put in XML
+  hbwdebug(F(" #eeStartAddr, TempOW:0x"));
+  hbwdebughex(0x07);
+  hbwdebug(F(", DeltaT:0x"));
+  hbwdebughex(0x07 + sizeof(hbwconfig.TempOWCfg));
+  hbwdebug(F(", DeltaT1:0x"));
+  hbwdebughex(0x07 + sizeof(hbwconfig.TempOWCfg) + sizeof(hbwconfig.DeltaTCfg));
+  hbwdebug(F(", DeltaT2:0x"));
+  hbwdebughex(0x07 + sizeof(hbwconfig.TempOWCfg) + sizeof(hbwconfig.DeltaTCfg) + sizeof(hbwconfig.DeltaT1Cfg));
   hbwdebug(F("\n"));
 #endif
 }
