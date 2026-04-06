@@ -4,6 +4,8 @@
 //
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
+//
+// to restart module, send "!!" (raw hexstring 2121)
 // 
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -35,10 +37,11 @@
 //   only be changed by set FORCE_OUTPUT_ON / FORCE_OUTPUT_OFF commands
 // v0.90
 // - added output_change_pulse and extended output_change_wait_time - BREAKING change (new XML!)
+// - separated local output loop and keyEvent (re)send
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x005A
+#define FIRMWARE_VERSION 0x005B
 #define HMW_DEVICETYPE 0x9C  // device ID (make sure to import hbw_cc_dt3_t6.xml into FHEM)
 
 #define NUMBER_OF_TEMP_CHAN 6   // input channels - 1-wire temperature sensors

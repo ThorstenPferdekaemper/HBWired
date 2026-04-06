@@ -75,7 +75,7 @@
 		<parameter type="integer" const_value="205" index="11.0" size="1.0"/>
 	</frame>
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
-		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
+		<parameter param="INHIBIT" size="1.0" index="12.0" type="integer"/>
 	</frame>
 </frames>
 

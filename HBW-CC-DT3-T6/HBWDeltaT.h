@@ -100,9 +100,11 @@ class HBWDeltaT : public HBWChannel {
     unsigned long deltaCalcLastTime;    // last time of calculation
     uint8_t keyPressNum;
     uint8_t sendKeyEventFailCounter;
+    unsigned long sendKeyEventLastTime;
 
     bool calculateNewState(bool);
-    bool setOutput(HBWDevice* device, uint8_t channel);
+    void setOutput(HBWDevice* device, uint8_t channel);
+    bool handlePeerings(HBWDevice* device, uint8_t channel);
     unsigned long setOutputWaitTime;
 
     bool currentState;
@@ -111,6 +113,7 @@ class HBWDeltaT : public HBWChannel {
     bool forceOutputChange;
     bool forcedState;
     bool outputCycleStart;
+    bool sendKeyPress;
 
     union tag_state_flags {
       struct state_flags {
@@ -124,7 +127,7 @@ class HBWDeltaT : public HBWChannel {
     } stateFlags;
     
     static const uint8_t SEND_KEY_EVENT_MAX_RETRY = 3;
-    static const uint16_t SEND_KEY_EVENT_RETRY_DELAY = 370;  // 370 ms
+    static const uint16_t SEND_KEY_EVENT_DELAY = 330;  // 180 ms delay for send and retry
 };
 
 #endif /* HBWDELTAT_H_ */

@@ -19,21 +19,23 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
   deltaT = 0xFF;
   setOutputLastTime = 0;
   setOutputWaitTime = DELTAT_CALCULATION_WAIT_TIME *6;  // start delay
-  deltaCalcLastTime = 0;
-  clearFeedback();
-  stateFlags.byte = 0;
+  sendKeyEventLastTime = 0;
+  sendKeyPress = false;
   keyPressNum = 0;
+  deltaCalcLastTime = 0;
+  stateFlags.byte = 0;
   initDone = false;
-  forceOutputChange = false;  // needs to be false for setOutputWaitTime to work
+  forceOutputChange = false;
   sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
   outputCycleStart = true;
+  clearFeedback();
 };
 
 
 HBWDeltaTx::HBWDeltaTx(hbw_config_DeltaTx* _config)
 {
   config = _config;
-  currentTemperature = DEFAULT_TEMP; // chan must be (t > ERROR_TEMP) to work
+  currentTemperature = DEFAULT_TEMP;  // must be (t > ERROR_TEMP) to work
   tempLastTime = 0;
 };
 
@@ -124,6 +126,8 @@ void HBWDeltaT::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
     nextState = (*data == 0) ? OFF : ON;
     hbwdebug(F("Set in manual\n"));
   }
+
+  sendKeyEventLastTime = millis();  // reset timer, as we have just received a message and can't send immediately
 };
 
  
@@ -151,34 +155,28 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
 {
   if (config->locked)
   {
-    // forceOutputChange = true; // skip calculateNewState()
     // force output to error_state when channel is locked
     nextState = config->n_error_state ? OFF : ON;
-    // if ((!currentState ^ config->n_inverted) != !config->n_error_state)
+
     if ((!currentState ^ config->n_inverted) != nextState)
     {
-      forceOutputChange = true; // update immediately and skip calculateNewState()
-      outputCycleStart = true;  // reset pule cycle
+      outputCycleStart = true;  // reset pulse cycle
+      sendKeyPress = true;  // force keyEvent
     }
   }
-
-  // calculate new deltaT value, set channel mode (active/inactive) and nextState
-  // don't caculate state when "inhibit" is enabled, also skip when state change is forced (forceOutputChange)
-  stateFlags.element.mode = calculateNewState(forceOutputChange || getLock() || config->locked);
-
-  if (setOutput(device, channel)) // will only set output if state is different
-  {
-  #ifdef DEBUG_OUTPUT
-  hbwdebug(F("ch: ")); hbwdebug(channel);
-  hbwdebug(F(" deltaT: ")); hbwdebug(deltaT);
-  hbwdebug(F(" newstate: ")); hbwdebug(nextState);
-  hbwdebug(F("\n"));
-  #endif
+  else {
+    // calculate new deltaT value, set channel mode (active/inactive) and nextState
+    // don't caculate state when "inhibit" is enabled, also skip when state change is forced (forceOutputChange)
+    stateFlags.element.mode = calculateNewState(forceOutputChange || getLock());
   }
+
+  setOutput(device, channel); // set local output (IO port)
+  sendKeyPress = handlePeerings(device, channel);  // send key events and update currentState
   
   // feedback trigger set?
   checkFeedback(device, channel);
 };
+
 
 /* standard public function - called by device main loop for every channel in sequential order */
 void HBWDeltaTx::loop(HBWDevice* device, uint8_t channel)
@@ -211,20 +209,25 @@ void HBWDeltaTx::loop(HBWDevice* device, uint8_t channel)
 };
 
 
-/* set the output port, if different to current state */
-bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
+/* set the output port, according to current state */
+void HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
 {
   if ((millis() - setOutputLastTime >= setOutputWaitTime) || forceOutputChange)
   {
     forceOutputChange = false;
     setOutputLastTime = millis();
-    bool returnValue = false;
-
+    
     if (currentState != nextState)
-      { outputCycleStart = true; }  // always start with new cycle
+    {
+      outputCycleStart = true;  // always start with new cycle
+      sendKeyPress = true;
+    }
+    
     float outputChangePuls = (config->output_change_pulse <= 4) ? (float)((config->output_change_pulse +1) *0.2) : 1;  // use value 1 when disabled
 
     hbwdebug(F("ch: "));hbwdebug(channel);hbwdebug(F(" "));
+
+    if (!initDone && !config->locked) { sendKeyPress = true; }  // send key event on init, after setOutputWaitTime start delay
 
     if (outputCycleStart)
     {
@@ -244,49 +247,54 @@ bool HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
         hbwdebug(F("output cycle: "));hbwdebug((currentState ^ config->n_inverted));
       }
     }
-    hbwdebug(F(" setOutputWaitTime: "));hbwdebug(setOutputWaitTime);hbwdebug(F(", puls "));hbwdebug(outputChangePuls);hbwdebug(F("\n"));
 
-    if (currentState != nextState || !initDone)
-    {
-      // allow peering with external switches
-      // force to send key events after device restart (initDone == false)
-      if (device->sendKeyEvent(channel, keyPressNum, !nextState) != HBWDevice::BUS_BUSY) {
-        keyPressNum++;
-        currentState = nextState;
-        setFeedback(device, config->logging);  // set trigger to send info/notify message
-        sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
-        // setOutputWaitTime = 0;
-        returnValue = true;
-        hbwdebug(F("KeyEvent!\n"));
+    hbwdebug(F(" setOutputWaitTime: "));hbwdebug(setOutputWaitTime);hbwdebug(F(", puls "));hbwdebug(outputChangePuls);//hbwdebug(F("\n"));
+    // hbwdebug(F("ch: ")); hbwdebug(channel);
+    hbwdebug(F(" deltaT: ")); hbwdebug(deltaT);
+    hbwdebug(F(" newstate: ")); hbwdebug(nextState);
+    hbwdebug(F("\n"));
+  }
+};
+
+
+/* handle sendKeyEvent and retries; return status for sendKeyPress (false == don't send) */
+bool HBWDeltaT::handlePeerings(HBWDevice* device, uint8_t channel)
+{
+  if (!sendKeyPress) { return false; }
+
+  if (millis() - sendKeyEventLastTime >= SEND_KEY_EVENT_DELAY)
+  {
+    sendKeyEventLastTime = millis();
+
+    // allow peering with external switches
+    // force to send key events after device restart (initDone == false)
+    if (device->sendKeyEvent(channel, keyPressNum, !nextState) != HBWDevice::BUS_BUSY) {
+      keyPressNum++;
+      currentState = nextState;
+      setFeedback(device, config->logging);  // set trigger to send info/notify message
+      sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
+      // hbwdebug(F("KeyEvent!\n"));
+    }
+    else {
+      if (sendKeyEventFailCounter > 0) {
+        sendKeyEventFailCounter--;
+        // hbwdebug(F("KeyEvent FAIL!\n"));
+        return true;  // retry for SEND_KEY_EVENT_MAX_RETRY times
       }
       else {
-        if (sendKeyEventFailCounter > 0) {
-          sendKeyEventFailCounter--;
-          hbwdebug(F("KeyEvent FAIL!\n"));
-          setOutputWaitTime = SEND_KEY_EVENT_RETRY_DELAY;  // TODO: needs own timer
-          // forceOutputChange = true;  // TODO: needs own timer... this is quite fast and would reset setOutputLastTime
-          return false;  // retry for SEND_KEY_EVENT_MAX_RETRY times
-        }
-        else {
-          currentState = nextState;  // give up
-          setFeedback(device, config->logging);  // set trigger to send info/notify message
-          sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
-          returnValue = true;
-          hbwdebug(F("gave up!!\n"));
-        }
+        currentState = nextState;  // give up
+        keyPressNum++;
+        setFeedback(device, config->logging);  // set trigger to send info/notify message
+        sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
+        // hbwdebug(F("gave up!!\n"));
       }
-      initDone = true;  // only once after device (re)start
     }
-
-    // forceOutputChange = false;
-    // initDone = true;  // only once after device (re)start
-    // setOutputWaitTime = (uint16_t)(config->output_change_wait_time +1) *10000;
-    // sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
-    stateFlags.element.status = currentState;
     
-    return returnValue;
+    initDone = true;  // only once after device (re)start
+    stateFlags.element.status = currentState;
+    return false;
   }
-  return false;
+  return true;
 };
 
 
