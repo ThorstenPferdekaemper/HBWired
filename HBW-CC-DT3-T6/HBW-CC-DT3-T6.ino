@@ -48,7 +48,7 @@
 #define ADDRESS_START_CONF_TEMP_CHAN 0x7  // first EEPROM address for temperature sensors configuration
 #define NUM_LINKS_TEMP 32    // requires Support_HBWLink_InfoEvent in HBWired.h
 #define LINKADDRESSSTART_TEMP 0x100  // pering start_address for any sensor type peers, address_step has to be 6
-#define NUMBER_OF_DELTAT_CHAN 3 // result output channels[, can peer with switch]
+#define NUMBER_OF_DELTAT_CHAN 3 // result output channels[, can peer with switch] + same ammount of T1 and T2 channels
 #define NUM_LINKS_DELTATX 6     // allow to peer input channels (T1 & T2) with one temperature sensor each
 #define LINKADDRESSSTART_DELTATX 0x220  // step 7
 
@@ -60,7 +60,7 @@
 //#include <HBWLinkInfoEventSensor.h>
 #include "HBWLinkKeyInfoEventSensor.h"  // TODO: remove these files and add option to the lib, allowing to combine different LinkSender
 #include <HBWLinkInfoEventActuator.h>
-#include "HBWDeltaT.h"
+#include <HBWDeltaT.h>
 
 
 // Pins and hardware config
@@ -76,7 +76,7 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x07 - 0x5A (address step 14)
-  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6F (address step 7) +1#eeStartAddr DeltaT:0x5B, DeltaT1:0x73, DeltaT2:0x7C
+  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x5B - 0x6F (address step 8)
   hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x70 - 0x78 (address step 3)
   hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];  // 0x79 - 0x81 (address step 3)
 } hbwconfig;

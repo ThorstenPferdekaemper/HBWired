@@ -15,17 +15,19 @@
 // - initial version
 // v0.02
 // - added option to pulse on time for delta T output channel (50% duty cycle)
+// v0.1
+// - using updated HBWDeltaT (with new XML)
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0003
+#define FIRMWARE_VERSION 0x000B
 #define HMW_DEVICETYPE 0x99 //device ID (make sure to import hbw-cc-ww-spkts.xml into FHEM)
 
 #define NUMBER_OF_HEATING_CHAN 1   // Schwingungspaketsteuerungsausgangskanal
 #define NUMBER_OF_HEAT_DELTAT_CHAN NUMBER_OF_HEATING_CHAN  // dT1 channel linked with heating/dimmer chan above
 #define NUMBER_OF_TEMP_CHAN 5   // input channels - 1-wire temperature sensors
 #define NUM_LINKS_TEMP 32    // requires Support_HBWLink_InfoEvent in HBWired.h
-#define NUMBER_OF_DELTAT_CHAN 2 // result output channels[, can peer with switch]
+#define NUMBER_OF_DELTAT_CHAN 2 // result output channels[, can peer with switch] + same ammount of T1 and T2 channels
 #define NUM_LINKS_DELTATX NUMBER_OF_DELTAT_CHAN*2 +NUMBER_OF_HEAT_DELTAT_CHAN  // allow to peer input channels (T1 & T2) with one temperature sensor each
 #define ADDRESS_START_CONF_TEMP_CHAN 0x0C  // first EEPROM address for temperature sensors configuration
 #define LINKADDRESSSTART_TEMP 0x100  // pering start_address for any sensor type peers, address_step has to be 6
@@ -37,7 +39,7 @@
 #include <HBWOneWireTempSensors.h>
 #include <HBWLinkInfoEventSensor.h>
 #include <HBWLinkInfoEventActuator.h>
-#include "HBWDeltaT.h"
+#include <HBWDeltaT.h>
 #include "HBWSPktS.h"
 #include <HBW_eeprom.h>
 
@@ -58,9 +60,9 @@ struct hbw_config
   hbw_config_dim_spkts SPktSCfg[NUMBER_OF_HEATING_CHAN];  // 0x07 - 0x0A (address step 4)
   hbw_config_DeltaTx Temp1Cfg[NUMBER_OF_HEATING_CHAN];    // 0x0B - 0x0B (address step 1)
   hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x0C - 0x51 (address step 14)
-  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x52 - 0x59 (address step 7)
-  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x60 - 0x61 (address step 1)
-  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x62 - 0x63 (address step 1)
+  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x52 - 0x61 (address step 8)
+  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x62 - 0x67 (address step 3)
+  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x68 - 0x6D (address step 3)
 } hbwconfig;
 
 
