@@ -12,7 +12,7 @@
 #include "HBW_hardware.h"
 
 
-#define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
+// #define HBW_DEBUG  // reduce code size, if no serial output is needed (hbwdebug() will be replaced by an emtpy template!)
 
 /* enable the below to allow peering with HBWLinkInfoEventActuator/HBWLinkInfoEventSensor
  * sendInfoEvent() will send data to the peered channel (locally or remote) calling setInfo() */
@@ -196,19 +196,16 @@ class HBWDevice {
     void handleAfterReadConfig();
     void handleResetSystem();
 	
-	// the broadcast methods return...
-	// 0 -> everything ok
-	// 1 -> nothing sent because bus busy
-	uint8_t broadcastAnnounce(uint8_t);  // channel
+	// the broadcast methods returns sendFrameStatus
+	uint8_t broadcastAnnounce(uint8_t = 0);  // channel 0 is the default
 
-	uint8_t deviceType;        
+	uint8_t deviceType;
+    uint8_t hardware_version;
+    uint16_t firmware_version;
 
 	// write to EEPROM, but only if not "value" anyway
 	// the uppermost 4 bytes are reserved for the device address and can only be changed if privileged = true
 	void writeEEPROM(uint16_t address, uint8_t value, bool privileged = false );
-
-  uint8_t hardware_version;
-  uint16_t firmware_version;
   
 // Das eigentliche RS485-Interface, kann z.B. HBWSoftwareSerial oder (Hardware)Serial sein
 	Stream* serial;
@@ -244,7 +241,8 @@ class HBWDevice {
 	void processEventSetLock(uint8_t channel, boolean inhibit);
 	void processEmessage(uint8_t const * const frameData);
 	
-    void factoryReset();
+	uint8_t zStartCounter;  // count zero communication messages
+	void factoryReset();
 	void handleConfigButton();	// handle config button and config LED
 	static uint8_t configButtonStatus;
 	void handleStatusLEDs();	// handle Tx and Rx LEDs
@@ -285,14 +283,14 @@ template <typename T>
 #ifdef HBW_DEBUG
 void hbwdebug(T msg) { if(hbwdebugstream) hbwdebugstream->print(msg); };
 #else
-void hbwdebug(T msg) { };
+void hbwdebug(T) { };
 #endif
 
 template <typename T>
 #ifdef HBW_DEBUG
 void hbwdebug(T msg, int base) { if(hbwdebugstream) hbwdebugstream->print(msg,base); };
 #else
-void hbwdebug(T msg, int base) { };
+void hbwdebug(T, int) { };
 #endif
 
 #endif /* HBWired_h */

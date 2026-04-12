@@ -6,14 +6,30 @@
 
 #include "HBWKeyDoorbell.h"
 
+bool HBWPhoneDial_Base::DialNumber(uint8_t) { return 0; };  // dummy function. To be owerwritten by phoneDialChan (HBWPhoneDial)
+
 // Class HBWKeyDoorbell
+// standard channel type
 HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, uint8_t _pinBuzzer, bool _activeHigh)
+{
+  pin = _pin;
+  config = _config;
+  pinBuzzer = _pinBuzzer;
+  activeHigh = _activeHigh;
+  keyPressedMillis = 0;
+  keyPressNum = 0;
+  repeatCounter = 0;
+};
+
+// special channel type - to refer HBWPhoneDial channel
+HBWKeyDoorbell::HBWKeyDoorbell(uint8_t _pin, hbw_config_key_doorbell* _config, HBWPhoneDial_Base* _phone_dial_chan, uint8_t _pinBuzzer, bool _activeHigh)
 {
   keyPressedMillis = 0;
   keyPressNum = 0;
   repeatCounter = 0;
   pin = _pin;
   config = _config;
+  phoneDialChan = _phone_dial_chan;
   pinBuzzer = _pinBuzzer;
   activeHigh = _activeHigh;
 };
@@ -45,7 +61,7 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
   if (!config->n_input_locked)  return;  // skip locked channels
   
   uint32_t now = millis();
-  if (now == 0) now = 1;  // do not allow time=0 for the below code // AKA  "der Teufel ist ein Eichhoernchen"
+  if (now == 0) now = 1;  // do not allow time=0 for the below code
   
   bool buttonState = activeHigh ^ ((digitalRead(pin) ^ !config->n_inverted));
   
@@ -66,10 +82,11 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
         if (repeatCounter == 0)
         {
           keyPressNum++;
-          if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY)
+          if (device->sendKeyEvent(channel, keyPressNum, false) != HBWDevice::BUS_BUSY) // TODO: should add retry?
           {
             repeatCounter = config->suppress_num;
             buzzer(buzzerAction::SUCCESS, true);
+            phoneDialChan->DialNumber(channel);
           }
         }
         else {
@@ -100,11 +117,12 @@ void HBWKeyDoorbell::loop(HBWDevice* device, uint8_t channel)
         if (repeatCounter == 0) {
           // erstes LONG
           keyPressNum++;
-          if (device->sendKeyEvent(channel, keyPressNum, true) != HBWDevice::BUS_BUSY)  // long press
+          if (device->sendKeyEvent(channel, keyPressNum, true) != HBWDevice::BUS_BUSY)  // long press // TODO: should add retry?
           {
             lastSentLong = now;
             repeatCounter = config->suppress_num;
             buzzer(buzzerAction::SUCCESS);
+            phoneDialChan->DialNumber(channel);
           }
         }
       }

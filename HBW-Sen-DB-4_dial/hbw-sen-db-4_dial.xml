@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<device version="12" eep_size="1024">
+<supported_types>
+	<type name="RS485 Doorbell (4 channel)" id="HBW-Sen-DB-4-dialer" priority="2">
+		<parameter index="0" size="1" const_value="0x98"/><!--HMW_DEVICETYPE-->
+		<parameter index="1" size="1" const_value="2"/><!--HARDWARE_VERSION v2 .... ignored by FEHM -->
+		<parameter index="2" size="2" const_value="0x0033" cond_op="GE"/><!--min FIRMWARE_VERSION v0.50-->
+	</type>
+</supported_types>
+
+<paramset type="MASTER" id="HBW-Sen-DB-4_dev_master">
+	<parameter id="CENTRAL_ADDRESS" hidden="true">
+		<logical type="integer"/>
+		<physical type="integer" size="4" interface="eeprom">
+			<address index="0x0002"/>
+		</physical>
+	</parameter>
+	<parameter id="DIRECT_LINK_DEACTIVATE" hidden="true">
+		<logical type="boolean" default="false"/>
+		<physical interface="eeprom" size="0.1" type="integer">
+			<address index="0x0006"/>
+		</physical>	
+	</parameter>
+	<enforce id="CENTRAL_ADDRESS" value="1"/>
+	<enforce id="DIRECT_LINK_DEACTIVATE" value="true"/>
+</paramset>
+
+<frames>
+	<frame id="VALUE_SET" type="#x" channel_field="10" direction="to_device">
+		<parameter size="2.0" index="11.0" type="integer" signed="true" param="VALUE"/>
+	</frame>
+	<frame id="INFO_VALUE" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" signed="true" index="11.0" size="2.0" param="VALUE"/>
+	</frame>
+	<frame id="LEVEL_SET" type="#x" channel_field="10" direction="to_device">
+		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
+	</frame>
+	<frame id="LEVEL_GET" type="#S" channel_field="10" direction="to_device"/>
+	<frame id="INFO_LEVEL" type="#i" channel_field="10" direction="from_device" event="true">
+		<parameter size="1.0" index="11.0" type="integer" param="LEVEL"/>
+		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
+	</frame>
+	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
+		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_EVENT_LONG" type="#K" channel_field="10" direction="from_device" event="true">
+		<parameter const_value="1" size="0.1" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_SIM_SHORT" type="#K" channel_field="10" direction="from_device" receiver_channel_field="11">
+		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+	<frame id="KEY_SIM_LONG" type="#K" channel_field="10" direction="from_device" receiver_channel_field="11">
+		<parameter const_value="1" size="0.1" index="12.0" type="integer"/>
+		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
+	</frame>
+	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
+		<parameter type="integer" index="12.0" size="1.0" param="INHIBIT"/>
+	</frame>
+	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
+		<parameter type="integer" index="11.0" size="1.0" param="TOGGLE_FLAG"/>
+	</frame>
+	<frame id="SET_TOGGLE" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="255"/>
+	</frame>
+	<frame id="SET_ON" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="200"/>
+	</frame>
+	<frame id="SET_OFF" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="0"/>
+	</frame>
+	<frame id="SET_OPT_ON" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="204"/>
+	</frame>
+	<frame id="SET_OPT_OFF" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="202"/>
+	</frame>
+	<frame id="PHONE_RESET" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="250"/>
+	</frame>
+	<frame id="PHONE_HANGUP" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="254"/>
+	</frame>
+	<frame id="PHONE_HOOK" direction="to_device" type="#x" channel_field="10">
+		<parameter type="integer" index="11.0" size="1.0" const_value="255"/>
+	</frame>
+</frames>
+
+<channels>
+	<channel index="0" type="MAINTENANCE" ui_flags="internal" class="maintenance" count="1">
+		<paramset type="MASTER" id="maint_ch_master"/>
+		<paramset type="VALUES" id="maint_ch_values">
+			<parameter id="UNREACH" operations="read,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="UNREACH"/>
+			</parameter>
+			<parameter id="STICKY_UNREACH" operations="read,write,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="STICKY_UNREACH"/>
+			</parameter>
+			<parameter id="CONFIG_PENDING" operations="read,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="CONFIG_PENDING"/>
+			</parameter>
+		</paramset>
+	</channel>
+	
+	<channel index="1" count="1" physical_index_offset="-1" type="DIMMER">	<!-- controls the backlight -->
+		<link_roles>
+			<target name="SWITCH"/>
+		</link_roles>
+		<paramset type="MASTER" id="hmw_input_t_ch_master" address_step="2" address_start="0x07">
+			<parameter id="POWER_ON_STATE">
+			  <logical type="option">
+				<option id="OFF"/>
+				<option id="ON" default="true"/>
+			  </logical>
+			  <physical type="integer" size="0.1" interface="eeprom">
+				<address index="0.0"/>
+			  </physical>
+			</parameter>
+			<parameter id="AUTO_BRIGHTNESS">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="AUTO_OFF_DELAY">
+				<logical type="integer" unit="min" default="15" max="15" min="1">
+					<special_value id="NOT_USED" value="0"/>
+				</logical>
+				<physical size="0.4" type="integer" interface="eeprom">
+					<address index="+0.2"/>
+				</physical>
+			</parameter>
+		</paramset>
+		<paramset type="LINK" id="hmw_dim_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="20" address_start="0x40" address_step="7">
+			<parameter id="UI_HINT">
+				<logical type="string" default="" use_default_on_failure="true"/>
+				<physical type="string" interface="store" id="UI_HINT" save_on_change="true"/>
+			</parameter>
+			<parameter id="SENSOR" operations="none" hidden="true">
+				<logical type="address"/>
+				<physical type="array">
+					<physical type="integer" size="4.0" interface="eeprom">
+						<address index="+0"/>
+					</physical>
+					<physical type="integer" size="1.0" interface="eeprom">
+						<address index="+4"/>
+					</physical>
+				</physical>
+			</parameter>
+			<parameter id="CHANNEL" operations="none" hidden="true">
+				<logical type="integer" min="0" max="255" default="255"/>
+				<physical type="integer" size="1.0" interface="eeprom">
+					<address index="+5"/>
+				</physical>
+			</parameter>
+			<!-- <parameter id="SHORT_ACTION_TYPE"> -->
+				<!-- <logical type="option"> -->
+					<!-- <option id="ON"/> -->
+					<!-- <option id="OFF"/> -->
+					<!-- <option id="INACTIVE"/> -->
+					<!-- <option id="TOGGLE" default="true"/> -->
+				<!-- </logical> -->
+				<!-- <physical type="integer" size="0.2" interface="eeprom"> -->
+					<!-- <address index="+6.0"/> -->
+				<!-- </physical> -->
+			<!-- </parameter> -->
+			<!-- <parameter id="LONG_ACTION_TYPE"> -->
+				<!-- <logical type="option"> -->
+					<!-- <option id="ON"/> -->
+					<!-- <option id="OFF"/> -->
+					<!-- <option id="INACTIVE"/> -->
+					<!-- <option id="TOGGLE" default="true"/> -->
+				<!-- </logical> -->
+				<!-- <physical type="integer" size="0.2" interface="eeprom"> -->
+					<!-- <address index="+6.2"/> -->
+				<!-- </physical> -->
+			<!-- </parameter> -->
+			<parameter id="SHORT_ACTION_TYPE">
+				<logical type="option">
+					<option id="0% - OFF"/>
+					<option id="8%"/>
+					<option id="16%"/>
+					<option id="24%"/>
+					<option id="32%"/>
+					<option id="40%"/>
+					<option id="48%"/>
+					<option id="56%"/>
+					<option id="64%"/>
+					<option id="72%"/>
+					<option id="80%"/>
+					<option id="88%"/>
+					<option id="100% - ON" default="true"/>
+					<option id="OLD_LEVEL"/>
+					<option id="INACTIVE"/>
+					<option id="TOGGLE"/>
+				</logical>
+				<physical type="integer" size="0.4" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>
+			<parameter id="LONG_ACTION_TYPE">
+				<logical type="option">
+					<option id="0% - OFF"/>
+					<option id="8%"/>
+					<option id="16%"/>
+					<option id="24%"/>
+					<option id="32%"/>
+					<option id="40%"/>
+					<option id="48%"/>
+					<option id="56%"/>
+					<option id="64%"/>
+					<option id="72%"/>
+					<option id="80%"/>
+					<option id="88%"/>
+					<option id="100% - ON"/>
+					<option id="OLD_LEVEL"/>
+					<option id="INACTIVE" default="true"/>
+					<option id="TOGGLE"/>
+				</logical>
+				<physical type="integer" size="0.4" interface="eeprom">
+					<address index="+6.4"/>
+				</physical>
+			</parameter>
+		</paramset>
+		<paramset type="VALUES" id="hmw_dim_ch_values">
+			<parameter id="LEVEL" operations="read,write,event" control="DIMMER.LEVEL">
+				<logical type="float" unit="100%" default="0.0" max="1.0" min="0.0"/>
+				<physical type="integer" interface="command" value_id="LEVEL">
+					<set request="LEVEL_SET"/>
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="200"/>
+			</parameter>
+			<parameter id="TOGGLE_VALUE" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="SET_TOGGLE"/>
+				</physical>
+			</parameter>
+			<parameter id="AUTO_BRIGHTNESS_ON" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="SET_OPT_ON"/>
+				</physical>
+			</parameter>
+			<parameter id="AUTO_BRIGHTNESS_OFF" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="SET_OPT_OFF"/>
+				</physical>
+			</parameter>
+			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="INHIBIT">
+					<set request="SET_LOCK"/>
+				</physical>
+			</parameter>
+			<parameter id="INSTALL_TEST" operations="write" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TOGGLE_FLAG" no_init="true">
+					<set request="TOGGLE_INSTALL_TEST"/>
+				</physical>
+				<conversion type="toggle" value="LEVEL" on="200" off="0"/>
+			</parameter>
+		</paramset>
+	</channel>
+	
+	
+	<channel index="2" type="KEY" count="4" physical_index_offset="-1">	<!-- input doorbell key chan -->
+		<link_roles>
+			<source name="SWITCH"/>
+		</link_roles>
+		<paramset id="hbw_input_ch_master" type="MASTER" address_start="0x09" address_step="6">
+		    <parameter id="INPUT_LOCKED">
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.0"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<parameter id="INVERTED">
+				<logical type="boolean" default="false"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="true"/>
+			</parameter>
+			<parameter id="PULLUP">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.2"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="REPEAT_LONG_PRESS">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.3"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
+			</parameter>
+			<parameter id="LONG_PRESS_TIME">
+				<logical type="float" unit="s" default="1.0" max="5.0" min="0.4"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+1.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="10"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="10" device_value="0xff"/>
+				</conversion>
+			</parameter>
+			<parameter id="SUPPRESS_NUM">
+				<logical type="integer" default="3" max="14" min="0"/>
+				<physical size="0.4" type="integer" interface="eeprom">
+					<address index="+2.0"/>
+				</physical>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="4" device_value="0xf"/>
+				</conversion>
+			</parameter>
+			<parameter id="SUPPRESS_TIME">
+				<logical type="float" unit="s" default="3.0" max="14.0" min="0"/>
+				<physical size="0.4" type="integer" interface="eeprom">
+					<address index="+3.0"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="1"/>
+				<conversion type="integer_integer_map">
+					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0xf"/>
+				</conversion>
+			</parameter>
+			<parameter id="BUZZER">
+				<logical type="option">
+					<option id="DISABLED"/>
+					<option id="TODO_melody_random"/><!-- TODO add different melodies or so -->
+					<option id="TODO_melody5"/>
+					<option id="TODO_melody4"/>
+					<option id="TODO_melody3"/>
+					<option id="TODO_melody2"/>
+					<option id="TODO_melody1"/>
+					<option id="melody_0" default="true"/>
+				</logical>
+				<physical size="0.3" type="integer" interface="eeprom">
+					<address index="+3.4"/>
+				</physical>
+			</parameter>
+		</paramset>
+		<paramset id="hmw_input_ch_link" type="LINK" channel_param="CHANNEL" peer_param="ACTUATOR" count="20" address_start="0x13C" address_step="6">
+			<parameter hidden="true" id="CHANNEL" operations="none">
+				<logical type="integer" default="255" max="255" min="0"/>
+				<physical size="1.0" type="integer" interface="eeprom">
+					<address index="+0"/>
+				</physical>
+			</parameter>
+			<parameter hidden="true" id="ACTUATOR" operations="none">
+				<logical type="address"/>
+				<physical type="array">
+					<physical size="4.0" type="integer" interface="eeprom">
+						<address index="+1"/>
+					</physical>
+					<physical size="1.0" type="integer" interface="eeprom">
+						<address index="+5"/>
+					</physical>
+				</physical>
+			</parameter>
+		</paramset>
+		<paramset type="VALUES" id="hbw_input_ch_values">
+			<parameter id="PRESS_SHORT" operations="event" loopback="true" control="BUTTON.SHORT">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<parameter id="PRESS_LONG" operations="event" loopback="true" control="BUTTON.LONG">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="COUNTER">
+					<event frame="KEY_EVENT_LONG"/>
+				</physical>
+				<conversion type="action_key_counter" counter_size="6" sim_counter="SIM_COUNTER"/>
+			</parameter>
+			<parameter id="INSTALL_TEST" operations="event" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TEST_COUNTER">
+					<event frame="KEY_EVENT_SHORT"/>
+					<event frame="KEY_EVENT_LONG"/>
+				</physical>
+			</parameter>
+		</paramset>
+	</channel>
+	
+	<channel index="6" count="1" physical_index_offset="-1" type="PHONE_DIALER">	<!-- controls the phone -->
+		<paramset type="MASTER" id="hbw_dial_ch_master" address_step="12" address_start="0x21">
+			<parameter id="PHONE_CONTROL">
+				<logical type="option">
+					<option id="DISABLED"/>
+					<option id="ENABLED" default="true"/>
+				</logical>
+				<physical type="integer" size="0.1" interface="eeprom">
+					<address index="0.0"/>
+				</physical>
+			</parameter>
+
+			<parameter id="DB1_MAPPING">
+				<logical type="option">
+					<option id="QUICK_DIAL_1"/>
+					<option id="QUICK_DIAL_2"/>
+					<option id="QUICK_DIAL_3"/>
+					<option id="QUICK_DIAL_4"/>
+					<option id="QUICK_DIAL_5"/>
+					<option id="QUICK_DIAL_6"/>
+					<option id="QUICK_DIAL_7"/>
+					<option id="QUICK_DIAL_8" default="true"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom">
+					<address index="+3.0"/>
+				</physical>
+			</parameter>
+			<parameter id="DB1_MAX_CALL_DURATION">
+				<logical type="integer" unit="s" default="320" max="310" min="10">
+					<special_value id="MAPPING_DISABLED" value="320"/>
+				</logical>
+				<physical size="0.5" type="integer" interface="eeprom">
+					<address index="+3.3"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1" offset="-10"/>
+			</parameter>
+			<parameter id="DB2_MAPPING">
+				<logical type="option">
+					<option id="QUICK_DIAL_1"/>
+					<option id="QUICK_DIAL_2"/>
+					<option id="QUICK_DIAL_3"/>
+					<option id="QUICK_DIAL_4"/>
+					<option id="QUICK_DIAL_5"/>
+					<option id="QUICK_DIAL_6"/>
+					<option id="QUICK_DIAL_7"/>
+					<option id="QUICK_DIAL_8" default="true"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom">
+					<address index="+4.0"/>
+				</physical>
+			</parameter>
+			<parameter id="DB2_MAX_CALL_DURATION">
+				<logical type="integer" unit="s" default="320" max="310" min="10">
+					<special_value id="MAPPING_DISABLED" value="320"/>
+				</logical>
+				<physical size="0.5" type="integer" interface="eeprom">
+					<address index="+4.3"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1" offset="-10"/>
+			</parameter>
+			<parameter id="DB3_MAPPING">
+				<logical type="option">
+					<option id="QUICK_DIAL_1"/>
+					<option id="QUICK_DIAL_2"/>
+					<option id="QUICK_DIAL_3"/>
+					<option id="QUICK_DIAL_4"/>
+					<option id="QUICK_DIAL_5"/>
+					<option id="QUICK_DIAL_6"/>
+					<option id="QUICK_DIAL_7"/>
+					<option id="QUICK_DIAL_8" default="true"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom">
+					<address index="+5.0"/>
+				</physical>
+			</parameter>
+			<parameter id="DB3_MAX_CALL_DURATION">
+				<logical type="integer" unit="s" default="320" max="310" min="10">
+					<special_value id="MAPPING_DISABLED" value="320"/>
+				</logical>
+				<physical size="0.5" type="integer" interface="eeprom">
+					<address index="+5.3"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1" offset="-10"/>
+			</parameter>
+			<parameter id="DB4_MAPPING">
+				<logical type="option">
+					<option id="QUICK_DIAL_1"/>
+					<option id="QUICK_DIAL_2"/>
+					<option id="QUICK_DIAL_3"/>
+					<option id="QUICK_DIAL_4"/>
+					<option id="QUICK_DIAL_5"/>
+					<option id="QUICK_DIAL_6"/>
+					<option id="QUICK_DIAL_7"/>
+					<option id="QUICK_DIAL_8" default="true"/>
+				</logical>
+				<physical type="integer" size="0.3" interface="eeprom">
+					<address index="+6.0"/>
+				</physical>
+			</parameter>
+			<parameter id="DB4_MAX_CALL_DURATION">
+				<logical type="integer" unit="s" default="320" max="310" min="10">
+					<special_value id="MAPPING_DISABLED" value="320"/>
+				</logical>
+				<physical size="0.5" type="integer" interface="eeprom">
+					<address index="+6.3"/>
+				</physical>
+				<conversion type="float_integer_scale" factor="0.1" offset="-10"/>
+			</parameter>
+			
+		</paramset>
+		
+		<paramset type="VALUES" id="hbw_dial_ch_values"> <!-- returns phone line state -->
+			<parameter id="STATE" operations="read,write,event" control="SWITCH.STATE">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="LEVEL">
+					<set request="LEVEL_SET"/>
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+				</physical>
+				<conversion type="boolean_integer" true="200" false="0" threshold="1"/>
+			</parameter>
+			<parameter id="QUICK_DIAL" operations="write">
+				<logical type="float" default="1" min="1" max="8"/>
+				<physical type="integer" interface="command" value_id="VALUE">
+					<set request="LEVEL_SET"/>
+				</physical>
+			</parameter>
+			<parameter id="WORKING" operations="read,event" ui_flags="internal">
+				<logical type="boolean" default="false"/>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="INFO_LEVEL"/>
+					<event frame="ACK_STATUS"/>
+				</physical>
+				<conversion type="boolean_integer"/>
+			</parameter>
+			<parameter id="PHONE_STATE" operations="read,event" ui_flags="internal">
+				<logical type="option">
+					<option id="onHook" default="true"/>
+					<option id="dialing"/>
+					<option id="hangupWait"/>
+					<option id="reset"/>
+					<option id="unknown"/>
+				</logical>
+				<physical type="integer" interface="command" value_id="STATE_FLAGS">
+					<get request="LEVEL_GET" response="INFO_LEVEL"/>
+					<event frame="LEVEL_VALVE"/>
+					<event frame="ACK_STATUS"/>
+				</physical>
+				<conversion type="option_integer">
+					<value_map device_value="0x05" parameter_value="4"/>
+					<value_map device_value="0x06" parameter_value="4"/>
+					<value_map device_value="0x07" parameter_value="4"/>
+				</conversion>
+			</parameter>
+			<parameter id="PHONE_RESET" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="PHONE_RESET"/>
+				</physical>
+			</parameter>
+			<parameter id="PHONE_HANGUP" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="PHONE_HANGUP"/>
+				</physical>
+			</parameter>
+			<parameter id="PHONE_HOOK" operations="write">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="DUMMY">
+					<set request="PHONE_HOOK"/>
+				</physical>
+			</parameter>
+			<!-- <parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true"> -->
+				<!-- <logical type="boolean" default="false"/> -->
+				<!-- <physical type="integer" interface="command" value_id="INHIBIT"> -->
+					<!-- <set request="SET_LOCK"/> -->
+				<!-- </physical> -->
+			<!-- </parameter> -->
+		</paramset>
+
+	</channel>
+	
+</channels>
+</device>

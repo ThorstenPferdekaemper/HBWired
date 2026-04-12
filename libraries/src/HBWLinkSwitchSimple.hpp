@@ -25,6 +25,16 @@ void HBWLinkSwitchSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devi
   uint32_t sndAddrEEPROM;
   uint8_t channelEEPROM;
   uint8_t actionType;
+  uint8_t data[3];
+  data[1] = keyPressNum;
+  data[2] = false;
+  
+  if (senderAddress == lastSenderAddress && senderChannel == lastSenderChannel) {
+    data[2] = true;  // true, as this was the same sender (source device & channel) - sameLastSender
+  }
+  lastSenderAddress = senderAddress;
+  lastSenderChannel = senderChannel;
+
   // read what to do from EEPROM
   for(byte i = 0; i < numLinks; i++) {
 	  device->readEEPROM(&sndAddrEEPROM, eepromStart + EEPROM_SIZE * i, 4, true);
@@ -44,21 +54,20 @@ void HBWLinkSwitchSimple<numLinks, eepromStart>::receiveKeyEvent(HBWDevice* devi
 	  // differs for short and long
 	  if (longPress) actionType >>= 2;
 	  actionType &= 0b00000011;
-	  uint8_t data;
 	  // we can have
 	  switch(actionType) {
 	  // 0 -> ON
-	    case 0: data = 200;
+	    case 0: data[0] = 200;
 		        break;
 	  // 1 -> OFF
-	    case 1: data = 0;
+	    case 1: data[0] = 0;
 		        break;
 	  // 2 -> INACTIVE
 	    case 2: continue;
 	  // 3 -> TOGGLE (default)
-	    case 3: data = 255;
+	    case 3: data[0] = 255;
                 // break;
       };
-	  device->set(targetChannel,1,&data);    // channel, data length, data
+	  device->set(targetChannel, sizeof(data), data);    // channel, data length, data
   }
 }

@@ -5,49 +5,46 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // Türklingelsensor mit 4 Tastern und Beleuchtung des Klingeltableau
+// + Lautsprecher/Mikro eines Telefons, welches Kurzwahl über HBWPhoneDial.h ausführt
 // 
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
 //*******************************************************************
 // Changes
-// v0.10
-// - initial version
-// v0.20
-// - fix for repeatCounter reset handling
-// v0.3
-// - added buzzer for button feedback (uses tone() builtin function) - needs new XML due to additional config
-//   Set pin BUZZER NOT_A_PIN to disable it
-// v0.4
-// - added peering for backlight chan - needs new XML due to updated config!
+// v0.5
+// - new variant with phone dial module
+// - added set and get for phone dial channel
 
-
-#define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0029
+#define HARDWARE_VERSION 0x02
+#define FIRMWARE_VERSION 0x0036
 #define HMW_DEVICETYPE 0x98 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
-//TODO? + 1 türsummer?
+
 #define NUMBER_OF_DIM_CHAN 1   // dimmer output (for backlight) - with auto_brightness
-#define NUMBER_OF_KEY_CHAN 4   // knobs at your door
-#define NUM_LINKS_KEY 20
-#define NUM_LINKS_DIM 20
+#define NUMBER_OF_KEY_CHAN 4   // knobs / buttons at your door
+#define PHONE_DIAL 1  // phone connected (if used 1 or 0 if not used)
+#define NUM_LINKS_KEY 20  // any sensor peering!
+#define NUM_LINKS_DIM 20  // any actor peering!
 #define LINKADDRESSSTART_DIM 0x40  // any actor peering!
 #define LINKADDRESSSTART_KEY 0x13C  // any sensor peering!
 
 
 // HB Wired protocol and module
-#include <HBWired.h>
 #include <HBW_eeprom.h>
+#include <HBWired.h>
 #include <HBWLinkKey.h>
-#include "HBWKeyDoorbell.h"
+#include "HBWPhoneDial.h"
+#include <HBWKeyDoorbell.h>
 #include <HBWDimBacklight.h>
-#include <HBWLinkSwitchSimple.h>
+// #include <HBWLinkSwitchSimple.h>
+#include "src/HBWLinkDimSimple.h"
 
 
 // Pins and hardware config
 #include "HBW-Sen-DB-4_config_example.h"  // When using custom device pinout or controller, copy this file and include it instead
 
 
-#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_KEY_CHAN
+#define NUMBER_OF_CHAN NUMBER_OF_DIM_CHAN + NUMBER_OF_KEY_CHAN + PHONE_DIAL
 
 struct hbw_config {
   uint8_t logging_time;     // 0x01
@@ -55,7 +52,8 @@ struct hbw_config {
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_dim_backlight BlDimCfg[NUMBER_OF_DIM_CHAN]; // 0x07 - 0x08 (address step 2)
-  hbw_config_key_doorbell DBKeyCfg[NUMBER_OF_KEY_CHAN]; // 0x09 - 0x1C (address step 5)
+  hbw_config_key_doorbell DBKeyCfg[NUMBER_OF_KEY_CHAN]; // 0x09 - 0x20 (address step 6)
+  hbw_config_phone_dial PhoneDialCfg[1];  // 0x21 - step 12 (not all parameters defined yet)
 } hbwconfig;
 
 
@@ -63,21 +61,41 @@ HBWChannel* channels[NUMBER_OF_CHAN];  // total number of channels for the devic
 
 HBWDevice* device = NULL;
 
+#if (PHONE_DIAL == 1)
+// SHIFT_REGISTER_CLASS defined in "HBWPhoneDial.h"
+// init and reset shift register (OE will be cleared later)
+SHIFT_REGISTER_CLASS* myShiftReg = new SHIFT_REGISTER_CLASS(shiftReg_Data, shiftReg_Clock, shiftReg_Latch);
+#endif
 
 void setup()
 {
   channels[0] = new HBWDimBacklight(&(hbwconfig.BlDimCfg[0]), BACKLIGHT_PWM, LDR_PIN);
+
+  #if (PHONE_DIAL == 1)
+  HBWPhoneDial* phone_dial_chan = new HBWPhoneDial(&(hbwconfig.PhoneDialCfg[0]), myShiftReg, NUMBER_OF_DIM_CHAN, LINE_INDICATOR_PIN);
+  channels[NUMBER_OF_CHAN -1] = phone_dial_chan;
+  #endif
   
   static const byte BUTTON_PIN[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4};
   
  #if (NUMBER_OF_KEY_CHAN == 4)
   for(uint8_t i = 0; i < NUMBER_OF_KEY_CHAN; i++) {
+    #if (PHONE_DIAL == 1)
+    channels[i + NUMBER_OF_DIM_CHAN] = new HBWKeyDoorbell(BUTTON_PIN[i], &(hbwconfig.DBKeyCfg[i]), phone_dial_chan, BUZZER);
+    #else
     channels[i + NUMBER_OF_DIM_CHAN] = new HBWKeyDoorbell(BUTTON_PIN[i], &(hbwconfig.DBKeyCfg[i]), BUZZER);
+    #endif
+    
   }
  #else
   #error NUMBER_OF_KEY_CHAN channel missmatch!
  #endif
   
+  #if (PHONE_DIAL == 1)
+  // set shift register OE pin LOW, this enables the outputs (do this after latches have been initialized. OE was held HIGH with pullup during poweron!)
+  digitalWrite(shiftReg_OutputEnable, LOW);
+  pinMode(shiftReg_OutputEnable, OUTPUT);
+  #endif
  
 #ifdef USE_HARDWARE_SERIAL  // RS485 via UART Serial, no debug (_debugstream is NULL)
   Serial.begin(19200, SERIAL_8E1);
@@ -87,7 +105,8 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              NULL,
                              new HBWLinkKey<NUM_LINKS_KEY, LINKADDRESSSTART_KEY>(),
-                             new HBWLinkSwitchSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
+                            //  new HBWLinkSwitchSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
+                             new HBWLinkDimSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
                              );
   
   device->setConfigPins(BUTTON, LED);  // use analog input for 'BUTTON'
@@ -101,7 +120,7 @@ void setup()
                              NUMBER_OF_CHAN, (HBWChannel**)channels,
                              &Serial,
                              new HBWLinkKey<NUM_LINKS_KEY, LINKADDRESSSTART_KEY>(),
-                             new HBWLinkSwitchSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
+                             new HBWLinkDimSimple<NUM_LINKS_DIM, LINKADDRESSSTART_DIM>()
                              );
   
   device->setConfigPins(BUTTON, LED);  // 8 (button) and 13 (led) is the default
@@ -113,10 +132,12 @@ void setup()
   hbwdebug(sizeof(channels)/2);
 
   // calculate EEPORM start addresses. to put in XML
-  hbwdebug(F(" #eeStart Chan, Dim:"));
+  hbwdebug(F(" #eeStartAddr, Dim:0x"));
   hbwdebughex(0x07);
-  hbwdebug(F(", Key:"));
+  hbwdebug(F(", Key:0x"));
   hbwdebughex(0x07 + sizeof(hbwconfig.BlDimCfg));
+  hbwdebug(F(", dial:0x"));
+  hbwdebughex(0x07 + sizeof(hbwconfig.BlDimCfg) + sizeof(hbwconfig.DBKeyCfg));
   hbwdebug(F("\n"));
 #endif
 }

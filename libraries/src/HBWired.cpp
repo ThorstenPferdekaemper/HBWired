@@ -7,7 +7,7 @@
  *
  *  HomeBrew-Wired RS485-Protokoll 
  *
- * Last updated: 21.01.2019
+ * Last updated: 04.02.2026
  */
 
 #include "HBWired.h"
@@ -435,9 +435,13 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
          switch(frameData[0]) {
           case 'Z':                                            // end discovery mode
             pendingActions.zeroCommunicationActive = false;
+            zStartCounter = 0;
             break;
           case 'z':                                              // start discovery mode
-            pendingActions.zeroCommunicationActive = true;
+            // original modules still send ACK after receiving 'z' twice. They go completely silent after 4 (or 3?) 'z' messages
+            // not sure how that should work. Let's go silent after second start message
+            if (zStartCounter >= 1)  pendingActions.zeroCommunicationActive = true;
+            else  zStartCounter++;
             break;
           // case 'K':  // 0x4B Key-Event
             // broadcast key events sind für long_press interressant
@@ -446,8 +450,10 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
               // receiveKeyEvent(senderAddress, frameData[1], frameData[2], frameData[3] >>2, true);
 			// }
             // break;
-        }
-        return;
+          default:
+            zStartCounter = 0;  // other broadcast, so reset
+         }
+         return;
       };
 
       if (pendingActions.zeroCommunicationActive) {				// block any messages in this state, except:
@@ -460,6 +466,7 @@ void HBWDevice::processEvent(byte const * const frameData, byte frameDataLength,
       #endif
          return;
       };
+      zStartCounter = 0;  // other message, so reset
 
       txFrame.targetAddress = senderAddress;
       // gibt es was zu verarbeiten -> Ja, die Kommunikationsschicht laesst nur Messages durch,
@@ -662,6 +669,7 @@ void HBWDevice::processEmessage(uint8_t const * const frameData) {
 
 // "Announce-Message" ueber broadcast senden
 uint8_t HBWDevice::broadcastAnnounce(byte channel) {
+   if (pendingActions.zeroCommunicationActive) return BUS_BUSY;	// don't send in zeroCommunication mode, return with "bus busy" instead
    txFrame.targetAddress = 0xFFFFFFFF;  // broadcast
    txFrame.controlByte = 0xF8;     // control byte
    txFrame.dataLength = 16;      // Length
@@ -672,8 +680,7 @@ uint8_t HBWDevice::broadcastAnnounce(byte channel) {
    txFrame.data[4] = firmware_version / 0x100;
    txFrame.data[5] = firmware_version & 0xFF;
    determineSerial(txFrame.data + 6, getOwnAddress());
-   // only send, if bus is free. Don't send in zeroCommunication mode, return with "bus busy" instead
-   return (pendingActions.zeroCommunicationActive ? BUS_BUSY : sendFrame(NEED_IDLE_BUS));
+   return sendFrame(NEED_IDLE_BUS);  // only if bus is free
 };
 
 
@@ -827,8 +834,7 @@ uint32_t HBWDevice::getCentralAddress() {
 
 
 // EEPROM lesen
-void HBWDevice::readEEPROM(void* dst, uint16_t address, uint16_t length, 
-                           boolean lowByteFirst) {
+void HBWDevice::readEEPROM(void* dst, uint16_t address, uint16_t length, boolean lowByteFirst) {
    byte* ptr = (byte*)(dst);
    for(uint16_t offset = 0; offset < length; offset++) {
       *ptr = EepromPtr->read(address + (lowByteFirst ? length - 1 - offset : offset));
@@ -843,8 +849,8 @@ void HBWDevice::handleBroadcastAnnounce() {
    if(pendingActions.announced) return;
    // avoid sending broadcast in the first second
    if(millis() < 1000) return;
-   // send methods return 0 if everything is ok
-   pendingActions.announced = (broadcastAnnounce(0) == SUCCESS);
+   // store result as bool
+   pendingActions.announced = (broadcastAnnounce() == SUCCESS);
 }
 
 
@@ -928,6 +934,7 @@ HBWDevice::HBWDevice(uint8_t _devicetype, uint8_t _hardware_version, uint16_t _f
    configPin = NOT_A_PIN;  //inactive by default
    configButtonStatus = 0;
    pendingActions.zeroCommunicationActive = false;	// will be activated by START_ZERO_COMMUNICATION = 'z' command
+   zStartCounter = 0;
    #ifdef Support_ModuleReset
    pendingActions.resetSystem = false;
    #endif
@@ -959,8 +966,8 @@ void HBWDevice::setConfigPins(uint8_t _configPin, uint8_t _ledPin) {
 void HBWDevice::setStatusLEDPins(uint8_t _txLedPin, uint8_t _rxLedPin) {
 	txLedPin = _txLedPin;
 	rxLedPin = _rxLedPin;
-	if(txLedPin != NOT_A_PIN) pinMode(txLedPin, OUTPUT);
-	if(rxLedPin != NOT_A_PIN) pinMode(rxLedPin, OUTPUT);
+	pinMode(txLedPin, OUTPUT);  // pinMode() check for valid pin / NOT_A_PIN
+	pinMode(rxLedPin, OUTPUT);
 };
 
 #ifdef Support_HBWLink_InfoEvent
@@ -1199,5 +1206,5 @@ void hbwdebughex(uint8_t b) {
    hbwdebugstream->print(b & 15, HEX);
 };
 #else
-void hbwdebughex(uint8_t b) { };
+void hbwdebughex(uint8_t) { };
 #endif
