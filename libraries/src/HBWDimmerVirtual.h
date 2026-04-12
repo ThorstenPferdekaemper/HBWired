@@ -59,7 +59,6 @@ class HBWDimmerVirtual : public HBWChannel {
   private:
     HBWChannel* dimChan;   // mapped dimmer channel (or another virtual dimmer?)
     hbw_config_dim_virt* config;
-    //uint8_t onLevel;  // level from peering - need to be stored?
     uint8_t level;  // level (0...100%) set for the channel to use in LOGIC condition
 
     uint8_t handleLogic(uint8_t levelPeer);

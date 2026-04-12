@@ -8,14 +8,34 @@
 #include "HBWKeyVirtual.h"
 
 // Class HBWKeyVirtual
-HBWKeyVirtual::HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config) :
+HBWKeyVirtual::HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config)://, uint8_t const _data_len, uint8_t const _data_pos) :
 mappedChan(_mappedChan),
-config(_config)
+config(_config)//,
+// mappedChanDataLen(_data_len),
+// mappedChanDataPos(_data_pos)
 {
+  // mappedChanDataVal = 0;
   keyPressNum = 0;
   keyPressedMillis = 0;
   updateDone = false;
 }
+
+// HBWKeyVirtual::HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config, uint8_t const _data_len, uint16_t const _data_val) :
+// mappedChan(_mappedChan),
+// config(_config),
+// mappedChanDataLen(_data_len),
+// mappedChanDataVal(_data_val)
+// {
+  // mappedChanDataPos = 0;
+  // keyPressNum = 0;
+  // keyPressedMillis = 0;
+  // updateDone = false;
+// }
+
+void HBWKeyVirtual::set(HBWDevice*, uint8_t length, uint8_t const * const data) {
+  if (mappedChan == KeyVirtual_NO_POLLING)  // channels with this value can be set directly from other channels of the device (no polling)
+    sendLong = ((bool)*data == config->n_inverted) ? false : true;
+};
 
 
 // sends a short KeyEvent for mappedChan state not 0 and long KeyEvent for state equals 0
@@ -25,12 +45,14 @@ void HBWKeyVirtual::loop(HBWDevice* device, uint8_t channel) {
 
   if (millis() - keyPressedMillis < POLLING_WAIT_TIME)  return;
 
-  uint8_t value[2];
-  device->get(mappedChan, value);  // check length? switch or dimmer use only 1 byte for the level. 2nd byte are state flags
-
-  value[0] = (value[0] == 0) ? false : true;
-  sendLong = (value[0] == config->n_inverted) ? false : true;
-  // sendLong = ((bool)value[0] == config->n_inverted) ? false : true;
+  if (mappedChan != KeyVirtual_NO_POLLING) {
+    uint8_t value[2];
+    if (device->get(mappedChan, value) > 0) {  // switch or dimmer use only 1 byte for the level. 2nd byte are state flags
+      
+      value[0] = (value[0] == 0) ? false : true;
+      sendLong = (value[0] == config->n_inverted) ? false : true;
+    }
+  }
   
   if (!config->n_update_on_start && !updateDone) {
     lastSentLong = !sendLong;  // force to send key event on device start (disabled by default)

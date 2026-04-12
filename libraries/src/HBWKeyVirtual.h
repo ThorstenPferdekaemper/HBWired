@@ -1,7 +1,7 @@
 /* 
  *  HBWKeyVirtual.h
  *  
- *  HBWKeyVirtual can be used to read actor channels, like switch or dimmer
+ *  HBWKeyVirtual can be used to read actor channels, like switch or dimmer.
  *  It will send a short KeyEvent, if the attached channel (mappedChan) state is
  *  not 0 and long KeyEvent for state equals 0.
  *  HBWKeyVirtual can be peered like any normal key channel (using HBWLinkKey.h)
@@ -17,6 +17,8 @@
 // #define DEBUG_OUTPUT
 
 
+#define KeyVirtual_NO_POLLING 255
+
 // config of each virtual key channel, address step 1
 struct hbw_config_key_virt {
   uint8_t input_locked:1;   // 0x07:0    default 1=LOCKED, 0=UNLOCKED
@@ -31,12 +33,18 @@ struct hbw_config_key_virt {
 class HBWKeyVirtual : public HBWChannel {
   public:
     HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config);
+	virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
+    // HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config, uint8_t const _data_len = 2, uint8_t const _data_pos = 0);
+    // HBWKeyVirtual(uint8_t _mappedChan, hbw_config_key_virt* _config, uint8_t const _data_pos = 0, uint16_t const _data_val = 0);
     virtual void loop(HBWDevice*, uint8_t channel);
 
 
   private:
     uint8_t mappedChan;   // mapped channel number
     hbw_config_key_virt* config;
+    // uint8_t mappedChanDataLen;   // length of data array from mapped channel get()
+    // uint8_t mappedChanDataPos;   // byte to compare with data array from mapped channel get()
+    // uint16_t mappedChanDataVal;   // value to compare with data array from mapped channel get()
     
     uint8_t keyPressNum;
     uint32_t keyPressedMillis;  // Zeit, zu der die Taste gedrueckt wurde (fuer's Entprellen)

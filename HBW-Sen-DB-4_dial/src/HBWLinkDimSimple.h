@@ -1,5 +1,9 @@
 /* 
-** HBWLinkSwitchSimple
+** HBWLinkDimSimple
+**
+** Super simple dimmer peering. Using same address_step (7) as HBWLinkSwitchSimple
+** - to allow to use them in the same device
+* TODO: check if it should follow HBWLinkBlindSimple - with address_step 9; allowing on_level 0-100%
 **
 ** Einfache direkte Verknuepfung (Peering), zu Schaltausgaengen
 ** Ein Link-Objekt steht immer fuer alle (direkt aufeinander folgenden) Verknuepfungen
@@ -7,16 +11,16 @@
 **
 */
 
-#ifndef HBWLinkSwitchSimple_h
-#define HBWLinkSwitchSimple_h
+#ifndef HBWLinkDimSimple_h
+#define HBWLinkDimSimple_h
 
 #include "HBWired.h"
 
 
 template<uint8_t numLinks, uint16_t eepromStart>
-class HBWLinkSwitchSimple : public HBWLinkReceiver {
+class HBWLinkDimSimple : public HBWLinkReceiver {
   public:
-      HBWLinkSwitchSimple();
+      HBWLinkDimSimple();
 	  void receiveKeyEvent(HBWDevice* device, uint32_t senderAddress, uint8_t senderChannel, 
                            uint8_t targetChannel, uint8_t keyPressNum, boolean longPress);
   private:
@@ -26,5 +30,5 @@ class HBWLinkSwitchSimple : public HBWLinkReceiver {
       static const uint8_t EEPROM_SIZE = 7;   // "address_step" in XML
 };
 
-#include "HBWLinkSwitchSimple.hpp"
+#include "HBWLinkDimSimple.hpp"
 #endif

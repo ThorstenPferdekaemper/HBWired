@@ -12,9 +12,9 @@
    Other than 0 means the pin went from a low signal level to high.
 */
 
-/* #if defined __AVR_ATmega168__ || defined __AVR_ATmega168A__ || defined __AVR_ATmega168P__ || \
-   defined __AVR_ATmega168PA__ || defined __AVR_ATmega328__ || defined __AVR_ATmega328P__
-*/
+#if defined __AVR_ATmega168__ || defined __AVR_ATmega168A__ || defined __AVR_ATmega168P__ || \
+   defined __AVR_ATmega168PA__ || defined __AVR_ATmega328__ || defined __AVR_ATmega328P__ || \
+   defined __AVR_ATmega328PB__
 
 #define PINCOUNT(x) pin ##x ##Count
 #define PINTIMER(x) pin ##x ##LastMillis
@@ -40,9 +40,9 @@
   PINCOUNT(x)
 
 
-// #else
-// #error This sketch supports 328-based Arduinos only at the moment. Possible to add others that support port change interrupts.
-// #endif
+#else
+#error This sketch supports 328-based Arduinos only at the moment. Possible to add others that support port change interrupts.
+#endif
 
 
 #endif  //HBW_Sen_EP_interrupt_h

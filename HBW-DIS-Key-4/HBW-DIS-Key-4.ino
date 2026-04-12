@@ -5,6 +5,7 @@
 // Homematic Wired Hombrew Hardware
 // Arduino NANO als Homematic-Device
 // LCD Display mit 4 Tastern
+// - Restart module by "!!" (hexstring 2121) RAW command
 // 
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
@@ -21,7 +22,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0020
+#define FIRMWARE_VERSION 0x0021
 #define HMW_DEVICETYPE 0x71 //device ID (make sure to import hbw-dis-key-4.xml into FHEM)
 
 

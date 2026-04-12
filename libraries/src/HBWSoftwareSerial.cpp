@@ -34,7 +34,7 @@ http://arduiniana.org.
 // When set, _DEBUG co-opts pins 11 and 13 for debugging with an
 // oscilloscope or logic analyzer.  Beware: it also slightly modifies
 // the bit times, so don't rely on it too much at high baud rates
-#define _DEBUG 0
+// #define _DEBUG 0
 #define _DEBUG_PIN1 11
 #define _DEBUG_PIN2 13
 // 

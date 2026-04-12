@@ -9,6 +9,10 @@ EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
 /* Undefine "HBW_DEBUG" in 'HBWired.h' to remove unneeded code. "HBW_DEBUG" also works as master switch,
  * as hbwdebug() or hbwdebughex() used in channels will point to empty functions. */
 
+
+#include "SetupTimer_328p.h" // setup_timer()
+
+
 // Pins
 #define LED LED_BUILTIN        // Signal-LED
 

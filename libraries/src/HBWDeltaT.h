@@ -2,6 +2,7 @@
  * HBWDeltaT.h
  *
  * Created on: 05.05.2019
+ * updated: 03.04.2026
  * loetmeister.de
  * 
  * A DeltaT channel takes input temperature from two fixed DeltaTx channels (T1, T2),
@@ -26,14 +27,14 @@
 
 #define DEBUG_OUTPUT   // debug output on serial/USB
 
-
+// logical on / off state
 #define OFF LOW
 #define ON HIGH
 
-static const uint16_t  DELTAT_CALCULATION_WAIT_TIME = 3100;  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds - usually 10 seconds min pause)
+static const uint32_t DELTAT_CALCULATION_WAIT_TIME = 3100;  // delta T calculation, every 3.1 seconds (new temperature values should not be received faster than 5 seconds - usually 10 seconds min pause)
 
 
-// config of one DeltaT channel, address step 7
+// config of one DeltaT channel, address step 8
 struct hbw_config_DeltaT {
   uint8_t logging:1;      // +0.0   1=on 0=off
   uint8_t locked:1;     // +0.1   1=LOCKED, 0=UNLOCKED
@@ -42,19 +43,21 @@ struct hbw_config_DeltaT {
   uint8_t deltaT;   // temperature delta (factor 10), max. 254 = 25.4°C
   int16_t maxT1;   // centi celcius (factor 100)
   int16_t minT2;   // centi celcius (factor 100)
-  uint8_t output_change_wait_time:3;  // 5 seconds stepping, allowing 5 - 40 seconds ((0...7 +1)*5)
+  uint8_t output_change_wait_time:4;  // 10 seconds stepping, allowing 10 - 150 seconds ((0...14 +1)*10)
   uint8_t n_enableHysMaxT1:1;  // apply hysteresis on maxT1, 1=off (default) 0=on
   uint8_t n_enableHysMinT2:1;  // apply hysteresis on minT2, 1=off (default) 0=on
   uint8_t n_enableHysOFF:1;  // apply hysteresis on OFF transition, too. 1=off (default) 0=on
   uint8_t n_error_state:1;  // set output OFF or ON at error state (defaut OFF)
-  uint8_t :1;     //fillup
+  uint8_t output_change_pulse:3;     // pulse the local output in output_change_wait_time/(x+1*0.2) timing (default disabled >= 5)
+  uint8_t :5;     //fillup
 };
+
 
 // config of one DeltaTx channel, address step 3
 struct hbw_config_DeltaTx {
   uint16_t receive_max_interval;  // max update frequency to get new temperature values (5...3600 seconds, any other value disables the timeout feature)
   uint8_t max_tries:2;     // error counter 1-4 (no update for counter * receive_max_interval - sets error state for DeltaTx channel)
-  uint8_t :6;     //fillup/unused
+  uint8_t :6;     // fillup/unused
 };
 
 
@@ -67,7 +70,7 @@ class HBWDeltaTx : public HBWChannel {
     virtual void setInfo(HBWDevice*, uint8_t length, uint8_t const * const data);
     virtual void set(HBWDevice*, uint8_t length, uint8_t const * const data);
 
-    int16_t currentTemperature; // temperature in m°C
+    int16_t currentTemperature; // temperature in centi °C
     
   private:
     hbw_config_DeltaTx* config;
@@ -93,20 +96,24 @@ class HBWDeltaT : public HBWChannel {
 
     //uint8_t deltaT;
     int16_t deltaT;
-    uint32_t setOutputLastTime;    // last time output state was checked
-    uint32_t deltaCalcLastTime;    // last time of calculation
+    unsigned long setOutputLastTime;    // last time output state was checked
+    unsigned long deltaCalcLastTime;    // last time of calculation
     uint8_t keyPressNum;
     uint8_t sendKeyEventFailCounter;
+    unsigned long sendKeyEventLastTime;
 
     bool calculateNewState(bool);
-    bool setOutput(HBWDevice* device, uint8_t channel);
-    uint16_t setOutputWaitTime;
+    void setOutput(HBWDevice* device, uint8_t channel);
+    bool handlePeerings(HBWDevice* device, uint8_t channel);
+    unsigned long setOutputWaitTime;
 
     bool currentState;
     bool nextState;
     bool initDone;
     bool forceOutputChange;
     bool forcedState;
+    bool outputCycleStart;
+    bool sendKeyPress;
 
     union tag_state_flags {
       struct state_flags {
@@ -120,7 +127,7 @@ class HBWDeltaT : public HBWChannel {
     } stateFlags;
     
     static const uint8_t SEND_KEY_EVENT_MAX_RETRY = 3;
-    static const uint16_t SEND_KEY_EVENT_RETRY_DELAY = 370;  // 370 ms
+    static const uint16_t SEND_KEY_EVENT_DELAY = 330;  // 180 ms delay for send and retry
 };
 
 #endif /* HBWDELTAT_H_ */

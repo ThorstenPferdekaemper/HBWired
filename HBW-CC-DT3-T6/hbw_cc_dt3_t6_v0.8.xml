@@ -4,7 +4,7 @@
 	<type name="RS485 3 Channel Delta Temperature and 6 One Wire Channel Temperature Module" id="HBW-CC-DT3-T6" priority="2">
 		<parameter index="0" size="1" const_value="0x9C"/><!--HMW_DEVICETYPE-->
 		<parameter index="1" size="1" const_value="1"/><!--HARDWARE_VERSION-->
-		<parameter const_value="0x005A" size="2" cond_op="GE" index="2"/><!--min FIRMWARE_VERSION-->
+		<parameter const_value="0x0059" size="2" cond_op="LE" index="2"/><!--max FIRMWARE_VERSION-->
 	</type>
 </supported_types>
 
@@ -49,9 +49,10 @@
 		<parameter type="integer" index="11.0" size="1.0" param="TEMPERATURE_DELTA"/>
 		<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
 	</frame>
-	<!-- <frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10"> -->
-		<!-- <parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/> -->
-	<!-- </frame> -->
+	<!--
+	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
+		<parameter type="integer" signed="true" index="11.0" size="2.0" param="TEMPERATURE"/>
+	</frame>-->
 	<frame id="KEY_EVENT_SHORT" type="#K" channel_field="10" direction="from_device" event="true">
 		<parameter const_value="0" size="0.1" index="12.0" type="integer"/>
 		<parameter size="0.6" index="12.2" type="integer" param="COUNTER"/>
@@ -75,7 +76,7 @@
 		<parameter type="integer" const_value="205" index="11.0" size="1.0"/>
 	</frame>
 	<frame id="SET_LOCK" type="#l" channel_field="11" direction="to_device">
-		<parameter param="INHIBIT" size="1.0" index="12.0" type="integer"/>
+		<parameter param="inhibit" size="1.0" index="12.0" type="integer"/>
 	</frame>
 </frames>
 
@@ -205,14 +206,7 @@
 		<link_roles>
 		   <source name="SWITCH"/>
 		</link_roles>
-		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x5B" address_step="8">
-			<parameter id="LOCKED">
-				<logical type="boolean" default="true"/>
-				<physical size="0.1" type="integer" interface="eeprom">
-					<address index="+0.1"/>
-				</physical>
-				<conversion type="boolean_integer" invert="false"/>
-			</parameter>
+		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x5B" address_step="7">
 			<parameter id="LOGGING">
 				<logical type="option">
 					<option id="OFF"/>
@@ -221,6 +215,13 @@
 				<physical type="integer" size="0.1" interface="eeprom">
 					<address index="0.0"/>
 				</physical>
+			</parameter>
+			<parameter id="LOCKED">
+				<logical type="boolean" default="true"/>
+				<physical size="0.1" type="integer" interface="eeprom">
+					<address index="+0.1"/>
+				</physical>
+				<conversion type="boolean_integer" invert="false"/>
 			</parameter>
 			<parameter id="INVERTED">
 				<logical type="boolean" default="false"/>
@@ -293,28 +294,13 @@
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="CYCLE_TIME">
-				<logical type="integer" min="10" max="150" default="30" unit="s"/>
-				<physical type="integer" size="0.4" interface="eeprom">
+				<logical type="integer" min="5" max="40" default="30" unit="s"/>
+				<physical type="integer" size="0.3" interface="eeprom">
 					<address index="+6.0"/>
 				</physical>
-				<conversion type="float_integer_scale" factor="0.1" offset="-10.0"/>
+				<conversion type="float_integer_scale" factor="0.2" offset="-5.0"/>
 				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0x0F"/>
-				</conversion>
-			</parameter>
-			<parameter id="PULS_ON_TIME">
-				<logical type="option">
-					<option id="20%_CYCLE_TIME"/>
-					<option id="40%_CYCLE_TIME"/>
-					<option id="60%_CYCLE_TIME"/>
-					<option id="80%_CYCLE_TIME"/>
-					<option id="100%_ON" default="true"/>
-				</logical>
-				<physical type="integer" size="0.3" interface="eeprom">
-					<address index="+7.0"/>
-				</physical>
-				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="4" device_value="0x07"/>
+					<value_map to_device="false" from_device="true" parameter_value="5" device_value="0x7"/>
 				</conversion>
 			</parameter>
 			<parameter id="ERROR_STATE">
@@ -378,16 +364,16 @@
 					<event frame="INFO_LEVEL"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
-				<!-- <conversion type="option_integer"> -->
-					<!-- <value_map device_value="0x00" parameter_value="0"/> -->
-					<!-- <value_map device_value="0x01" parameter_value="1"/> -->
-					<!-- <value_map device_value="0x02" parameter_value="2"/> -->
-					<!-- <value_map device_value="0x03" parameter_value="3"/> -->
-					<!-- <value_map device_value="0x04" parameter_value="4"/> -->
-					<!-- <value_map device_value="0x05" parameter_value="5"/> -->
-					<!-- <value_map device_value="0x06" parameter_value="6"/> -->
-					<!-- <value_map device_value="0x07" parameter_value="7"/> -->
-				<!-- </conversion> -->
+				<conversion type="option_integer">
+					<value_map device_value="0x00" parameter_value="0"/>
+					<value_map device_value="0x01" parameter_value="1"/>
+					<value_map device_value="0x02" parameter_value="2"/>
+					<value_map device_value="0x03" parameter_value="3"/>
+					<value_map device_value="0x04" parameter_value="4"/>
+					<value_map device_value="0x05" parameter_value="5"/>
+					<value_map device_value="0x06" parameter_value="6"/>
+					<value_map device_value="0x07" parameter_value="7"/>
+				</conversion>
 			</parameter>
 			<parameter id="MODE" operations="read,event" ui_flags="internal">
 				<logical type="option">
@@ -465,9 +451,9 @@
 	</channel>
 	
 	<channel index="10" count="3" physical_index_offset="-1" type="DELTA_T1">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x73">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x70">
 			<parameter id="RECEIVE_MAX_INTERVAL">
-				<logical type="integer" unit="s" default="0" min="5" max="3600"><!-- default 150 -->
+				<logical type="integer" unit="s" default="150" min="5" max="3600">
 					<special_value id="ERROR_HANDLING_DISABLED" value="0"/>
 				</logical>
 				<physical size="2" type="integer" interface="eeprom" endian="little">
@@ -545,9 +531,9 @@
 	</channel>
 	
 	<channel index="13" count="3" physical_index_offset="-1" type="DELTA_T2">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x7C">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x79">
 			<parameter id="RECEIVE_MAX_INTERVAL">
-				<logical type="integer" unit="s" default="0" min="5" max="3600"><!-- default 150 -->
+				<logical type="integer" unit="s" default="150" min="5" max="3600">
 					<special_value id="ERROR_HANDLING_DISABLED" value="0"/>
 				</logical>
 				<physical size="2" type="integer" interface="eeprom" endian="little">
