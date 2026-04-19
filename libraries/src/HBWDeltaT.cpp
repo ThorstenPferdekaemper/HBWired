@@ -65,7 +65,7 @@ void HBWDeltaT::afterReadConfig()
   hbwdebug(F(" deltaHys: ")); hbwdebug(config->deltaHys);
   hbwdebug(F(" Hys@maxT1? ")); hbwdebug(!config->n_enableHysMaxT1); hbwdebug(F(" @minT2? ")); hbwdebug(!config->n_enableHysMinT2);
   hbwdebug(F(" deltaT: ")); hbwdebug(config->deltaT); hbwdebug(F(" Hys@OFF? ")); hbwdebug(!config->n_enableHysOFF);
-  hbwdebug(F(" change_wait: ")); hbwdebug(config->output_change_wait_time+1 *10);
+  hbwdebug(F(" change_wait: ")); hbwdebug(config->output_change_wait_time+1 *5);
   hbwdebug(F("s change_pulse: ")); hbwdebug(config->output_change_pulse);
   hbwdebug(F("\n"));
  #endif
@@ -224,6 +224,7 @@ void HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
     }
     
     float outputChangePuls = (config->output_change_pulse <= 4) ? (float)((config->output_change_pulse +1) *0.2) : 1;  // use value 1 when disabled
+    unsigned int confWaitTime = ((unsigned int)config->output_change_wait_time +1) *5;
 
     hbwdebug(F("ch: "));hbwdebug(channel);hbwdebug(F(" "));
 
@@ -234,12 +235,11 @@ void HBWDeltaT::setOutput(HBWDevice* device, uint8_t channel)
       outputCycleStart = false;
       digitalWrite(pin, (!nextState ^ config->n_inverted));     // set local output
       hbwdebug(F("output start: "));hbwdebug((!nextState ^ config->n_inverted));
-      setOutputWaitTime = (unsigned long)((((unsigned int)config->output_change_wait_time +1) *10) *outputChangePuls) *1000;
+      setOutputWaitTime = (unsigned long)(confWaitTime *outputChangePuls) *1000;
     }
     else {
       outputCycleStart = true;
-      setOutputWaitTime = (unsigned long)(
-        (((unsigned int)config->output_change_wait_time +1) *10) - ((((unsigned int)config->output_change_wait_time +1) *10) *outputChangePuls) ) *1000;
+      setOutputWaitTime = (unsigned long)(confWaitTime - (confWaitTime *outputChangePuls)) *1000;
       
       if (setOutputWaitTime >= 1000 && currentState == ON)  // skip if below 1 second and cycle only when in full on state
       {

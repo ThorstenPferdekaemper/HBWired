@@ -23,25 +23,6 @@ HBWSPktS::HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _te
   initDone = false;
 };
 
-// inline void setup_timer()  // call from main setup() //TODO: move hardware specific parts to HBW-CC-WW-SPktS_config_example.h - direct or nested
-// {
-  // cli();//stop interrupts
-
-  // //set timer1 interrupt at 50.08 ~50Hz (with 16MHz system speed / OSC)
-  // TCCR1A = 0;// set entire TCCR1A register to 0
-  // TCCR1B = 0;// same for TCCR1B
-  // TCNT1  = 0;//initialize counter value to 0
-  // // set compare match register for 1hz increments
-  // OCR1A = 312;// = (16*10^6) / (50*1024) - 1 (must be <65536)
-  // // turn on CTC mode
-  // TCCR1B |= (1 << WGM12);
-  // // Set CS12 and CS10 bits for 1024 prescaler
-  // TCCR1B |= (1 << CS12) | (1 << CS10);  
-  // // enable timer compare interrupt
-  // TIMSK1 |= (1 << OCIE1A);
-
-  // sei();//allow interrupts
-// };
 
 // channel specific settings or defaults
 void HBWSPktS::afterReadConfig()
@@ -78,14 +59,15 @@ void HBWSPktS::set(HBWDevice* device, uint8_t length, uint8_t const * const data
     *SPktSValue = newValue / (200 / WELLENPAKETSCHRITTE);
     currentValue = *SPktSValue *(200 / WELLENPAKETSCHRITTE);  // recalculate current level with actual stepping (possible rounding error)
     lastSetTime = millis();
-    stateFlags.byte = 0;    // reset all flags
-    stateFlags.state.working = true;
+    if (*SPktSValue > 0) {
+      stateFlags.byte = 0;    // reset all flags
+      stateFlags.state.working = true;
+    }
   }
 
   if (config->max_output == 0)	// chan disabled
   {
     *SPktSValue = 0;
-    stateFlags.byte = 0;
   }
  #ifdef DEBUG_OUTPUT
   hbwdebug(F("set HBWSPktS, Val: ")); hbwdebug((uint8_t)*SPktSValue);
@@ -111,7 +93,7 @@ void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
 
   if (*SPktSValue)
   {
-    if ( config->max_output == 0 || (config->auto_off && (millis() - lastSetTime >= (uint32_t)(config->auto_off) *1000)))  // disabled or timeout
+    if (config->auto_off && (millis() - lastSetTime >= (uint32_t)(config->auto_off) *1000))  // timeout
     {
       *SPktSValue = 0;
       currentValue = 0;
@@ -123,7 +105,6 @@ void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
     
     else if (config->max_temp && (temp1->currentTemperature > (int16_t)(config->max_temp) *100 || temp1->currentTemperature < 1))  // max or invalid temp
     {
-      //TODO: check temp regularly and restore currentValue when within limits again?? (backup as oldValue?)
       *SPktSValue = 0;
       currentValue = 0;
       stateFlags.state.working = false;
@@ -131,6 +112,10 @@ void HBWSPktS::loop(HBWDevice* device, uint8_t channel)
       // set trigger to send info/notify message in loop()
       setFeedback(device, config->logging);
     }
+  }
+  if (config->max_output == 0)    // disabled
+  {
+    stateFlags.byte = 7;
   }
 
   // feedback trigger set?

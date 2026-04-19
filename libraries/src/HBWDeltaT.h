@@ -43,7 +43,7 @@ struct hbw_config_DeltaT {
   uint8_t deltaT;   // temperature delta (factor 10), max. 254 = 25.4°C
   int16_t maxT1;   // centi celcius (factor 100)
   int16_t minT2;   // centi celcius (factor 100)
-  uint8_t output_change_wait_time:4;  // 10 seconds stepping, allowing 10 - 150 seconds ((0...14 +1)*10)
+  uint8_t output_change_wait_time:4;  // 5 seconds stepping, allowing 5 - 80 seconds ((0...15 +1)*5)
   uint8_t n_enableHysMaxT1:1;  // apply hysteresis on maxT1, 1=off (default) 0=on
   uint8_t n_enableHysMinT2:1;  // apply hysteresis on minT2, 1=off (default) 0=on
   uint8_t n_enableHysOFF:1;  // apply hysteresis on OFF transition, too. 1=off (default) 0=on
