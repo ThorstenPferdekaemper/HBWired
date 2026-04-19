@@ -31,7 +31,7 @@ DeltaT Konfiguration:
 * DELTA_TEMP: 0.0 - 25.4°C
 * T1_MAX: -200.0 - 200.0°C
 * T2_MIN: -200.0 - 200.0°C
-* CYCLE_TIME: 10 - 150 Sekunden
+* CYCLE_TIME: 5 - 80 Sekunden
 * PULS_ON_TIME: 20, 40, 60, 80, 100% der CYCLE_TIME (z.B. CYCLE_TIME 10 s; ON_TIME 20 % = 2 s An + 6 s Aus)
 
 * DeltaT wird berechnet als T2 - T1. Die Hysterese wird vom delta Wert subtrahiert, wenn die Temperaturdifferenz unterhalb von DELTA_TEMP liegt, ansonsten addiert (Als Option zuschaltbar). Der Ausgang wechselt sofort auf "Aus", wenn T1_MAX überschritten oder T2_MIN unterschritten wird. Alternativ kann hier auch die Hysterese angewendet werden.

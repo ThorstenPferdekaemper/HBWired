@@ -173,14 +173,14 @@
 				</physical>
 				<conversion type="boolean_integer"/>
 				<conversion type="integer_integer_map">
+					<value_map device_value="0x04" parameter_value="1" mask="0x04"/>
 					<value_map device_value="0x00" parameter_value="0"/>
 					<value_map device_value="0x01" parameter_value="0"/>
 					<value_map device_value="0x02" parameter_value="0"/>
 					<value_map device_value="0x03" parameter_value="0"/>
-					<value_map device_value="0x04" parameter_value="1"/>
-					<value_map device_value="0x05" parameter_value="1"/>
-					<value_map device_value="0x06" parameter_value="1"/>
-					<value_map device_value="0x07" parameter_value="1"/>
+					<value_map device_value="0x05" parameter_value="0"/>
+					<value_map device_value="0x06" parameter_value="0"/>
+					<value_map device_value="0x07" parameter_value="0"/>
 					<!-- <value_map device_value="0x08" parameter_value="0" mask="0x04"/> -->
 				</conversion>
 			</parameter>
@@ -188,50 +188,54 @@
 				<logical type="option">
 					<option id="NO" default="true"/>
 					<option id="YES"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
+					<option id="NO"/>
+					<option id="YES"/>
+					<option id="NO"/>
+					<option id="NO"/>
+					<option id="NO"/>
+					<option id="CH_DISABLED"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
 					<event frame="INFO_LEVEL"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
-				<conversion type="option_integer">
-					<value_map device_value="0x00" parameter_value="0" mask="0x01"/>
-					<value_map device_value="0x01" parameter_value="1" mask="0x01"/>
-					<value_map device_value="0x02" parameter_value="0"/>
-					<value_map device_value="0x03" parameter_value="1"/>
-					<value_map device_value="0x07" parameter_value="1"/>
-				</conversion>
+				<!-- <conversion type="option_integer"> -->
+					<!-- <value_map device_value="0x00" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x01" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x02" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x03" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x04" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x06" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x07" parameter_value="1"/> -->
+				<!-- </conversion> -->
 			</parameter>
 			<parameter id="MAX_TEMP" operations="read,event" ui_flags="internal">
 				<logical type="option">
 					<option id="OK" default="true"/>
+					<option id="OK"/>
 					<option id="EXCEEDED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
-					<option id="UNDEFINED"/>
+					<option id="EXCEEDED"/>
+					<option id="OK"/>
+					<option id="OK"/>
+					<option id="EXCEEDED"/>
+					<option id="CH_DISABLED"/>
 				</logical>
 				<physical type="integer" interface="command" value_id="STATE_FLAGS">
 					<get request="LEVEL_GET" response="INFO_LEVEL"/>
 					<event frame="INFO_LEVEL"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
-				<conversion type="option_integer">
-					<value_map device_value="0x00" parameter_value="0" mask="0x02"/>
-					<value_map device_value="0x01" parameter_value="0"/>
-					<value_map device_value="0x02" parameter_value="1" mask="0x02"/>
-					<value_map device_value="0x03" parameter_value="1"/>
-					<value_map device_value="0x04" parameter_value="0"/>
-					<value_map device_value="0x05" parameter_value="0"/>
-				</conversion>
+				<!-- <conversion type="option_integer"> -->
+					<!-- <value_map device_value="0x00" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x01" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x02" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x03" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x04" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x05" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x06" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x07" parameter_value="2"/> -->
+				<!-- </conversion> -->
 			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
 				<logical type="boolean" default="false"/>
@@ -256,7 +260,7 @@
 	</channel>
 
 	<channel index="2" count="1" physical_index_offset="-1" type="SPktS_T1">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="1" address_start="0x0B">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x0B">
 		<!--no config...-->
 		</paramset>
 		<paramset type="LINK" id="hmw_teltatx_ch_link" peer_param="SENSOR" channel_param="CHANNEL" count="5" address_start="0x220" address_step="7">
@@ -321,7 +325,7 @@
 		<link_roles>
 			<source name="TEST"/>
 		</link_roles>
-		<paramset type="MASTER" id="hmw_input_t_ch_master" address_step="14" address_start="0x0C">
+		<paramset type="MASTER" id="hmw_input_t_ch_master" address_step="14" address_start="0x0E">
 			<parameter id="SEND_DELTA_TEMP">
 				<logical type="float" unit="&#x2103;" default="0.5" min="0.1" max="25.0">
 					<special_value id="NOT_USED" value="0"/>
@@ -424,7 +428,7 @@
 		<link_roles>
 		   <source name="SWITCH"/>
 		</link_roles>
-		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x52" address_step="8">
+		<paramset type="MASTER" id="hmw_deltat_ch_master" address_start="0x54" address_step="8">
 			<parameter id="LOCKED">
 				<logical type="boolean" default="true"/>
 				<physical size="0.1" type="integer" interface="eeprom">
@@ -464,7 +468,7 @@
 					<option id="ON_TRANSITION_ONLY" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+6.5"/>
+					<address index="+6.6"/>
 				</physical>
 			</parameter>
 			<parameter id="DELTA_TEMP">
@@ -490,7 +494,7 @@
 			<parameter id="HYSTERESIS_FOR_T1_MAX">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
-					<address index="+6.3"/>
+					<address index="+6.4"/>
 				</physical>
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
@@ -507,18 +511,18 @@
 			<parameter id="HYSTERESIS_FOR_T2_MIN">
 				<logical type="boolean" default="false"/>
 				<physical size="0.1" type="integer" interface="eeprom">
-					<address index="+6.4"/>
+					<address index="+6.5"/>
 				</physical>
 				<conversion type="boolean_integer" invert="true"/>
 			</parameter>
 			<parameter id="CYCLE_TIME">
-				<logical type="integer" min="10" max="150" default="30" unit="s"/>
+				<logical type="integer" min="5" max="80" default="30" unit="s"/>
 				<physical type="integer" size="0.4" interface="eeprom">
 					<address index="+6.0"/>
 				</physical>
-				<conversion type="float_integer_scale" factor="0.1" offset="-10.0"/>
+				<conversion type="float_integer_scale" factor="0.2" offset="-5.0"/>
 				<conversion type="integer_integer_map">
-					<value_map to_device="false" from_device="true" parameter_value="3" device_value="0x0F"/>
+					<value_map to_device="false" from_device="true" parameter_value="5" device_value="0x0F"/>
 				</conversion>
 			</parameter>
 			<parameter id="PULS_ON_TIME">
@@ -542,7 +546,7 @@
 					<option id="OUTPUT_OFF" default="true"/>
 				</logical>
 				<physical type="integer" size="0.1" interface="eeprom">
-					<address index="+6.6"/>
+					<address index="+6.7"/>
 				</physical>
 			</parameter>
 		</paramset>
@@ -597,16 +601,16 @@
 					<event frame="INFO_DT_LEVEL"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
-				<conversion type="option_integer">
-					<value_map device_value="0x00" parameter_value="0"/>
-					<value_map device_value="0x01" parameter_value="1"/>
-					<value_map device_value="0x02" parameter_value="2"/>
-					<value_map device_value="0x03" parameter_value="3"/>
-					<value_map device_value="0x04" parameter_value="4"/>
-					<value_map device_value="0x05" parameter_value="5"/>
-					<value_map device_value="0x06" parameter_value="6"/>
-					<value_map device_value="0x07" parameter_value="7"/>
-				</conversion>
+				<!-- <conversion type="option_integer"> -->
+					<!-- <value_map device_value="0x00" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x01" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x02" parameter_value="2"/> -->
+					<!-- <value_map device_value="0x03" parameter_value="3"/> -->
+					<!-- <value_map device_value="0x04" parameter_value="4"/> -->
+					<!-- <value_map device_value="0x05" parameter_value="5"/> -->
+					<!-- <value_map device_value="0x06" parameter_value="6"/> -->
+					<!-- <value_map device_value="0x07" parameter_value="7"/> -->
+				<!-- </conversion> -->
 			</parameter>
 			<parameter id="MODE" operations="read,event" ui_flags="internal">
 				<logical type="option">
@@ -624,16 +628,16 @@
 					<event frame="LEVEL_VALVE"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
-				<conversion type="option_integer">
-					<value_map device_value="0x00" parameter_value="0"/>
-					<value_map device_value="0x01" parameter_value="1"/>
-					<value_map device_value="0x02" parameter_value="2"/>
-					<value_map device_value="0x03" parameter_value="3"/>
-					<value_map device_value="0x04" parameter_value="4"/>
-					<value_map device_value="0x05" parameter_value="5"/>
-					<value_map device_value="0x06" parameter_value="6"/>
-					<value_map device_value="0x07" parameter_value="7"/>
-				</conversion>
+				<!-- <conversion type="option_integer"> -->
+					<!-- <value_map device_value="0x00" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x01" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x02" parameter_value="2"/> -->
+					<!-- <value_map device_value="0x03" parameter_value="3"/> -->
+					<!-- <value_map device_value="0x04" parameter_value="4"/> -->
+					<!-- <value_map device_value="0x05" parameter_value="5"/> -->
+					<!-- <value_map device_value="0x06" parameter_value="6"/> -->
+					<!-- <value_map device_value="0x07" parameter_value="7"/> -->
+				<!-- </conversion> -->
 			</parameter>
 			<parameter id="DLIMIT" operations="read,event" ui_flags="internal">
 				<logical type="option">
@@ -651,16 +655,16 @@
 					<event frame="INFO_DT_LEVEL"/>
 					<event frame="ACK_STATUS"/>
 				</physical>
-				<conversion type="option_integer">
-					<value_map device_value="0x00" parameter_value="0"/>
-					<value_map device_value="0x01" parameter_value="1"/>
-					<value_map device_value="0x02" parameter_value="2"/>
-					<value_map device_value="0x03" parameter_value="3"/>
-					<value_map device_value="0x04" parameter_value="4"/>
-					<value_map device_value="0x05" parameter_value="5"/>
-					<value_map device_value="0x06" parameter_value="6"/>
-					<value_map device_value="0x07" parameter_value="7"/>
-				</conversion>
+				<!-- <conversion type="option_integer"> -->
+					<!-- <value_map device_value="0x00" parameter_value="0"/> -->
+					<!-- <value_map device_value="0x01" parameter_value="1"/> -->
+					<!-- <value_map device_value="0x02" parameter_value="2"/> -->
+					<!-- <value_map device_value="0x03" parameter_value="3"/> -->
+					<!-- <value_map device_value="0x04" parameter_value="4"/> -->
+					<!-- <value_map device_value="0x05" parameter_value="5"/> -->
+					<!-- <value_map device_value="0x06" parameter_value="6"/> -->
+					<!-- <value_map device_value="0x07" parameter_value="7"/> -->
+				<!-- </conversion> -->
 			</parameter>
 			<parameter id="INHIBIT" operations="read,write,event" loopback="true" control="NONE">
 				<logical type="boolean" default="false"/>
@@ -672,7 +676,7 @@
 	</channel>
 	
 	<channel index="10" count="2" physical_index_offset="-1" type="DELTA_T1">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x62">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x64">
 			<parameter id="RECEIVE_MAX_INTERVAL">
 				<logical type="integer" unit="s" default="0" min="5" max="3600"><!-- default 150 -->
 					<special_value id="ERROR_HANDLING_DISABLED" value="0"/>
@@ -752,7 +756,7 @@
 	</channel>
 	
 	<channel index="12" count="2" physical_index_offset="-1" type="DELTA_T2">
-		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x68">
+		<paramset id="hbw_teltatx_ch_master" type="MASTER" address_step="3" address_start="0x6A">
 			<parameter id="RECEIVE_MAX_INTERVAL">
 				<logical type="integer" unit="s" default="0" min="5" max="3600"><!-- default 150 -->
 					<special_value id="ERROR_HANDLING_DISABLED" value="0"/>

@@ -7,6 +7,8 @@
 // Schwingungspaketsteuerung (Zero-crossing control) mit Zusatzfunktionen (DeltaT Regler & OneWire Temperatursensoren)
 // - Direktes Peering für Temperatursensoren und DeltaTx Eingänge
 //
+// to restart module, send "!!" (raw hexstring 2121)
+//
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
 //*******************************************************************
@@ -20,7 +22,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x000B
+#define FIRMWARE_VERSION 0x000D
 #define HMW_DEVICETYPE 0x99 //device ID (make sure to import hbw-cc-ww-spkts.xml into FHEM)
 
 #define NUMBER_OF_HEATING_CHAN 1   // Schwingungspaketsteuerungsausgangskanal
@@ -29,7 +31,7 @@
 #define NUM_LINKS_TEMP 32    // requires Support_HBWLink_InfoEvent in HBWired.h
 #define NUMBER_OF_DELTAT_CHAN 2 // result output channels[, can peer with switch] + same ammount of T1 and T2 channels
 #define NUM_LINKS_DELTATX NUMBER_OF_DELTAT_CHAN*2 +NUMBER_OF_HEAT_DELTAT_CHAN  // allow to peer input channels (T1 & T2) with one temperature sensor each
-#define ADDRESS_START_CONF_TEMP_CHAN 0x0C  // first EEPROM address for temperature sensors configuration
+#define ADDRESS_START_CONF_TEMP_CHAN 0x0E  // first EEPROM address for temperature sensors configuration
 #define LINKADDRESSSTART_TEMP 0x100  // pering start_address for any sensor type peers, address_step has to be 6
 #define LINKADDRESSSTART_DELTATX 0x220  // step 7, actor type
 
@@ -58,11 +60,11 @@ struct hbw_config
   uint8_t direct_link_deactivate:1;   // 0x06:0
   uint8_t              :7;   // 0x06:1-7
   hbw_config_dim_spkts SPktSCfg[NUMBER_OF_HEATING_CHAN];  // 0x07 - 0x0A (address step 4)
-  hbw_config_DeltaTx Temp1Cfg[NUMBER_OF_HEATING_CHAN];    // 0x0B - 0x0B (address step 1)
-  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x0C - 0x51 (address step 14)
-  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x52 - 0x61 (address step 8)
-  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x62 - 0x67 (address step 3)
-  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x68 - 0x6D (address step 3)
+  hbw_config_DeltaTx Temp1Cfg[NUMBER_OF_HEATING_CHAN];    // 0x0B - 0x0D (address step 3)
+  hbw_config_onewire_temp TempOWCfg[NUMBER_OF_TEMP_CHAN]; // 0x0E - 0x53 (address step 14, define ADDRESS_START_CONF_TEMP_CHAN, too!)
+  hbw_config_DeltaT DeltaTCfg[NUMBER_OF_DELTAT_CHAN];     // 0x54 - 0x63 (address step 8)
+  hbw_config_DeltaTx DeltaT1Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x64 - 0x69 (address step 3)
+  hbw_config_DeltaTx DeltaT2Cfg[NUMBER_OF_DELTAT_CHAN];   // 0x6A - 0x6F (address step 3)
 } hbwconfig;
 
 
