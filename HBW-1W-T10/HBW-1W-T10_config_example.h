@@ -26,7 +26,7 @@ EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
 
   #define ONEWIRE_PIN	10 // Onewire Bus
 
-  #include "FreeRam.h"
+  #include <FreeRam.h>
   #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif  //USE_HARDWARE_SERIAL

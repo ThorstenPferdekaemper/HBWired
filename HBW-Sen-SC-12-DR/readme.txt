@@ -1,14 +1,14 @@
 Homematic Wired Homebrew Key / Sensorkontakte
 =============================================
 
-Das Modul HBW-Sen-SC-12-DR stellt 12 digitale Eingänge als Key/Taster & parallel als Sensor (Sensorkontakte) zu Verfügung.
+Das Modul HBW-Sen-SC-12-DR stellt 12 digitale EingÃ¤nge als Key/Taster & parallel als Sensor (Sensorkontakte) zu VerfÃ¼gung.
 
-Direktes Peering der Key Kanäle möglich (HBWLinkKey).
+Direktes Peering der Key KanÃ¤le mÃ¶glich (HBWLinkKey).
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die Datei hbw_sen_sc_12_dr.xml in den Ordner \FHEM\lib\HM485\Devices\xml kopiert werden (Das Device gibt sich als HW-Typ 0xA6 aus).
 
 
-Konfigurationsoptionen der Kanäle:
+Konfigurationsoptionen der KanÃ¤le:
 SENSOR
 * INPUT_LOCKED
 * INVERTED
@@ -18,7 +18,7 @@ KEY
 * INPUT_LOCKED
 * INVERTED
 * INPUT_TYPE (DOORSENSOR, MOTIONSENSOR, SWITCH, PUSHBUTTON [default])
-* LONG_PRESS_TIME (nur für INPUT_TYPE PUSHBUTTON relevant)
+* LONG_PRESS_TIME (nur fÃ¼r INPUT_TYPE PUSHBUTTON relevant)
 
 
 
@@ -30,8 +30,8 @@ Pinbelegung:
 4 - Rx Debug
 2 - Tx Debug
 8 - Bedientaster (Reset)
-A0 - ... siehe HBW-Sen-SC-12-DR.ino
+A0 - ... siehe HBW-Sen-SC-12-DR_config_example.h
 
 
-Alternative Möglichkeit, per "#define USE_HARDWARE_SERIAL" aktivieren:
-Hier wird Hardware Serial (USART) statt "HBWSoftwareSerial" genutzt, daher keine Debug Ausgabe über USB! Der Bedientaster (Reset) ist ein Analogeingang!
+Alternative MÃ¶glichkeit, per "#define USE_HARDWARE_SERIAL" aktivieren:
+Hier wird Hardware Serial (USART) statt "HBWSoftwareSerial" genutzt, daher keine Debug Ausgabe Ã¼ber USB! Der Bedientaster (Reset) ist ein Analogeingang, bei Arduino NANO / ATMega 328p!

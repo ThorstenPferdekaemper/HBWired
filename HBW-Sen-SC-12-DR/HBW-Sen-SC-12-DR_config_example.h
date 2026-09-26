@@ -35,7 +35,7 @@ EEPROMClass* EepromPtr = &EEPROM;  // use internal EEPROM
   #define RS485_TXEN 3  // Transmit-Enable
   #define BUTTON 8  // Button fuer Factory-Reset etc.
   
-  #include "FreeRam.h"
+  #include <FreeRam.h>
   #include <HBWSoftwareSerial.h>
   HBWSoftwareSerial rs485(RS485_RXD, RS485_TXD); // RX, TX
 #endif
