@@ -400,11 +400,8 @@ void HBWChannel::set(HBWDevice* device, uint8_t length, uint8_t const * const da
 uint8_t HBWChannel::get(uint8_t* data) { return 0; };  
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
 void HBWChannel::afterReadConfig() {};
-void HBWChannel::setLock(boolean) {};
-boolean HBWChannel::getLock() { return false; };
-// inhibit only needed for actor channels
-void HBWActorChannel::setLock(boolean inhibit) { inhibitActive = inhibit; };
-boolean HBWActorChannel::getLock() { return inhibitActive; };
+void HBWChannel::setLock(boolean inhibit) { inhibitActive = inhibit; };
+boolean HBWChannel::getLock() { return inhibitActive; };
 
 // default logging/feedback functions
 // reduce dynamic memory usage, by implementing the logging/feedback functions only for actor channels
