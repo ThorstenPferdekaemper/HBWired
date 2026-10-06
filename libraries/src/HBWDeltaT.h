@@ -2,7 +2,7 @@
  * HBWDeltaT.h
  *
  * Created on: 05.05.2019
- * updated: 03.04.2026
+ * updated: 09.09.2026
  * loetmeister.de
  * 
  * A DeltaT channel takes input temperature from two fixed DeltaTx channels (T1, T2),
@@ -80,7 +80,7 @@ class HBWDeltaTx : public HBWChannel {
 
 
 // Class HBWDeltaT (output channel, sets output pin or peered external switch)
-class HBWDeltaT : public HBWChannel {
+class HBWDeltaT : public HBWActorChannel {
   public:
     HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2, hbw_config_DeltaT* _config);
     virtual void loop(HBWDevice*, uint8_t channel);
@@ -114,8 +114,9 @@ class HBWDeltaT : public HBWChannel {
     bool forcedState;
     bool outputCycleStart;
     bool sendKeyPress;
+    bool modeActive;
 
-    union tag_state_flags {
+    union u_state_flags {
       struct state_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
         uint8_t dlimit  :1; // delta within display limit (false = temperature exceeds max delta value)
@@ -124,7 +125,7 @@ class HBWDeltaT : public HBWChannel {
         uint8_t locked  :1; // 1 = locked // TODO: add... state_flags are only 3 bits right now
       } element;
       uint8_t byte:8;
-    } stateFlags;
+    };
     
     static const uint8_t SEND_KEY_EVENT_MAX_RETRY = 3;
     static const uint16_t SEND_KEY_EVENT_DELAY = 330;  // 180 ms delay for send and retry

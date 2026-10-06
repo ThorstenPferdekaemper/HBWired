@@ -22,7 +22,7 @@ HBWPMeasure::HBWPMeasure(hbw_config_power_measure* _config, SBCDVA* _sensor, Two
   lastSentTime = 0;
   status.byte = 0;
   lastStatus.byte = 0;
-  onInit = true;
+  lastSampleMillis = 0;
   avgIndex = 0;
   sampleCount = 0;
   keyPressNum = 0;
@@ -72,9 +72,7 @@ uint8_t HBWPMeasure::get(uint8_t* data)
 void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
 {
   if (!config->enabled) {
-    //TODO reset readings?
-    status.byte = 0;
-    sendKeyEvent = false;
+    resetReadings();
     return;  // skip disabled channels
   }
   
@@ -89,10 +87,9 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
   unsigned long now = millis();
 
   // read sensor based on sample rate. Skip delay on startup
-  if (now - lastSampleMillis >= (unsigned long)(config->sample_rate *500) || onInit)
+  if (now - lastSampleMillis >= (unsigned long)(config->sample_rate *500))
   {
     lastSampleMillis = now;
-    onInit = false;
 
     if (sensor->read_device_ID() == 0) {
       status.state.error = true;
@@ -122,9 +119,9 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
       avgIndex = avgIndex % PM_SAMPLE_COUNT; // reset when last array element was processed
 
       // check for alarm thresholds
-      if (config->alarm_p_limit != 0) status.state.alert_power = (centiAvgValue[val_id::POWER] > config->alarm_p_limit) ? true : false;
-      if (config->alarm_v_limit_lower != 0) status.state.alert_v_under = (centiAvgValue[val_id::VOLTAGE] < config->alarm_v_limit_lower) ? true : false;
-      if (config->alarm_v_limit_upper != 0) status.state.alert_v_over = (centiAvgValue[val_id::VOLTAGE] > config->alarm_v_limit_upper) ? true : false;
+      if (config->alarm_p_limit != 0) status.state.alert_power = (bool)(centiAvgValue[val_id::POWER] > config->alarm_p_limit);
+      if (config->alarm_v_limit_lower != 0) status.state.alert_v_under = (bool)(centiAvgValue[val_id::VOLTAGE] < config->alarm_v_limit_lower);
+      if (config->alarm_v_limit_upper != 0) status.state.alert_v_over = (bool)(centiAvgValue[val_id::VOLTAGE] > config->alarm_v_limit_upper);
       
     #ifdef DEBUG_OUTPUT
       hbwdebug(F("Current [A]: "));  hbwdebug(sensor->read_current(), 4);  hbwdebug(F(" avg: "));  hbwdebug(centiAvgValue[val_id::CURRENT]);
@@ -160,6 +157,21 @@ void HBWPMeasure::loop(HBWDevice* device, uint8_t channel)
     }
     lastSentTime = now;  // if send failed, next try will be on send_max_interval or send_min_interval in case the values are still different
   }
-
 };
 
+
+void HBWPMeasure::resetReadings()
+{
+  for (uint8_t readingValID = 0; readingValID <= sizeof(val_id); readingValID++)  // loop through all readings (val_id)
+  {
+    for (uint8_t index = 0; index < PM_SAMPLE_COUNT; index++) {
+      centiSamples[readingValID][index] = 0;
+    }
+    centiSumValue[readingValID] = 0;
+    centiAvgValue[readingValID] = 0;
+  }
+  sampleCount = 0;
+  sendKeyEvent = false;
+  status.byte = 0;
+  lastStatus.byte = 1;  // set different value to send new state already after 'send_min_interval' when channel is enabled again
+}

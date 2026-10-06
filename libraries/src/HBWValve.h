@@ -49,18 +49,18 @@ struct hbw_config_valve {
   uint8_t logging:1;      // +0.0   1=on 0=off
   uint8_t unlocked:1;     // +0.1   0=LOCKED, 1=UNLOCKED; locked channels will retain level/error_pos. Set error_pos to 0 to disable a channel completely. A locked channel can still be controlled by its PID channel. If PIDs are used, set them to manual start up.
   uint8_t n_inverted:1;   // +0.2   inverted logic (use NO valves, NC is default)
-  uint8_t :5;     //fillup //0x..:3-8
+  uint8_t anti_stick:1;   // +0.3   antiStickEnabled = 1
+  uint8_t :4;     //fillup //0x..:4-8
   uint8_t error_pos;  // default/error position
   uint8_t valveSwitchTime;   // (factor 10! max 2540 seconds) Time the valve needs to reach 100% (NC:open or NO:closed state)
   uint8_t limit_upper:2;   // 100%, 90%, 80%, 70% ... do not drive valve higher than selected value (e.g. if valve already remains open at 90%)
   uint8_t limit_lower:2;   // 0%, 5%, 10%, 15% ... do not actuate valve below selected value (e.g. if valve does not open below 10% at all)
   uint8_t dummy :4;
-  // TODO: option for anti stick? valve_protect (e.g. open valves once a week?)
 };
 
 
 // Class HBWVavle
-class HBWValve : public HBWChannel {
+class HBWValve : public HBWActorChannel {
   public:
     HBWValve(uint8_t _pin, hbw_config_valve* _config);
     virtual void loop(HBWDevice*, uint8_t channel);
@@ -79,6 +79,7 @@ class HBWValve : public HBWChannel {
 
     uint8_t valveLevel;
     void setNewLevel(HBWDevice* device, uint8_t NewLevel);
+    inline void checkAntiStick(HBWDevice* device, uint32_t*, bool antiStickEnabled, bool channelDisabled);
     
     // output control
     inline void switchstate(bool State);
@@ -89,6 +90,7 @@ class HBWValve : public HBWChannel {
     uint16_t set_ontimer(uint8_t VentPositionRequested);
     uint16_t set_offtimer(uint16_t ontimer);
     
+    uint32_t valveOnLastTime;    // last time vavle was above on level (use for anti stick)
     uint32_t outputChangeLastTime;    // last time output state was changed
     uint16_t outputChangeNextDelay;    // time until next state change
     uint16_t onTimer, offTimer;     // current calculated on and of duration
@@ -96,17 +98,21 @@ class HBWValve : public HBWChannel {
     bool initDone;
     bool isFirstState;
     bool nextState;
+    bool goingUp;
+    bool inAuto;
+    bool antiStickCycle;
+    bool outputState;
 
-    union tag_state_flags {  // state_flags should not exeed one byte!
+    union u_state_flags {  // state_flags should not exeed one byte!
       struct state_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used, based on XML state_flag definition
         uint8_t upDown  :1; // Pid regelt hoch oder runter
         uint8_t inAuto  :1; // 1 = automatic ; 0 = manual
         uint8_t status  :1; // outputs on or off?
-        //uint8_t fillup  :1; // not used
+        uint8_t antiStickCycle  :1; // antiStick cycle active
       } element;
       uint8_t byte:8;
-    } stateFlags;
+    };
 
     static const uint16_t OUTPUT_STARTUP_DELAY = 63;  // 63 == 6.3 seconds
 };

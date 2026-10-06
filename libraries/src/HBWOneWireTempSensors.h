@@ -18,7 +18,7 @@
 #include "HBWired.h"
 #include <OneWire.h>
 
-#define DEBUG_OUTPUT   // extra debug output on serial/USB
+// #define DEBUG_OUTPUT   // extra debug output on serial/USB
 //#define EXTRA_DEBUG_OUTPUT   // even more debug output
 
 static const uint32_t OW_POLL_FREQUENCY = 1200;  // read temperature every X milli seconds (not less than 900 ms! -> 750 ms conversion time @12 bit resolution)
@@ -52,7 +52,7 @@ class HBWOneWireTemp : public HBWChannel {
 
     enum TempSensor_State {
       ACTION_START_CONVERSION = 0,
-      ACTION_READ_TEMP
+      ACTION_READ_TEMP = 1
     };
 
 
@@ -67,9 +67,8 @@ class HBWOneWireTemp : public HBWChannel {
     int16_t lastSentTemp;	// temperature measured on last send
     uint32_t lastSentTime;		// time of last send
     uint8_t errorCount;    // channel/sensor in error state if counted down to 0. Decremented on every failed read
-    uint8_t action;        // current action: measure, read temp
-    boolean errorWasSend;  // flag to indicate if ERROR_TEMP was send
-    boolean isAllZeros;    // indicate that current device read was blank (usually happens when device gets disconnected)
+    bool action;        // current action: measure or read temp
+    bool isAllZeros;    // indicate that current device read was blank (usually happens when device gets disconnected)
 	
     static bool deviceInvalidOrEmptyID(uint8_t deviceType);
     static const uint8_t DS18S20_ID = 0x10;

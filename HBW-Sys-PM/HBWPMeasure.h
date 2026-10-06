@@ -13,7 +13,6 @@
 #ifndef HBWPMeasure_h
 #define HBWPMeasure_h
 
-// #include <inttypes.h>
 #include <HBWired.h>
 #include "src/SBC-DVA/SBC_DVA.h"  // include customized lib (see SBC-DVA subfolder for more details)
 
@@ -29,7 +28,7 @@ struct hbw_config_power_measure {
   // uint8_t samples:4;    // 1...16 (0...15 +1) sample count
   // uint8_t fillup2:4;    // 
   uint8_t fillup2;
-  uint8_t sample_rate;    // 0.5...127 s ?? (500 ms stepping? 4 samples *0.5 = 2 sec. min rate)
+  uint8_t sample_rate;    // 0.5...127 s (500 ms stepping. 4 samples *0.5 = 2 sec. min rate)
   uint16_t send_min_interval;       // Minimum-Sendeintervall
   uint16_t send_max_interval;       // Maximum-Sendeintervall
   uint16_t alarm_v_limit_upper;      // max voltage alarm level (factor 100)
@@ -92,18 +91,17 @@ class HBWPMeasure : public HBWChannel {
     hbw_config_power_measure* config;
     SBCDVA* sensor;  // pointer to call sensor functions
     // use factor 100 to keep two decimal places without float type
-    uint16_t centiAvgValue[3] = {0, 0, 0};  // store 'VOLTAGE,   CURRENT,     POWER' - see "enum val_id"
+    uint16_t centiAvgValue[3] = {0, 0, 0};  // store 'VOLTAGE,   CURRENT,     POWER'  - pos match "enum val_id"
     int32_t centiSumValue[3] = {0, 0, 0};
     uint16_t centiSamples[3][PM_SAMPLE_COUNT] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};  // store values for average calculation
     uint8_t sampleCount, avgIndex;
-    bool onInit;
     bool sendKeyEvent;
     uint8_t keyPressNum;
     unsigned long lastSentTime, lastSampleMillis;
-    
+    void resetReadings(void);
 
-    union state_flags {
-      struct s_state_flags {
+    union u_alarm_flags {
+      struct s_alarm_flags {
         uint8_t notUsed :4; // lowest 4 bit are not used (see XML ALARM_FLAGS frame definition)
         uint8_t alert_v_over  :1; // bus voltage over limit
         uint8_t alert_power   :1; // power limit exeeded
@@ -112,7 +110,7 @@ class HBWPMeasure : public HBWChannel {
       } state;
       uint8_t byte:8;
     };
-    state_flags status, lastStatus;
+    u_alarm_flags status, lastStatus;
 
     enum val_id {
       VOLTAGE = 0,
@@ -125,17 +123,18 @@ class HBWPMeasure : public HBWChannel {
     {
       float readingVal = 0;
       switch (_reading) {
-        case val_id::CURRENT:
-          readingVal = sensor->read_current();
-          break;
         case val_id::POWER:
           readingVal = sensor->read_power();
+          break;
+        case val_id::CURRENT:
+          readingVal = sensor->read_current();
           break;
         case val_id::VOLTAGE:
           readingVal = sensor->read_bus_voltage();
           break;
       }
-      return ((readingVal > 0) ? (uint16_t)(readingVal *100) : 0);
+      if (readingVal <= 0 || readingVal > 0xFFFF) return 0;  // out of bounds
+      return (uint16_t)(readingVal *100);
     };
     
     inline void init_sensor(TwoWire* _wire)

@@ -18,7 +18,6 @@ HBWOneWireTemp::HBWOneWireTemp(OneWire* _ow, hbw_config_onewire_temp* _config, u
   lastSentTemp = DEFAULT_TEMP;
   lastSentTime = 0;
   errorCount = OW_DEVICE_ERROR_COUNT;
-  errorWasSend = true;
 }
 
 
@@ -104,7 +103,7 @@ void HBWOneWireTemp::sensorSearch(OneWire* ow, hbw_config_onewire_temp** _config
 /**
  * write sensor addresses from memory into EEPROM - for new devices only
  */
-    int startaddress = address_start + (sizeof(*_config[0]) - OW_DEVICE_ADDRESS_SIZE) + (sizeof(*_config[0]) * channel);
+    unsigned int startaddress = address_start + (sizeof(*_config[0]) - OW_DEVICE_ADDRESS_SIZE) + (sizeof(*_config[0]) * channel);
     
   #ifdef DEBUG_OUTPUT
   hbwdebug(F(" save to EEPROM, @startaddress: "));  hbwdebughex(startaddress);  hbwdebug(F("\n"));
@@ -162,11 +161,9 @@ int16_t HBWOneWireTemp::oneWireReadTemp() {
 	  if (errorCount == 0) {
 	    return ERROR_TEMP;  //return ERROR temp for CRC error and disconnected devices - after 3 retries
 	  }
-    else {
-	    if (errorCount == 1)
-	      errorWasSend = false;
+	  else {
 	    errorCount--;
-		  return currentTemp;
+	    return currentTemp;
 	  }
 	}
 	if (errorCount < OW_DEVICE_ERROR_COUNT) {
@@ -226,7 +223,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
     else if (action == ACTION_READ_TEMP) {
       currentTemp = oneWireReadTemp();   // read temperature
       action = ACTION_START_CONVERSION;  // next action
-      *owCurrentChannel = OW_CHAN_INIT;    // 'reset' current channel. Next call to loop will point to next channel
+      *owCurrentChannel = OW_CHAN_INIT;    // 'reset' current channel. Next call to loop will point to next existing channel
       
   #ifdef EXTRA_DEBUG_OUTPUT
   hbwdebug(F("channel: "));  hbwdebug(channel);
@@ -236,7 +233,7 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
   }
   
   // check if we have a valid temp
-  if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && errorWasSend))  return; // send ERROR_TEMP in error state just once
+  if ((currentTemp == DEFAULT_TEMP) || (currentTemp == ERROR_TEMP && currentTemp == lastSentTemp))  return; // send ERROR_TEMP in error state just once
 
   // check if some temperatures needed to be send
   // do not send before min interval
@@ -251,7 +248,6 @@ void HBWOneWireTemp::loop(HBWDevice* device, uint8_t channel) {
      #endif
 
       lastSentTemp = currentTemp;   // store last value only on success
-      errorWasSend = true;
     }
     lastSentTime = now;   // if send failed, next try will be on send_max_interval or send_min_interval in case the value changed (send_delta_temp)
 
@@ -275,6 +271,5 @@ uint8_t HBWOneWireTemp::get(uint8_t* data) {
 
 /* validate device ID (first byte of device address) */
 bool HBWOneWireTemp::deviceInvalidOrEmptyID(uint8_t deviceType) {
-  return !((deviceType == DS18B20_ID) || (deviceType == DS18S20_ID) || (deviceType == DS1822_ID) ||
-           (deviceType == DS1825_ID));
+  return !((deviceType == DS18B20_ID) || (deviceType == DS18S20_ID) || (deviceType == DS1822_ID) || (deviceType == DS1825_ID));
 };

@@ -45,7 +45,7 @@ struct hbw_config_blind {
 
 
 // new class for blinds
-class HBWChanBl : public HBWChannel {
+class HBWChanBl : public HBWActorChannel {
   public:
     HBWChanBl(uint8_t _blindDir, uint8_t _blindAct, hbw_config_blind* _config);
     virtual uint8_t get(uint8_t* data);   

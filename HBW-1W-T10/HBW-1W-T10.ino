@@ -105,7 +105,6 @@ void HBTempOWDevice::afterReadConfig()
 HBTempOWDevice* device = NULL;
 
 
-
 void setup()
 {
   // pointer to the OneWire bus

@@ -1,39 +1,40 @@
 Homematic Wired Homebrew 8-channel PID Valve actuator
 =====================================================
 
-Das Modul HBW-CC-VD-8 bietet die Möglichkeit, bis zu 8 auf einem Thermoelement basierende Ventile individuell zu steuern. Mit den Ventilstellern sind 8 PID Regler fest verknüpft. Des weiteren können bis zu 8 OneWire Temperatursensoren angeschlossen werden.
+Das Modul HBW-CC-VD-8 bietet die MÃ¶glichkeit, bis zu 8 auf einem Thermoelement basierende Ventile individuell zu steuern. Mit den Ventilstellern sind 8 PID Regler fest verknÃ¼pft. Des weiteren kÃ¶nnen bis zu 8 OneWire Temperatursensoren angeschlossen werden.
 Basis ist ein Arduino NANO mit RS485-Interface.
-(Hinweis: HBW-CC-VD-8 mit debug Ausgabe benötigt zu viel Speicher für einem Arduino NANO. Zum Testen weniger Kanäle oder HBW-CC-VD-2 nutzen!)
+(Hinweis: HBW-CC-VD-8 mit debug Ausgabe benÃ¶tigt zu viel Speicher fÃ¼r einem Arduino NANO. Zum Testen weniger KanÃ¤le oder HBW-CC-VD-2 nutzen!)
 
-Direktes Peering ist für die Temperatursensoren mit den PID Regler möglich (HBWLinkInfoEventActuator & HBWLinkInfoEventSensor).
+Direktes Peering ist fÃ¼r die Temperatursensoren mit den PID Regler mÃ¶glich (HBWLinkInfoEventActuator & HBWLinkInfoEventSensor).
 
-Die Ventile können wie ein Dimmer von 0-100% gesetzt werden.
-Die Steuerung für die thermischen Ventile erfolgt per "time proportioning control" eine Art extrem langsames PWM. Bei über 50% schaltet das Ventil zuerst ein, unter 50% zuerst aus. Nach einer Änderung wird die erste Ein- oder Auszeit einmal halbiert.
+Die Ventile kÃ¶nnen wie ein Dimmer von 0-100% gesetzt werden.
+Die Steuerung fÃ¼r die thermischen Ventile erfolgt per "time proportioning control" eine Art extrem langsames PWM. Bei Ã¼ber 50% schaltet das Ventil zuerst ein, unter 50% zuerst aus. Nach einer Ã„nderung wird die erste Ein- oder Auszeit einmal halbiert.
 
-Unterstützte 1-Wire® Temperatursensoren:
-DS18S20 Gerätecode 0x10
-DS18B20 Gerätecode 0x28
-DS1822  Gerätecode 0x22
-DS1825  Gerätecode 0x3B
+UnterstÃ¼tzte 1-WireÂ® Temperatursensoren:
+DS18S20 GerÃ¤tecode 0x10
+DS18B20 GerÃ¤tecode 0x28
+DS1822  GerÃ¤tecode 0x22
+DS1825  GerÃ¤tecode 0x3B
 
 Damit FHEM das Homebrew-Device richtig erkennt, muss die HBW-CC-VD-8.xml Datei in den Ordner FHEM/lib/HM485/Devices/xml kopiert werden (Das Device gibt sich als HW-Typ 0x97 aus).
 
-Konfiguration über FHEM:
-PID Kanäle:
+Konfiguration Ã¼ber FHEM:
+PID KanÃ¤le:
 	POWERON_MODE (automatic/manual)
 	Proportional
 	Integral
 	Derivative
 	CYCLE_TIME
 
-Valve/Ventil, Kanäle:
+Valve/Ventil, KanÃ¤le:
 	LOGGING
 	OUTPUT_LOCKED
 	INVERTED
 	VALVE_ERROR_POS
-	SWITCH_TIME (Zeit die zum vollständigen öffnen benötigt wird)
+	ANTI_STICK (Erzwingt ein Ã–ffnen auf VALVE_ERROR_POS fÃ¼r SWITCH_TIME *10 nach ~49 Tagen ohne Ventilbewegung)
+	SWITCH_TIME (Zeit die zum vollstÃ¤ndigen Ã¶ffnen benÃ¶tigt wird)
 
-Temperaturkanäle:
+TemperaturkanÃ¤le:
 	SEND_DELTA_TEMP
 	OFFSET
 	SEND_MIN_INTERVALL
@@ -42,7 +43,7 @@ Temperaturkanäle:
 
 
 Standard-Pinbelegung:
-(Seriell über USART - #define USE_HARDWARE_SERIAL)
+(Seriell Ã¼ber USART - #define USE_HARDWARE_SERIAL)
 0  - Rx RS485
 1  - Tx RS485
 2  - RS485 Enable

@@ -28,10 +28,12 @@
 // v0.60
 // - added start bootloader (u) command
 // - fix global 1wire variables
+// v0.70
+// - added anti stick option (after ~49 days of vavle inactivitiy) - HBWValve.h
 
 
 #define HARDWARE_VERSION 0x02
-#define FIRMWARE_VERSION 0x003C
+#define FIRMWARE_VERSION 0x0048
 #define HMW_DEVICETYPE 0x97 //device ID (make sure to import hbw_cc_vd8.xml into FHEM)
 
 #define NUMBER_OF_PID_CHAN 8   // output channels - PID regulator
@@ -46,12 +48,12 @@
 
 // HB Wired protocol and modules
 #include <HBWired.h>
+#include <HBW_eeprom.h>
 #include <HBWOneWireTempSensors.h>
 #include <HBWPids.h>
 #include <HBWValve.h>
 #include <HBWLinkInfoEventSensor.h>
 #include <HBWLinkInfoEventActuator.h>
-#include <HBW_eeprom.h>
 
 
 // Pins and hardware config

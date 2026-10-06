@@ -4,7 +4,7 @@
  * Created on: 05.05.2019
  * loetmeister.de
  * 
- * updated: 03.04.2026
+ * updated: 09.09.2026
  */
  
 #include "HBWDeltaT.h"
@@ -23,7 +23,7 @@ HBWDeltaT::HBWDeltaT(uint8_t _pin, HBWDeltaTx* _delta_t1, HBWDeltaTx* _delta_t2,
   sendKeyPress = false;
   keyPressNum = 0;
   deltaCalcLastTime = 0;
-  stateFlags.byte = 0;
+  modeActive = false;
   initDone = false;
   forceOutputChange = false;
   sendKeyEventFailCounter = SEND_KEY_EVENT_MAX_RETRY;
@@ -46,7 +46,7 @@ void HBWDeltaT::afterReadConfig()
   if (initDone == false)
   {
   // All off on init, but consider inverted setting
-    digitalWrite(pin, config->n_inverted ? LOW : HIGH);   // 0=inverted, 1=not inverted
+    digitalWrite(pin, config->n_inverted ? OFF : ON);   // 0=inverted, 1=not inverted
     pinMode(pin, OUTPUT);
     currentState = OFF;
     nextState = currentState;
@@ -121,7 +121,7 @@ void HBWDeltaT::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
   }
   // allow to set output manually, only when 'mode' is idle/inactive (i.e. no T1 or T2 temperature received)
   // output will change not faster than "output_change_wait_time"
-  else if ((*data <= 200) && !stateFlags.element.mode)
+  else if ((*data <= 200) && !modeActive)
   {
     nextState = (*data == 0) ? OFF : ON;
     hbwdebug(F("Set in manual\n"));
@@ -135,6 +135,9 @@ void HBWDeltaT::set(HBWDevice* device, uint8_t length, uint8_t const * const dat
 uint8_t HBWDeltaT::get(uint8_t* data)
 {
   /* return delta temperature and state flags */
+  u_state_flags stateFlags;
+  stateFlags.byte = 0;
+  
   if (deltaT >= 0 && deltaT < 255) {  // deltaT is int16_t, we only send uint8_t
     *data++ = deltaT;
     stateFlags.element.dlimit = true; // within the display limit
@@ -143,6 +146,9 @@ uint8_t HBWDeltaT::get(uint8_t* data)
     *data++ = 255;
     stateFlags.element.dlimit = false;  // exceeded (positive or negative)
   }
+  
+  stateFlags.element.mode = modeActive;
+  stateFlags.element.status = currentState;
   
   *data = stateFlags.byte;
 
@@ -167,7 +173,7 @@ void HBWDeltaT::loop(HBWDevice* device, uint8_t channel)
   else {
     // calculate new deltaT value, set channel mode (active/inactive) and nextState
     // don't caculate state when "inhibit" is enabled, also skip when state change is forced (forceOutputChange)
-    stateFlags.element.mode = calculateNewState(forceOutputChange || getLock());
+    modeActive = calculateNewState(forceOutputChange || getLock());
   }
 
   setOutput(device, channel); // set local output (IO port)
@@ -291,7 +297,6 @@ bool HBWDeltaT::handlePeerings(HBWDevice* device, uint8_t channel)
     }
     
     initDone = true;  // only once after device (re)start
-    stateFlags.element.status = currentState;
     return false;
   }
   return true;
@@ -351,5 +356,5 @@ bool HBWDeltaT::calculateNewState(bool _skip)
     return true;
   }
   else
-    return stateFlags.element.mode; // retun the state currently set - no change
+    return modeActive; // retun the state currently set - no change
 };

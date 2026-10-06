@@ -39,8 +39,19 @@ class HBWChannel {
     void setLock(boolean inhibit);
     boolean getLock();
 
-  private:
+  protected:
     boolean inhibitActive = false;  // disables all peerings, if true (only applicable for actor channels)
+	// struct s_ChannelState
+	// {
+		// uint8_t inhibitActive : 1;
+	// };
+	// s_ChannelState channelState;
+};
+
+class HBWActorChannel : public HBWChannel {
+  public:
+
+  private:
 
   protected:
     uint32_t lastFeedbackTime;  // when did we send the last feedback?

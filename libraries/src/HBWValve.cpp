@@ -3,7 +3,7 @@
  *
  * Created on: 05.05.2019
  * loetmeister.de
- * Updated: 01.11.2021
+ * Updated: 30.08.2026
  * 
  * Based on work by: Harald Glaser
  */
@@ -16,9 +16,10 @@ HBWValve::HBWValve(uint8_t _pin, hbw_config_valve* _config)
   config = _config;
   pin = _pin;
   
+  valveOnLastTime = 0;
   outputChangeNextDelay = OUTPUT_STARTUP_DELAY;
   outputChangeLastTime = 0;
-  stateFlags.byte = 0;
+  antiStickCycle = false;
   initDone = false;
   clearFeedback();
   
@@ -60,13 +61,15 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
 {
   if (config->unlocked || setByPID)  // locked channels can still be set by PID, but are blocked for external changes
   {
-    if ( *data <= 200 && (!stateFlags.element.inAuto || setByPID))  // change level only if manual mode or setByPID
+    if ( *data <= 200 && (!inAuto || setByPID))  // change level only if manual mode or setByPID
     {
       setNewLevel(device, *data);
       
  #ifdef DEBUG_OUTPUT
  hbwdebug(F("Valve set, level: ")); hbwdebug(valveLevel);
- hbwdebug(F(" inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
+ hbwdebug(F(" newLevel: ")); hbwdebug(*data);
+ hbwdebug(F(" antiStickCycle: ")); hbwdebug(antiStickCycle);
+ hbwdebug(F(" inAuto: ")); hbwdebug(inAuto); hbwdebug(F("\n"));
  #endif
     }
     else
@@ -74,19 +77,19 @@ void HBWValve::set(HBWDevice* device, uint8_t length, uint8_t const * const data
       switch (*data)
       {
         case SET_TOGGLE_AUTOMATIC:    // toogle PID mode
-          stateFlags.element.inAuto = !stateFlags.element.inAuto;
+          inAuto = !inAuto;
           break;
         case SET_AUTOMATIC:
-          stateFlags.element.inAuto = true;
+          inAuto = true;
           break;
         case SET_MANUAL:
-          stateFlags.element.inAuto = false;
+          inAuto = false;
           break;
       }
-      setNewLevel(device, stateFlags.element.inAuto ? valveLevel : config->error_pos);
+      setNewLevel(device, inAuto ? valveLevel : config->error_pos);
       
  #ifdef DEBUG_OUTPUT
- hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(stateFlags.element.inAuto); hbwdebug(F("\n"));
+ hbwdebug(F("Valve set mode, inAuto: ")); hbwdebug(inAuto); hbwdebug(F("\n"));
  #endif
     }
   }
@@ -98,24 +101,33 @@ void HBWValve::setNewLevel(HBWDevice* device, uint8_t NewLevel)
   NewLevel = NewLevel > (200 - (config->limit_upper *20)) ? (200 - (config->limit_upper *20)) : NewLevel;  // 10% stepping (upper limit)
   NewLevel = NewLevel < (config->limit_lower *10) ? 0 : NewLevel;  // 5% stepping (lower limit)
   
+  if (antiStickCycle && (NewLevel < config->error_pos)) {
+    // ignore new level below error_pos during anti stick cycle
+    NewLevel = valveLevel;
+  }
+  
   if (valveLevel != NewLevel)  // set new state only if different
   {
-    valveLevel < NewLevel ? stateFlags.element.upDown = 1 : stateFlags.element.upDown = 0;
+    valveLevel < NewLevel ? goingUp = 1 : goingUp = 0;
     valveLevel = NewLevel;
     isFirstState = true;
     nextState = init_new_state();
-
+    
     // Logging
     setFeedback(device, config->logging);
   }
-    //TODO: Add timestamp here (use millis() rollover? ~49 days?), to keep track of updated valve position for anti-stick?
-    //any value higher than limit_lower will make the valve move...
 }
 
 
 /* standard public function - returns length of data array. Data array contains current channel reading */
 uint8_t HBWValve::get(uint8_t* data)
 {
+  u_state_flags stateFlags;
+  stateFlags.element.upDown = goingUp;
+  stateFlags.element.inAuto = inAuto;
+  stateFlags.element.status = outputState;
+  stateFlags.element.antiStickCycle = antiStickCycle;
+
   *data++ = valveLevel;
   *data = stateFlags.byte;
 
@@ -126,12 +138,12 @@ uint8_t HBWValve::get(uint8_t* data)
 // helper functions to allow integration with PID channels (access to private variables)
 bool HBWValve::getPidsInAuto()
 {
-  return stateFlags.element.inAuto;
+  return inAuto;
 }
 
 void HBWValve::setPidsInAuto(bool newAuto)
 {
-  stateFlags.element.inAuto = newAuto;
+  inAuto = newAuto;
 }
 
 
@@ -142,30 +154,60 @@ void HBWValve::loop(HBWDevice* device, uint8_t channel)
   if (outputChangeLastTime == 0 && outputChangeNextDelay == OUTPUT_STARTUP_DELAY) {
     outputChangeNextDelay = OUTPUT_STARTUP_DELAY * (channel + 1);
   }
-
+  
   uint32_t now = millis();
+
+  checkAntiStick(device, &now, config->anti_stick, (config->error_pos == 0));
 
   if (now - outputChangeLastTime >= (uint32_t)outputChangeNextDelay *100)
   {
     outputChangeLastTime = now;
     outputChangeNextDelay = set_timer(isFirstState, nextState);
     bool oldState = nextState;
-    nextState = (oldState == VENTON ? VENTOFF : VENTON);
+    nextState = (oldState == VENTON) ? VENTOFF : VENTON;
     if (outputChangeNextDelay != 0) {   // don't change output state for 0 delay
-      stateFlags.element.status = (nextState ^ config->n_inverted);
-      digitalWrite(pin, stateFlags.element.status);
+      outputState = (nextState ^ config->n_inverted) ? ON : OFF;
+      digitalWrite(pin, outputState);
     }
     isFirstState = false;
 
+    if (valveLevel != 0 && !antiStickCycle && (now - valveOnLastTime >= (uint32_t)config->valveSwitchTime *100))
+      valveOnLastTime = now;  // consider "on" only after one valveSwitchTime cycle
+
   #ifdef DEBUG_OUTPUT
    hbwdebug(F("switchtstate, pin: ")); hbwdebug(pin);
-   oldState == VENTOFF ? hbwdebug(F(" VENTOFF")) : hbwdebug(F(" VENTON"));
+   oldState == VENTOFF ? hbwdebug(F(" OFF")) : hbwdebug(F(" ON"));
    hbwdebug(F(" next delay: ")); hbwdebug((uint32_t)outputChangeNextDelay *100); hbwdebug(F("\n"));
   #endif
   }
   
   // feedback trigger set?
   checkFeedback(device, channel);
+}
+
+
+void HBWValve::checkAntiStick(HBWDevice* device, uint32_t* now, bool antiStickEnabled, bool channelDisabled)
+{
+  if (!antiStickEnabled || channelDisabled) return;
+    
+  if (!antiStickCycle && (*now - valveOnLastTime) >= (0xFFFFFFFFUL - (2* 3600UL * 1000UL))) {
+    // valve not moved for 49 days (~2 hours before rollover of millis())
+    setNewLevel(device, config->error_pos);
+	valveOnLastTime = *now;
+    antiStickCycle = true;
+    hbwdebug(F("antiStickCycle START\n"));
+    return;
+  }
+  
+  if (antiStickCycle && (*now - valveOnLastTime) >= (uint32_t)(config->valveSwitchTime *10000UL *10)) {
+    // stay in antiStickCycle for valveSwitchTime times 10 (e.g. 180 sec default -> 30 minutes cycle)
+	// during this time, PID ar manual vavle level can be set - when above error_pos
+    // valveOnLastTime = *now;
+    antiStickCycle = false;
+    hbwdebug(F("antiStickCycle END\n"));
+    // PID can take over again
+    return;
+  }
 }
 
 
@@ -205,7 +247,7 @@ bool HBWValve::init_new_state()
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("Valve init_new_state, onTimer: "));  hbwdebug((uint32_t)onTimer*100);
   hbwdebug(F(" offTimer: "));  hbwdebug((uint32_t)offTimer*100);
-  hbwdebug(F(" valveSwitchTime: "));  hbwdebug((uint32_t)config->valveSwitchTime *10000);  hbwdebug(F("\n"));
+  hbwdebug(F(" valveSwitchTime: "));  hbwdebug((uint32_t)config->valveSwitchTime *10000UL);  hbwdebug(F("\n"));
   #endif
   
   if (first_on_or_off(onTimer, offTimer)) {

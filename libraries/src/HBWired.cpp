@@ -397,20 +397,21 @@ void HBWDevice::receive(){
 void HBWChannel::setInfo(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
 #endif
 void HBWChannel::set(HBWDevice* device, uint8_t length, uint8_t const * const data) {};
-uint8_t HBWChannel::get(uint8_t* data) { return 0; };   
-void HBWChannel::setLock(boolean inhibit) { inhibitActive = inhibit; };
-boolean HBWChannel::getLock() { return inhibitActive; };
+uint8_t HBWChannel::get(uint8_t* data) { return 0; };  
 void HBWChannel::loop(HBWDevice* device, uint8_t channel) {};    
 void HBWChannel::afterReadConfig() {};
+void HBWChannel::setLock(boolean inhibit) { inhibitActive = inhibit; };
+boolean HBWChannel::getLock() { return inhibitActive; };
 
 // default logging/feedback functions
-void HBWChannel::setFeedback(HBWDevice* device, boolean loggingEnabled, uint16_t loggingTime) {
+// reduce dynamic memory usage, by implementing the logging/feedback functions only for actor channels
+void HBWActorChannel::setFeedback(HBWDevice* device, boolean loggingEnabled, uint16_t loggingTime) {
   if (!nextFeedbackDelay && loggingEnabled) {
     lastFeedbackTime = millis();
-    nextFeedbackDelay = loggingTime ? loggingTime : device->getLoggingTime() * 100;
+    nextFeedbackDelay = loggingTime ? loggingTime : (uint16_t)device->getLoggingTime() * 100;
   }
 };
-void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
+void HBWActorChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
   if(!nextFeedbackDelay)  // feedback trigger set?
     return;
   if (millis() - lastFeedbackTime < nextFeedbackDelay)
@@ -419,15 +420,10 @@ void HBWChannel::checkFeedback(HBWDevice* device, uint8_t channel) {
   uint8_t data[7];  // TODO: set meaningfull value for data lenght (usual values are 2 bytes. 16 bit value or 8 bit value + 8 bit state_flags)
   uint8_t data_len = get(data);
   // sendInfoMessage returns 0 on success, 1 if bus busy, 2 if failed
-  uint8_t resultcode = device->sendInfoMessage(channel, data_len, data);   
-  if (resultcode == HBWDevice::BUS_BUSY)  // bus busy
-  // try again later, but insert a small delay
-    nextFeedbackDelay = 250;
-  else
-    nextFeedbackDelay = 0;
+  uint8_t resultcode = device->sendInfoMessage(channel, data_len, data);
+  nextFeedbackDelay = (resultcode == HBWDevice::BUS_BUSY) ? 250 : 0; // try again later, but insert a small delay
 };
-void HBWChannel::clearFeedback() { nextFeedbackDelay = 0; };
-
+void HBWActorChannel::clearFeedback() { nextFeedbackDelay = 0; };
 
 
 void HBWLinkSender::sendKeyEvent(HBWDevice* device, uint8_t srcChan, uint8_t keyPressNum, boolean longPress) {};

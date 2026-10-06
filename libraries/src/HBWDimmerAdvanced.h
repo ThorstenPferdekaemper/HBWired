@@ -79,7 +79,7 @@ struct hbw_config_dim {
 };
 
 
-class HBWDimmerAdvanced : public HBWChannel {
+class HBWDimmerAdvanced : public HBWActorChannel {
   public:
     HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config);
     // HBWDimmerAdvanced(uint8_t _pin, hbw_config_dim* _config, HBWKeyVirtual* _vKey);  // TODO: new variant with virtual key?

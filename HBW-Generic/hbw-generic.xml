@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<device version="12" eep_size="1024">
+<supported_types>
+	<type priority="2" id="HBW-Generic" name="Homebrew Wired Generic Device">
+		<parameter index="0" size="1" const_value="0xFF"/>
+		<parameter index="1" size="1" const_value="0"/>
+		<parameter index="2" size="2" cond_op="GE" const_value="0x0001"/>
+	</type>
+</supported_types>
+<paramset type="MASTER" id="HBW-Generic_dev_master">
+	<parameter id="CENTRAL_ADDRESS" hidden="true">
+		<logical type="integer"/>
+		<physical type="integer" size="4" interface="eeprom">
+			<address index="0x0002"/>
+		</physical>
+	</parameter>
+	<parameter id="DIRECT_LINK_DEACTIVATE" hidden="true">
+		<logical type="boolean" default="false"/>
+		<physical type="integer" size="0.1" interface="eeprom">
+			<address index="0x0006"/>
+		</physical>
+	</parameter>
+	<enforce id="CENTRAL_ADDRESS" value="1"/>
+	<enforce id="DIRECT_LINK_DEACTIVATE" value="true"/>
+	<parameter id="OWN_ADDRESS">
+		<logical type="integer" default="1124073470" min="1000" max="4294966295"/>
+		<physical type="integer" size="4" interface="eeprom">
+			<address index="0x03FC"/>
+		</physical>
+	</parameter>
+</paramset>
+<frames>
+	<frame id="LEVEL_GET" direction="to_device" type="#S" channel_field="10"/>
+	<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10"/>
+	<frame id="TOGGLE_INSTALL_TEST" type="#x" channel_field="10" direction="to_device">
+		<parameter param="toggle_flag" size="1.0" index="11.0" type="integer"/>
+	</frame>
+</frames>
+<channels>
+	<channel index="0" type="MAINTENANCE" ui_flags="internal" class="maintenance" count="1">
+		<paramset type="MASTER" id="maint_ch_master"/>
+		<paramset type="VALUES" id="maint_ch_values">
+			<parameter id="UNREACH" operations="read,event" ui_flags="service">
+				<logical type="boolean" operations="read,event"/>
+				<physical type="integer" interface="internal" value_id="UNREACH"/>
+			</parameter>
+			<parameter id="STICKY_UNREACH" operations="read,write,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="STICKY_UNREACH"/>
+			</parameter>
+			<parameter id="CONFIG_PENDING" operations="read,event" ui_flags="service">
+				<logical type="boolean"/>
+				<physical type="integer" interface="internal" value_id="CONFIG_PENDING"/>
+			</parameter>
+		</paramset>
+	</channel>
+	<channel index="1" type="DUMMY" count="1" physical_index_offset="-1">
+		<paramset id="hmw_ch_values" type="VALUES">
+			<parameter id="INSTALL_TEST" operations="write" ui_flags="internal">
+				<logical type="action"/>
+				<physical type="integer" interface="command" value_id="TOGGLE_FLAG" no_init="true">
+					<set request="TOGGLE_INSTALL_TEST"/>
+				</physical>
+				<conversion type="toggle" value="STATE" />
+			</parameter>
+		</paramset>
+	</channel>
+</channels>
+</device>

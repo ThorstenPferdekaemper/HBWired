@@ -4,6 +4,8 @@
 //
 // Homematic Wired Hombrew Hardware
 // Raspberry Pi Pico als Homematic-Device
+// - Restart module by "!!" (hexstring 2121) RAW command
+//
 // http://loetmeister.de/Elektronik/homematic/index.htm#modules
 //
 // Arduino Boards: https://github.com/earlephilhower/arduino-pico
@@ -29,7 +31,7 @@
 
 
 #define HARDWARE_VERSION 0x01
-#define FIRMWARE_VERSION 0x0014
+#define FIRMWARE_VERSION 0x0015
 #define HMW_DEVICETYPE 0x88
 
 #define NUM_CHANNELS 2  // total number of channels

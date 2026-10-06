@@ -17,7 +17,7 @@
 #include "HBWired.h"
 #include "HBWValve.h"
 
-#define DEBUG_OUTPUT   // debug output on serial/USB
+// #define DEBUG_OUTPUT   // debug output on serial/USB
 
 
 #define FIXED_SAMPLE_TIME 1000 // pid compute every second. Removes setSampleTime() from code
@@ -54,10 +54,10 @@ class HBWPids : public HBWChannel {
     bool inErrorState;
     bool inAuto; // 1 = automatic ; 0 = manual
     bool oldInAuto; // auto or manual state stored here, when in error pos.
-    int16_t setPoint; // temperatures in m°C
     uint32_t windowStartTime;
     
     // pidlib
+    int16_t setPoint; // temperatures in m°C
     int16_t input, lastInput;
    #ifdef FIXED_SAMPLE_TIME
     static const uint16_t sampleTime = FIXED_SAMPLE_TIME;

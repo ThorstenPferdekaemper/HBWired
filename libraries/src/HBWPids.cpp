@@ -79,7 +79,7 @@ void HBWPids::set(HBWDevice* device, uint8_t length, uint8_t const * const data)
   if (length == 1)
   {
     // toogle autotune
-    autoTuneRunning = !autoTuneRunning;
+    // autoTuneRunning = !autoTuneRunning;
     //TODO, toggle with specific value? e.g. 255?
     // TODO: reply with INFO_AUTOTUNE & AUTOTUNE_FLAGS message
     
@@ -131,7 +131,7 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   // can't send everything at once to the bus, add an initial delay between channels
   if (windowStartTime == 0)
   {
-    windowStartTime = (uint32_t) millis() - ((channel + 1) * 2000);
+    windowStartTime = (uint32_t) millis() - ((channel + 1) * 2000UL);
     
    #ifdef DEBUG_OUTPUT
    hbwdebug(F("PID ch: ")); hbwdebug(channel);
@@ -170,17 +170,16 @@ void HBWPids::loop(HBWDevice* device, uint8_t channel)
   // get output from PID. Doesn't do anything in Manual mode.
   compute();
   
-  unsigned long now = millis();
   // new window
-  if (now - windowStartTime > (uint32_t) config->windowSize * 10000)
+  if (millis() - windowStartTime > (uint32_t)(config->windowSize *10000UL))
   {
+    windowStartTime =  millis();
     uint8_t valveStatus = (uint8_t) output;  // mapped already from 0 to 200 (i.e. 0 to 100%)
     
     if (inAuto)   // only if inAuto (valve set() will only apply new level)
     {
       valve->set(device, sizeof(valveStatus), &valveStatus, SET_BY_PID);  // setByPID = true
     }
-    windowStartTime = now;
   #ifdef DEBUG_OUTPUT
   hbwdebug(F("computePid ch: ")); hbwdebug(channel);
   hbwdebug(F(" inAuto: ")); hbwdebug(inAuto);

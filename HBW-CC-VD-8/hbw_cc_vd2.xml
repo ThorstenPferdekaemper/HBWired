@@ -46,6 +46,7 @@
 		<frame id="INFO_LEVEL" direction="from_device" event="true" type="#i" channel_field="10">
 			<parameter type="integer" index="11.0" size="1.0" param="LEVEL"/>
 			<parameter type="integer" index="12.4" size="0.3" param="STATE_FLAGS"/>
+			<parameter type="integer" index="12.7" size="0.1" param="STATE_ANTISTICK"/>
 		</frame>
 		<frame id="KEY_EVENT_SHORT" direction="from_device" event="true" type="#K" channel_field="10">
 			<parameter type="integer" index="12.0" size="0.1" const_value="0"/>
@@ -252,6 +253,15 @@
 					</physical>
 					<conversion type="float_integer_scale" factor="2"/>
 				</parameter>
+				<parameter id="ANTI_STICK">
+				  <logical type="option">
+					<option id="OFF"/>
+					<option id="ON" default="true"/>
+				  </logical>
+				  <physical type="integer" size="0.1" interface="eeprom">
+					<address index="+0.3"/>
+				  </physical>
+				</parameter>
 				<parameter id="SWITCH_TIME">
 					<logical type="integer" min="10" max="2540" unit="s"/>
 					<physical type="integer" size="1.0" interface="eeprom" endian="little">
@@ -397,6 +407,21 @@
 						<value_map device_value="0x05" parameter_value="5"/>
 						<value_map device_value="0x06" parameter_value="6"/>
 						<value_map device_value="0x07" parameter_value="7"/>
+					</conversion>
+        		</parameter>
+        		<parameter id="ANTISTICK" operations="read,event" ui_flags="internal">
+					<logical type="option">
+						<option id="INACTIVE" default="true"/>
+						<option id="ACTIVE"/>
+						</logical>
+					<physical type="integer" interface="command" value_id="STATE_ANTISTICK">
+						<get request="LEVEL_GET" response="INFO_LEVEL"/>
+						<event frame="INFO_LEVEL"/>
+						<event frame="ACK_STATUS"/>
+					</physical>
+					<conversion type="option_integer">
+						<value_map device_value="0x00" parameter_value="0"/>
+						<value_map device_value="0x01" parameter_value="1"/>
 					</conversion>
         		</parameter>
         		<parameter id="INHIBIT" operations="read,write,event" control="NONE" loopback="true">

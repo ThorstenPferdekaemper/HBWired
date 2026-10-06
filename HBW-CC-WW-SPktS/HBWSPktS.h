@@ -34,7 +34,7 @@ struct hbw_config_dim_spkts {
 };
 
 
-class HBWSPktS : public HBWChannel {
+class HBWSPktS : public HBWActorChannel {
   public:
     HBWSPktS(uint8_t* _pin, hbw_config_dim_spkts* _config, HBWDeltaTx* _temp1, volatile unsigned char* _SPktS_currentValue);
     virtual uint8_t get(uint8_t* data);

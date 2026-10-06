@@ -23,7 +23,7 @@ struct hbw_config_switch {
 };
 
 
-class HBWSwitch : public HBWChannel {
+class HBWSwitch : public HBWActorChannel {
   public:
     HBWSwitch(uint8_t _pin, hbw_config_switch* _config);
     virtual uint8_t get(uint8_t* data);   
